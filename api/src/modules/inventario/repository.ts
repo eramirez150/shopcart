@@ -11,18 +11,20 @@ export async function registrar(idUsuario: number, idVariante: number, tipo: str
   return primera(r);
 }
 
-export async function kardex(idVariante: number, numero: number, tamano: number) {
+export async function kardex(idVariante: number, orden: string, numero: number, tamano: number) {
   const r = await ejecutar('SP_Inventario_ConsultarKardex', {
     IDVariante: [sql.Int, idVariante],
+    Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],
     Tamano: [sql.Int, tamano],
   });
   return pagina(r, numero, tamano);
 }
 
-export async function existencias(umbral: number | null, numero: number, tamano: number) {
+export async function existencias(umbral: number | null, orden: string, numero: number, tamano: number) {
   const r = await ejecutar('SP_Inventario_ListarExistencias', {
     Umbral: [sql.Int, umbral],
+    Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],
     Tamano: [sql.Int, tamano],
   });

@@ -8,13 +8,19 @@ export const rutasInventario = Router();
 rutasInventario.use(autenticar, autorizar('Operador', 'Administrador'));
 
 rutasInventario.get('/existencias', async (req, res) => {
-  const q = z.object({ umbral: z.coerce.number().int().min(0).optional(), ...paginacion }).parse(req.query);
-  res.json(await servicio.existencias(q.umbral ?? null, q.pagina, q.tamano));
+  const q = z
+    .object({
+      umbral: z.coerce.number().int().min(0).optional(),
+      orden: z.enum(['disponible', 'disponible_desc', 'sku', 'producto']).default('disponible'),
+      ...paginacion,
+    })
+    .parse(req.query);
+  res.json(await servicio.existencias(q.umbral ?? null, q.orden, q.pagina, q.tamano));
 });
 
 rutasInventario.get('/variantes/:id/kardex', async (req, res) => {
-  const q = z.object(paginacion).parse(req.query);
-  res.json(await servicio.kardex(id.parse(req.params.id), q.pagina, q.tamano));
+  const q = z.object({ orden: z.enum(['recientes', 'antiguos']).default('recientes'), ...paginacion }).parse(req.query);
+  res.json(await servicio.kardex(id.parse(req.params.id), q.orden, q.pagina, q.tamano));
 });
 
 rutasInventario.post('/movimientos', async (req, res) => {

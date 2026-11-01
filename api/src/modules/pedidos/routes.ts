@@ -19,6 +19,7 @@ rutasPedidos.get('/', async (req, res) => {
       idCliente: id.optional(),
       totalMin: z.coerce.number().min(0).optional(),
       totalMax: z.coerce.number().min(0).optional(),
+      orden: z.enum(['recientes', 'antiguos', 'total_desc', 'total_asc']).default('recientes'),
       ...paginacion,
     })
     .parse(req.query);

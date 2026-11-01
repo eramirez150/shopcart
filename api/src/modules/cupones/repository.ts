@@ -22,9 +22,10 @@ const comunes = (c: CuponEntrada) => ({
   IDCategoria: [sql.Int, c.idCategoria] as [unknown, unknown],
 });
 
-export async function listar(idUsuario: number, numero: number, tamano: number) {
+export async function listar(idUsuario: number, orden: string, numero: number, tamano: number) {
   const r = await ejecutar('SP_Cupones_Listar', {
     IDUsuario: [sql.Int, idUsuario],
+    Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],
     Tamano: [sql.Int, tamano],
   });

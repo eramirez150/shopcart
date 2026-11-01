@@ -19,8 +19,8 @@ const cupon = z.object({
 });
 
 rutasCupones.get('/', async (req, res) => {
-  const q = z.object(paginacion).parse(req.query);
-  res.json(await servicio.listar(idUsuario(req), q.pagina, q.tamano));
+  const q = z.object({ orden: z.enum(['id', 'codigo', 'vence', 'usos']).default('id'), ...paginacion }).parse(req.query);
+  res.json(await servicio.listar(idUsuario(req), q.orden, q.pagina, q.tamano));
 });
 
 rutasCupones.post('/', async (req, res) => {

@@ -10,8 +10,10 @@ rutasUsuarios.use(autenticar, autorizar('Administrador'));
 const roles = z.enum(['Cliente', 'Operador', 'Administrador']);
 
 rutasUsuarios.get('/', async (req, res) => {
-  const q = z.object({ rol: roles.optional(), ...paginacion }).parse(req.query);
-  res.json(await servicio.listar(idUsuario(req), q.rol ?? null, q.pagina, q.tamano));
+  const q = z
+    .object({ rol: roles.optional(), orden: z.enum(['id', 'nombre', 'correo', 'recientes']).default('id'), ...paginacion })
+    .parse(req.query);
+  res.json(await servicio.listar(idUsuario(req), q.rol ?? null, q.orden, q.pagina, q.tamano));
 });
 
 rutasUsuarios.post('/', async (req, res) => {

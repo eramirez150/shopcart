@@ -43,7 +43,12 @@ rutasDashboard.get('/carritos-abandonados', async (req, res) => {
 
 rutasBitacora.get('/', async (req, res) => {
   const q = z
-    .object({ modulo: z.enum(['Catalogo', 'Inventario', 'Cupones', 'Pedidos']).optional(), ...filtroFechas, ...paginacion })
+    .object({
+      modulo: z.enum(['Catalogo', 'Inventario', 'Cupones', 'Pedidos']).optional(),
+      orden: z.enum(['recientes', 'antiguos']).default('recientes'),
+      ...filtroFechas,
+      ...paginacion,
+    })
     .parse(req.query);
-  res.json(await servicio.bitacora(idUsuario(req), q.modulo ?? null, rangoDe(q), q.pagina, q.tamano));
+  res.json(await servicio.bitacora(idUsuario(req), q.modulo ?? null, rangoDe(q), q.orden, q.pagina, q.tamano));
 });

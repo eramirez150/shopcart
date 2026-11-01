@@ -11,10 +11,11 @@ export async function crear(idUsuario: number, correo: string, claveHash: string
   return primera(r);
 }
 
-export async function listar(idUsuario: number, rol: string | null, numero: number, tamano: number) {
+export async function listar(idUsuario: number, rol: string | null, orden: string, numero: number, tamano: number) {
   const r = await ejecutar('SP_Usuarios_Listar', {
     IDUsuario: [sql.Int, idUsuario],
     Rol: [sql.NVarChar(20), rol],
+    Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],
     Tamano: [sql.Int, tamano],
   });

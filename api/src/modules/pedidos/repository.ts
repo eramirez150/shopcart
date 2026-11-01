@@ -7,6 +7,7 @@ export interface FiltrosPedidos {
   idCliente?: number;
   totalMin?: number;
   totalMax?: number;
+  orden: string;
   pagina: number;
   tamano: number;
 }
@@ -29,6 +30,7 @@ export async function listar(idUsuario: number, f: FiltrosPedidos) {
     IDCliente: [sql.Int, f.idCliente ?? null],
     TotalMin: [sql.Decimal(12, 2), f.totalMin ?? null],
     TotalMax: [sql.Decimal(12, 2), f.totalMax ?? null],
+    Orden: [sql.NVarChar(20), f.orden],
     Pagina: [sql.Int, f.pagina],
     Tamano: [sql.Int, f.tamano],
   });

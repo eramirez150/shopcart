@@ -43,11 +43,12 @@ export async function carritosAbandonados(idUsuario: number, horas: number, nume
   return pagina(r, numero, tamano);
 }
 
-export async function bitacora(idUsuario: number, modulo: string | null, r: Rango, numero: number, tamano: number) {
+export async function bitacora(idUsuario: number, modulo: string | null, r: Rango, orden: string, numero: number, tamano: number) {
   const res = await ejecutar('SP_Bitacora_Listar', {
     IDUsuario: [sql.Int, idUsuario],
     Modulo: [sql.NVarChar(20), modulo],
     ...rango(r),
+    Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],
     Tamano: [sql.Int, tamano],
   });
