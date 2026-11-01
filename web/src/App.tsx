@@ -7,7 +7,17 @@ import { MisDirecciones } from './cuenta/MisDirecciones';
 import { MisPedidos } from './cuenta/MisPedidos';
 import { Login } from './paginas/Login';
 import { Registro } from './paginas/Registro';
+import { Bitacora } from './panel/Bitacora';
+import { CategoriasPanel } from './panel/Categorias';
+import { Cupones } from './panel/Cupones';
+import { Inventario } from './panel/Inventario';
+import { Kardex } from './panel/Kardex';
 import { PanelInicio, PanelLayout } from './panel/PanelLayout';
+import { PedidoPanel } from './panel/PedidoPanel';
+import { Pedidos } from './panel/Pedidos';
+import { ProductoEditar } from './panel/ProductoEditar';
+import { Productos } from './panel/Productos';
+import { Usuarios } from './panel/Usuarios';
 import { RutaProtegida } from './sesion/RutaProtegida';
 import { Buscar } from './tienda/Buscar';
 import { CarritoPagina } from './tienda/CarritoPagina';
@@ -55,6 +65,19 @@ export function App() {
       <Route element={<RutaProtegida roles={['Operador', 'Administrador']} />}>
         <Route path="/panel" element={<PanelLayout />}>
           <Route index element={<PanelInicio />} />
+          <Route path="pedidos" element={<Pedidos />} />
+          <Route path="pedidos/:id" element={<PedidoPanel />} />
+          <Route path="inventario" element={<Inventario />} />
+          <Route path="inventario/:id" element={<Kardex />} />
+          <Route element={<RutaProtegida roles={['Administrador']} />}>
+            <Route path="categorias" element={<CategoriasPanel />} />
+            <Route path="productos" element={<Productos />} />
+            <Route path="productos/:id" element={<ProductoEditar />} />
+            <Route path="cupones" element={<Cupones />} />
+            <Route path="usuarios" element={<Usuarios />} />
+            <Route path="bitacora" element={<Bitacora />} />
+          </Route>
+          <Route path="*" element={<NoEncontrada />} />
         </Route>
       </Route>
     </Routes>

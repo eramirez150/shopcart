@@ -11,9 +11,19 @@ interface Opcion {
 }
 
 const PERSONAL: Rol[] = ['Operador', 'Administrador'];
+const ADMIN: Rol[] = ['Administrador'];
 
 // Cada opción indica qué roles la ven. Las rutas también están protegidas en App.tsx.
-export const OPCIONES_PANEL: Opcion[] = [{ ruta: '/panel', texto: 'Inicio', roles: PERSONAL }];
+export const OPCIONES_PANEL: Opcion[] = [
+  { ruta: '/panel', texto: 'Inicio', roles: PERSONAL },
+  { ruta: '/panel/pedidos', texto: 'Pedidos y devoluciones', roles: PERSONAL },
+  { ruta: '/panel/inventario', texto: 'Inventario y kardex', roles: PERSONAL },
+  { ruta: '/panel/categorias', texto: 'Categorías', roles: ADMIN },
+  { ruta: '/panel/productos', texto: 'Productos, variantes y precios', roles: ADMIN },
+  { ruta: '/panel/cupones', texto: 'Cupones', roles: ADMIN },
+  { ruta: '/panel/usuarios', texto: 'Usuarios', roles: ADMIN },
+  { ruta: '/panel/bitacora', texto: 'Bitácora', roles: ADMIN },
+];
 
 export function PanelLayout() {
   const { usuario, cerrarSesion } = useSesion();

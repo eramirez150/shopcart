@@ -204,7 +204,7 @@ export interface Existencia {
 export interface MovimientoKardex {
   IDKardex: number;
   IDVariante: number;
-  Tipo: 'Entrada' | 'Salida' | 'Ajuste' | 'Devolucion' | string;
+  Tipo: 'Entrada' | 'Salida' | 'Ajuste' | 'Devolucion';
   Cantidad: number;
   ExistenciaResultante: number;
   Motivo: string;
