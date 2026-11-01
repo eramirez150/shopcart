@@ -1,12 +1,12 @@
 # ShopCart
 
-Plataforma web de ventas con SQL Server, API en Express con TypeScript y frontend en React con TypeScript (Fase 2).
-La especificación está en [docs/especificacion.md](docs/especificacion.md). Esta entrega (Fase 1) incluye la base de datos y el backend.
+Plataforma web de ventas con SQL Server, API en Express con TypeScript y frontend en React con TypeScript.
+La especificación está en [docs/especificacion.md](docs/especificacion.md). La Fase 1 entregó la base de datos y la API; la Fase 2 agrega el frontend en `web/` y su servicio en Docker.
 
 ## Requisitos
 
 - Docker con Docker Compose.
-- Node.js 24 o superior, solo para desarrollar la API fuera de Docker.
+- Node.js 24 o superior, solo para desarrollar la API o el frontend fuera de Docker.
 
 ## Instalación
 
@@ -23,10 +23,13 @@ Editar `.env` y definir estos tres valores, sin comillas. Si falta alguno, `dock
 | `MSSQL_SA_PASSWORD` | Clave de `sa`: mínimo 8 caracteres con mayúsculas, minúsculas, números y símbolos |
 | `APP_DB_PASSWORD` | Clave de `shopcart_app`, con las mismas reglas |
 | `JWT_SECRET` | Al menos 32 caracteres aleatorios |
+| `VITE_MODO_DEMO` | Opcional. `true` muestra en el login los botones para entrar como cliente, operador o administrador. Por defecto `false` |
 
 ```bash
 docker compose up --build
 ```
+
+Se levantan cuatro servicios: `db`, `db-init` (aplica los scripts y termina), `api` y `web`. **La tienda queda en `http://127.0.0.1:8080`** (también `http://localhost:8080`). El servicio `web` sirve el frontend compilado con nginx y reenvía `/api` a la API, así que el navegador usa un solo origen. `VITE_MODO_DEMO` se fija al compilar: después de cambiarlo, ejecutar otra vez `docker compose up --build`. Para empezar con una base limpia: `docker compose down -v`.
 
 La API queda en `http://localhost:3000/api` y su documentación en `http://localhost:3000/api/docs`. La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden: `00_base` crea la base, tablas y semillas se aplican una sola vez, y funciones, vistas, procedimientos y permisos en cada arranque.
 
@@ -57,6 +60,37 @@ npm run build && npm start
 ```
 
 La documentación interactiva está en `http://localhost:3000/api/docs` (Swagger UI, con botón **Authorize** para pegar el JWT). El contrato escrito a mano es [api/openapi.yaml](api/openapi.yaml).
+
+### Frontend fuera de Docker
+
+Con la base y la API levantadas (por ejemplo `docker compose up -d db db-init api`):
+
+```bash
+cd web
+npm install
+npm run dev        # http://localhost:5173, con recarga
+```
+
+Vite reenvía `/api` a `http://localhost:3000`; otro destino se indica con `API_PROXY` en el entorno o en `web/.env`. Las variables del navegador están en `web/.env.example` (`VITE_API_URL`, por defecto `/api`, y `VITE_MODO_DEMO`).
+
+```bash
+npm run typecheck  # comprobación de tipos (tsc --noEmit, modo strict)
+npm run build      # tipos y compilación a web/dist
+```
+
+Estructura de `web/src`:
+
+```text
+api/          Cliente de la API (token, renovación, errores), tipos de las respuestas y useApi
+sesion/       Sesión del usuario y rutas protegidas por rol
+componentes/  Estados de carga, vacío y error, paginación, campos, filtros en la URL, detalle de pedido
+tienda/       Encabezado, inicio, búsqueda, detalle, carrito y checkout
+cuenta/       Mi cuenta: pedidos y direcciones
+panel/        Paneles de operador y administrador, dashboard
+paginas/      Login y registro
+App.tsx       Rutas
+estilos.css   Estilos (un solo archivo, primero para celular)
+```
 
 ### Pruebas
 
@@ -191,6 +225,28 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 
 Limitaciones conocidas: un usuario desactivado conserva su token de acceso hasta que vence (15 minutos) y no puede renovarlo ni pagar, aunque puede seguir modificando su carrito durante ese tiempo; no hay límite de intentos de inicio de sesión.
 
+## Decisiones del frontend
+
+| Tema | Decisión |
+| --- | --- |
+| Sesión | El access token y el refresh token se guardan en `localStorage` para sobrevivir a una recarga. Es lo más simple de explicar; el costo es que un script inyectado podría leerlos (no hay HTML de usuarios sin escapar: React escapa todo el texto). |
+| Renovación del token | Ante un 401, `api/cliente.ts` pide `/auth/refresh` y repite la petición una sola vez. Como el refresh token es de un solo uso y reusarlo cierra todas las sesiones, las peticiones simultáneas comparten la misma renovación y las pestañas se coordinan con Web Locks: si otra pestaña ya renovó, se usa su sesión. |
+| Carrito de invitado | El token del carrito se guarda en `localStorage` y viaja en `X-Carrito-Token`. Al iniciar sesión se envía para que la API lo fusione y luego se borra. `/auth/registro` no fusiona carritos, así que el registro cierra la sesión que abre y entra con `/auth/login`, que sí lo hace. |
+| Un solo origen | El frontend llama a `/api` relativo: Vite (desarrollo) y nginx (Docker) lo reenvían a la API. No depende de CORS; aun así `CORS_ORIGIN` admite `localhost` y `127.0.0.1` en el puerto 8080. |
+| Rutas por rol | `RutaProtegida` exige sesión y rol. El cliente usa la tienda, el checkout y Mi cuenta; operador y administrador entran a `/panel`, cuyo menú lateral muestra solo lo de su rol. La API vuelve a validar todo. |
+| Filtros | Los filtros, el orden y la página de cada listado viven en la URL (`?estado=Pagado&pagina=2`): se pueden recargar y compartir, y el botón Atrás funciona. El filtrado, el orden y la paginación los hace la API. |
+| Formularios | Validación propia en `validacion.ts`, sin librería. Los errores de validación que devuelve la API (`detalle`) se muestran junto al campo y los demás errores, con su mensaje, encima del botón. |
+| Doble envío | Los botones que escriben se deshabilitan mientras esperan. En el checkout además hay un bloqueo inmediato con `useRef`, porque el estado de React tarda un render; la API ya devuelve la misma reserva y el mismo pedido si se repite la petición. |
+| Seis productos por pantalla | En celular la cuadrícula tiene dos columnas y cada fila mide un tercio del alto útil (`100dvh` menos la barra compacta, el menú inferior y los espacios). Así entran exactamente 3 filas entre la barra y el menú en 390 × 844 y en cualquier alto. Desde 600 px las tarjetas son cuadradas y hay 3 o más columnas. |
+| Datos que la API no tiene | La API no entrega calificaciones, ventas por producto ni precio anterior. La tarjeta solo muestra estrellas, ventas y precio tachado si esos campos llegan (`Calificacion`, `Ventas`, `PrecioAnterior`); hoy esas líneas se omiten. Tampoco hay un listado público de los más vendidos (`/dashboard/top-productos` es solo para el administrador), así que las secciones del inicio son Novedades, Precios bajos y dos categorías. |
+| Promociones | No hay módulo de promociones: el carrusel invita a recorrer las cuatro primeras categorías reales, sin descuentos inventados. "Ver ofertas" lleva a los productos ordenados por precio. |
+| Carrito | Las líneas del carrito no traen imagen ni producto (solo variante), por eso se muestran sin foto. El cupón exige sesión, como la API. |
+| Checkout | Se permite solo al rol Cliente. Pasos: dirección (guardada o nueva), cupón (el del carrito), confirmación, que reserva la existencia 15 minutos, y pago simulado, que crea el pedido. Un 409 al pagar (reserva vencida o carrito cambiado) regresa a la confirmación con el mensaje de la API. |
+| Confirmaciones | Desactivar o eliminar usa `window.confirm`; cancelar un pedido tiene una confirmación en la página. |
+| Gráficas | Chart.js con una sola serie por gráfica en el color de acento, sin doble eje (ventas y pedidos van en gráficas separadas) y con una tabla equivalente debajo. Se carga solo al abrir el dashboard (`React.lazy`), así la tienda no la descarga. |
+| Estilo | Un solo color de acento propio (`#0b6e63`), fondos claros y estados escritos como texto, sin pastillas de colores. Íconos e ilustración del carrito vacío dibujados en SVG para este proyecto. |
+| Accesos de demostración | Con `VITE_MODO_DEMO=true` el login muestra tres botones con las credenciales de prueba. Sin esa variable el código no llega al paquete compilado. |
+
 ## Supuestos
 
 El enunciado no define estos puntos, así que se decidieron de esta forma:
@@ -223,6 +279,16 @@ Todas respetan el stack obligatorio. Ninguna accede a datos por su cuenta: `mssq
 | `yaml` | Leer `openapi.yaml` al iniciar | Node.js no lee YAML por sí solo |
 
 Solo para desarrollo: `typescript` compila el código, `tsx` ejecuta TypeScript en modo de desarrollo y en las pruebas, y los paquetes `@types/*` aportan los tipos de las librerías.
+
+### Frontend (`web/`)
+
+| Librería | Para qué se usa | Por qué |
+| --- | --- | --- |
+| `react`, `react-dom` | Interfaz | Exigida por el stack |
+| `react-router` | Rutas, rutas protegidas y parámetros de la URL | Exigida por el enunciado; es la librería de rutas habitual de React |
+| `chart.js` | Gráficas de barras del dashboard | Una sola librería de gráficas, sin dependencias, con tooltip y accesible por `aria-label`. Se registran solo las piezas que se usan y se descarga solo en el dashboard |
+
+Solo para desarrollo: `vite` y `@vitejs/plugin-react` sirven y compilan el proyecto, `typescript` comprueba los tipos y `@types/react` y `@types/react-dom` aportan los tipos de React. No se usan librerías de estado, formularios, peticiones ni componentes visuales: `fetch`, los contextos de React y un archivo de estilos alcanzan.
 
 ## Modelo entidad-relación
 
@@ -320,3 +386,25 @@ Las correcciones de la Fase 1 se verificaron con SQL Server 2022 en Docker (`mcr
 - `docker compose up` con los tres servicios: `db-init` termina con código 0 y la API (imagen `node:24-alpine`) responde en `/api/salud`, `/api/docs` y el dashboard con los datos de demostración.
 
 `npm test` se ejecutó con Node.js 22; la API en Node.js 24 solo se probó dentro de Docker. No se volvió a probar en SQL Server LocalDB 2019.
+
+### Fase 2
+
+Verificado con SQL Server 2022 en Docker, Node.js 24 y Chromium sin interfaz (Playwright) contra la API real, sin datos simulados:
+
+- En `web/`: `npm run typecheck` y `npm run build` sin errores.
+- En `api/`: `npx tsc --noEmit` sin errores y `npm test` con 35 pruebas aprobadas sobre una base recién creada (Node.js 24). La API no se modificó.
+- `docker compose up` con los cuatro servicios sobre un volumen vacío: `db-init` termina con código 0, la tienda responde en `http://127.0.0.1:8080`, las rutas de React (`/panel/dashboard`) devuelven `index.html` y `/api/salud` llega a la API a través de nginx.
+- A 390 × 844, en el listado de productos: con la barra compacta se ven exactamente 6 tarjetas completas (3 filas de 2) entre la barra y el menú inferior, sin una séptima a medias. Al bajar, la barra pasa de 52 a 48 px y el buscador se oculta; al subir vuelve.
+- Tienda: carrusel, categorías y secciones; agregar desde la tarjeta y desde el detalle con variantes; carrito de invitado que se conserva al iniciar sesión; cupón rechazado (`VENCIDO`, con el mensaje de la API) y aceptado (`Q50`); checkout con doble clic en confirmar y en pagar que crea un solo pedido; carrito vacío después de pagar.
+- Renovación del token con la API configurada para que el token dure 3 segundos: dos peticiones simultáneas con el token vencido reciben 401, se hace un solo `/auth/refresh` y ambas se repiten con éxito; una segunda pestaña conserva la sesión.
+- Mi cuenta: filtro por estado en la URL, detalle con historial, cancelación, CRUD de direcciones con validación y 404 al pedir el pedido de otro cliente.
+- Operador: menú solo con pedidos e inventario y "Sin permiso" en el dashboard; un pedido avanzado de Pagado a Entregado, devolución parcial que lo deja en Devuelto en parte; salida mayor a la existencia rechazada con el mensaje de la API; entrada, salida y ajuste reflejados en el kardex.
+- Administrador: dashboard con indicadores, 4 gráficas y carritos abandonados, y cambio de agrupación; alta de categoría, producto, variante, precio e imagen con sus validaciones; desactivación de producto; alta de cupón con validación de porcentaje y fechas; alta y desactivación de usuario; bitácora filtrada por módulo.
+- Sin `VITE_MODO_DEMO` los botones de demostración no aparecen en el paquete compilado.
+
+No probado o con limitaciones del entorno de verificación:
+
+- Las imágenes de muestra de `picsum.photos` no se pudieron descargar desde el entorno de prueba; en las capturas se reemplazaron por una imagen local. Con acceso a internet se cargan desde ese sitio.
+- La construcción de las imágenes de Docker se probó agregando el certificado del proxy de ese entorno en una copia temporal de los Dockerfile (el `npm ci` fallaba con `SELF_SIGNED_CERT_IN_CHAIN`). Los Dockerfile del repositorio no lo necesitan en una red normal.
+- Solo Chromium; no se probó en Safari ni en Firefox, ni en teléfonos reales.
+- `database/pruebas/ejecutar.sh` no se volvió a ejecutar en esta fase porque la base no cambió.
