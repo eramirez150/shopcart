@@ -1,0 +1,784 @@
+openapi: 3.0.3
+info:
+  title: ShopCart API
+  version: 1.0.0
+  description: |
+    API de la plataforma de ventas ShopCart (Fase 1).
+
+    **Autenticación.** Inicie sesión en `POST /auth/login`, copie el `accessToken` y péguelo en el botón *Authorize*.
+    El token dura 15 minutos: vencido responde 401 y se renueva con `POST /auth/refresh`
+    (cada refresh token sirve una sola vez). Un rol sin permiso recibe 403.
+
+    **Carrito de invitado.** Sin sesión, envíe la cabecera `X-Carrito-Token`. El primer `POST /carrito/items`
+    sin token crea el carrito y devuelve su `TokenInvitado`. Al iniciar sesión con esa cabecera el carrito se fusiona con la cuenta.
+
+    **Montos** en quetzales con IVA incluido. **Errores** con la forma `{ "error": { "codigo", "mensaje", "detalle" } }`.
+servers:
+  - url: http://localhost:3000/api
+security:
+  - bearerAuth: []
+tags:
+  - { name: Auth }
+  - { name: Usuarios }
+  - { name: Catálogo }
+  - { name: Inventario }
+  - { name: Carrito }
+  - { name: Cupones }
+  - { name: Checkout }
+  - { name: Pedidos }
+  - { name: Dashboard }
+  - { name: Bitácora }
+paths:
+  /salud:
+    get:
+      summary: Estado del servicio
+      security: []
+      responses:
+        '200':
+          description: El servicio responde
+          content: { application/json: { example: { estado: ok } } }
+
+  /auth/registro:
+    post:
+      tags: [Auth]
+      summary: Registra un cliente y abre sesión
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { correo: nuevo@shopcart.test, clave: Clave-segura-1, nombre: Nora Nueva }
+      responses:
+        '201': { $ref: '#/components/responses/Sesion' }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Inicia sesión (con X-Carrito-Token fusiona el carrito de invitado)
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/CarritoToken' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { correo: cliente@shopcart.test, clave: Cliente123! }
+      responses:
+        '200': { $ref: '#/components/responses/Sesion' }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Renueva la sesión; el refresh token enviado deja de servir
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { refreshToken: 'q3b1vH0...token-recibido-en-el-login' }
+      responses:
+        '200': { $ref: '#/components/responses/Sesion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoca el refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { refreshToken: 'q3b1vH0...token-recibido-en-el-login' }
+      responses:
+        '204': { description: Sesión cerrada }
+
+  /usuarios:
+    get:
+      tags: [Usuarios]
+      summary: Lista usuarios (Administrador)
+      parameters:
+        - { name: rol, in: query, schema: { $ref: '#/components/schemas/Rol' }, example: Operador }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de usuarios
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDUsuario: 2, Correo: operador@shopcart.test, Nombre: Óscar Operador, Rol: Operador, Activo: true }]
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+    post:
+      tags: [Usuarios]
+      summary: Crea un usuario con rol (Administrador)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { correo: operador2@shopcart.test, clave: Clave-segura-1, nombre: Olga Operadora, rol: Operador }
+      responses:
+        '201':
+          description: Usuario creado
+          content: { application/json: { example: { IDUsuario: 5, Correo: operador2@shopcart.test, Nombre: Olga Operadora, Rol: Operador, Activo: true } } }
+        '409': { $ref: '#/components/responses/Conflicto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /usuarios/{id}:
+    patch:
+      tags: [Usuarios]
+      summary: Cambia el rol o desactiva un usuario (nunca se borra)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { activo: false }
+      responses:
+        '200':
+          description: Usuario actualizado
+          content: { application/json: { example: { IDUsuario: 4, Correo: cliente2@shopcart.test, Nombre: Carlos Cliente, Rol: Cliente, Activo: false } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+
+  /categorias:
+    get:
+      tags: [Catálogo]
+      summary: Lista categorías activas (público)
+      security: []
+      parameters:
+        - { name: incluirInactivas, in: query, description: Solo lo respeta el Administrador, schema: { type: boolean }, example: false }
+      responses:
+        '200':
+          description: Categorías
+          content: { application/json: { example: [{ IDCategoria: 1, Nombre: Electrónica, Descripcion: 'Audio, video y accesorios', Activa: true }] } }
+    post:
+      tags: [Catálogo]
+      summary: Crea una categoría (Administrador)
+      requestBody:
+        required: true
+        content: { application/json: { example: { nombre: Mascotas, descripcion: Alimento y accesorios } } }
+      responses:
+        '201':
+          description: Categoría creada
+          content: { application/json: { example: { IDCategoria: 9, Nombre: Mascotas, Descripcion: Alimento y accesorios, Activa: true } } }
+        '409': { $ref: '#/components/responses/Conflicto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /categorias/{id}:
+    put:
+      tags: [Catálogo]
+      summary: Modifica una categoría (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { example: { nombre: Mascotas y más, descripcion: null, activa: true } } }
+      responses:
+        '200':
+          description: Categoría actualizada
+          content: { application/json: { example: { IDCategoria: 9, Nombre: Mascotas y más, Descripcion: null, Activa: true } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      tags: [Catálogo]
+      summary: Elimina la categoría o, si tiene productos, la desactiva (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Resultado
+          content: { application/json: { example: { Resultado: Desactivada } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /productos:
+    get:
+      tags: [Catálogo]
+      summary: Busca productos con filtros, orden y paginación (público)
+      security: []
+      parameters:
+        - { name: texto, in: query, schema: { type: string }, example: inalámbrico }
+        - { name: idCategoria, in: query, schema: { type: integer }, example: 1 }
+        - { name: precioMin, in: query, schema: { type: number }, example: 50 }
+        - { name: precioMax, in: query, schema: { type: number }, example: 500 }
+        - { name: soloDisponibles, in: query, schema: { type: boolean }, example: true }
+        - { name: orden, in: query, schema: { type: string, enum: [nombre, precio_asc, precio_desc, recientes] }, example: precio_asc }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de productos
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDProducto: 9, Nombre: Mouse inalámbrico, IDCategoria: 2, Categoria: Computación, PrecioDesde: 89.9, PrecioHasta: 89.9, Disponible: 80, Variantes: 1 }]
+        '400': { $ref: '#/components/responses/Validacion' }
+    post:
+      tags: [Catálogo]
+      summary: Crea un producto (Administrador)
+      requestBody:
+        required: true
+        content: { application/json: { example: { idCategoria: 2, nombre: Hub USB-C, descripcion: Hub de 4 puertos } } }
+      responses:
+        '201': { $ref: '#/components/responses/Producto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /productos/{id}:
+    get:
+      tags: [Catálogo]
+      summary: Producto con sus variantes y disponible (público; el Administrador ve inactivos)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Producto' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    put:
+      tags: [Catálogo]
+      summary: Modifica o desactiva un producto (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { example: { idCategoria: 2, nombre: Hub USB-C 4 puertos, descripcion: null, activo: true } } }
+      responses:
+        '200': { $ref: '#/components/responses/Producto' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      tags: [Catálogo]
+      summary: Elimina el producto; si tiene ventas, reservas, carritos o movimientos lo desactiva (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Resultado
+          content: { application/json: { example: { Resultado: Desactivado } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+  /productos/{id}/variantes:
+    post:
+      tags: [Catálogo]
+      summary: Agrega una variante con SKU único, atributos, precio y existencia inicial (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { example: { sku: COM-HUB-001, atributos: { Color: Gris }, precio: 149, existenciaInicial: 20 } } }
+      responses:
+        '201': { $ref: '#/components/responses/Producto' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /productos/variantes/{idVariante}:
+    put:
+      tags: [Catálogo]
+      summary: Modifica SKU, atributos, precio o estado de una variante (Administrador)
+      parameters:
+        - { name: idVariante, in: path, required: true, schema: { type: integer }, example: 1 }
+      requestBody:
+        required: true
+        content: { application/json: { example: { sku: COM-HUB-001, atributos: { Color: Gris }, precio: 139, activa: true } } }
+      responses:
+        '200': { $ref: '#/components/responses/Producto' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /inventario/existencias:
+    get:
+      tags: [Inventario]
+      summary: Existencia, reservado y disponible por variante (Operador, Administrador)
+      parameters:
+        - { name: umbral, in: query, description: Solo variantes con disponible igual o menor, schema: { type: integer }, example: 5 }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de existencias
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDVariante: 61, SKU: JUG-PEL-001, Producto: Pelota saltarina, Atributos: '{}', Existencia: 0, Reservado: 0, Disponible: 0 }]
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /inventario/variantes/{id}/kardex:
+    get:
+      tags: [Inventario]
+      summary: Kardex de una variante (Operador, Administrador)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Movimientos, el más reciente primero
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDKardex: 1, IDVariante: 1, Tipo: Entrada, Cantidad: 40, ExistenciaResultante: 40, Motivo: Inventario inicial, IDUsuario: 1, Usuario: Ana Administradora, IDPedido: null, Fecha: '2026-11-01T10:00:00.000Z' }]
+  /inventario/movimientos:
+    post:
+      tags: [Inventario]
+      summary: Registra entrada, salida o ajuste con motivo; no deja la existencia en negativo (Operador, Administrador)
+      requestBody:
+        required: true
+        content: { application/json: { example: { idVariante: 1, tipo: Ajuste, cantidad: -2, motivo: Conteo físico } } }
+      responses:
+        '201':
+          description: Movimiento registrado
+          content: { application/json: { example: { IDKardex: 70, IDVariante: 1, Tipo: Ajuste, Cantidad: -2, ExistenciaResultante: 38, Motivo: Conteo físico, Fecha: '2026-11-01T10:00:00.000Z' } } }
+        '409': { $ref: '#/components/responses/Conflicto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+
+  /carrito:
+    get:
+      tags: [Carrito]
+      summary: Carrito con subtotal, descuento y total (sesión o X-Carrito-Token)
+      security: [{}, { bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/CarritoToken' }]
+      responses:
+        '200': { $ref: '#/components/responses/Carrito' }
+  /carrito/items:
+    post:
+      tags: [Carrito]
+      summary: Agrega una variante sin superar el disponible
+      security: [{}, { bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/CarritoToken' }]
+      requestBody:
+        required: true
+        content: { application/json: { example: { idVariante: 1, cantidad: 2 } } }
+      responses:
+        '201': { $ref: '#/components/responses/Carrito' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /carrito/items/{idVariante}:
+    patch:
+      tags: [Carrito]
+      summary: Cambia la cantidad de una línea
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CarritoToken' }
+        - { name: idVariante, in: path, required: true, schema: { type: integer }, example: 1 }
+      requestBody:
+        required: true
+        content: { application/json: { example: { cantidad: 3 } } }
+      responses:
+        '200': { $ref: '#/components/responses/Carrito' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+    delete:
+      tags: [Carrito]
+      summary: Quita una línea
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/CarritoToken' }
+        - { name: idVariante, in: path, required: true, schema: { type: integer }, example: 1 }
+      responses:
+        '200': { $ref: '#/components/responses/Carrito' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+  /carrito/cupon:
+    put:
+      tags: [Carrito]
+      summary: Aplica un cupón (uno por pedido); el rechazo indica la causa
+      requestBody:
+        required: true
+        content: { application/json: { example: { codigo: BIENVENIDA10 } } }
+      responses:
+        '200': { $ref: '#/components/responses/Carrito' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+    delete:
+      tags: [Carrito]
+      summary: Quita el cupón
+      responses:
+        '200': { $ref: '#/components/responses/Carrito' }
+
+  /cupones:
+    get:
+      tags: [Cupones]
+      summary: Lista cupones (Administrador)
+      parameters:
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de cupones
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDCupon: 1, Codigo: BIENVENIDA10, Tipo: Porcentaje, Valor: 10, MinimoCompra: 0, LimiteTotal: null, LimitePorCliente: 1, Usos: 0, IDCategoria: null, Activo: true }]
+        '403': { $ref: '#/components/responses/Prohibido' }
+    post:
+      tags: [Cupones]
+      summary: Crea un cupón (Administrador)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { codigo: NOVIEMBRE5, tipo: Monto, valor: 5, fechaInicio: '2026-11-01T00:00:00Z', fechaFin: '2026-11-30T23:59:59Z', minimoCompra: 50, limiteTotal: 200, limitePorCliente: 1, idCategoria: null }
+      responses:
+        '201':
+          description: Cupón creado
+          content: { application/json: { example: { IDCupon: 7, Codigo: NOVIEMBRE5, Tipo: Monto, Valor: 5, Usos: 0, Activo: true } } }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /cupones/{id}:
+    put:
+      tags: [Cupones]
+      summary: Modifica o desactiva un cupón (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { tipo: Monto, valor: 5, fechaInicio: '2026-11-01T00:00:00Z', fechaFin: '2026-11-30T23:59:59Z', minimoCompra: 50, limiteTotal: 200, limitePorCliente: 1, idCategoria: null, activo: false }
+      responses:
+        '200':
+          description: Cupón actualizado
+          content: { application/json: { example: { IDCupon: 7, Codigo: NOVIEMBRE5, Activo: false } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /checkout/pagos:
+    post:
+      tags: [Checkout]
+      summary: Inicia el pago; reserva la existencia 15 minutos con precio y descuento congelados
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { direccion: 6a avenida 12-34 zona 1, ciudad: Guatemala, telefono: '55551234', codigoCupon: Q50 }
+      responses:
+        '201': { $ref: '#/components/responses/Reserva' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /checkout/reservas/{id}:
+    get:
+      tags: [Checkout]
+      summary: Consulta una reserva propia
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Reserva' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      tags: [Checkout]
+      summary: Cancela el pago; anula la reserva y libera la existencia
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Reserva' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /checkout/reservas/{id}/pedido:
+    post:
+      tags: [Checkout]
+      summary: Confirma el pago simulado y crea el pedido; repetir la llamada devuelve el mismo pedido
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '201': { $ref: '#/components/responses/Pedido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+
+  /pedidos:
+    get:
+      tags: [Pedidos, Dashboard]
+      summary: Pedidos filtrados y paginados (el Cliente solo ve los suyos)
+      parameters:
+        - { name: estado, in: query, schema: { $ref: '#/components/schemas/EstadoPedido' }, example: Pagado }
+        - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
+        - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
+        - { name: idCliente, in: query, description: Ignorado para el Cliente, schema: { type: integer }, example: 3 }
+        - { name: totalMin, in: query, schema: { type: number }, example: 100 }
+        - { name: totalMax, in: query, schema: { type: number }, example: 2000 }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de pedidos
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDPedido: 1, IDUsuario: 3, Cliente: Carla Cliente, Estado: Pagado, Subtotal: 1036.8, Descuento: 50, Total: 986.8, FechaCreacion: '2026-11-01T15:34:19.000Z' }]
+  /pedidos/{id}:
+    get:
+      tags: [Pedidos]
+      summary: Pedido con líneas e historial (un pedido ajeno responde 404 al Cliente)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Pedido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+  /pedidos/{id}/estado:
+    patch:
+      tags: [Pedidos]
+      summary: Cambia el estado. El Operador avanza o cancela; el Cliente solo cancela el suyo
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { example: { estado: EnPreparacion, comentario: Empacando } } }
+      responses:
+        '200': { $ref: '#/components/responses/Pedido' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /pedidos/{id}/devoluciones:
+    get:
+      tags: [Pedidos]
+      summary: Devoluciones de un pedido
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Devoluciones' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    post:
+      tags: [Pedidos]
+      summary: Registra una devolución total o parcial por línea (Operador, Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: { motivo: Producto defectuoso, lineas: [{ idPedidoDetalle: 1, cantidad: 1 }] }
+      responses:
+        '201': { $ref: '#/components/responses/Devoluciones' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+
+  /dashboard/ventas:
+    get:
+      tags: [Dashboard]
+      summary: Ventas netas y pedidos por día, semana o mes (Administrador)
+      parameters:
+        - { name: agrupacion, in: query, schema: { type: string, enum: [Dia, Semana, Mes] }, example: Semana }
+        - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
+        - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
+      responses:
+        '200':
+          description: Serie de ventas
+          content: { application/json: { example: [{ Periodo: '2026-10-26T00:00:00.000Z', Pedidos: 3, Ventas: 2450.5 }] } }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /dashboard/categorias:
+    get:
+      tags: [Dashboard]
+      summary: Ventas netas por categoría (Administrador)
+      parameters:
+        - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
+        - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
+      responses:
+        '200':
+          description: Ventas por categoría
+          content: { application/json: { example: [{ IDCategoria: 1, Categoria: Electrónica, Unidades: 12, Ventas: 3890.2 }] } }
+  /dashboard/top-productos:
+    get:
+      tags: [Dashboard]
+      summary: Productos más vendidos (Administrador)
+      parameters:
+        - { name: cantidad, in: query, schema: { type: integer, default: 10 }, example: 10 }
+        - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
+        - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
+      responses:
+        '200':
+          description: Top por unidades netas
+          content: { application/json: { example: [{ IDProducto: 1, Producto: Audífonos inalámbricos, Unidades: 8, Ventas: 2540 }] } }
+  /dashboard/indicadores:
+    get:
+      tags: [Dashboard]
+      summary: Pedidos, ventas, ticket promedio y carritos abandonados (Administrador)
+      parameters:
+        - { name: horas, in: query, description: Horas sin cambios para considerar abandonado un carrito, schema: { type: integer, default: 24 }, example: 24 }
+        - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
+        - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
+      responses:
+        '200':
+          description: Indicadores
+          content: { application/json: { example: { Pedidos: 3, Ventas: 2450.5, TicketPromedio: 816.83, CarritosAbandonados: 2 } } }
+  /dashboard/carritos-abandonados:
+    get:
+      tags: [Dashboard]
+      summary: Carritos abiertos con productos y sin cambios recientes (Administrador)
+      parameters:
+        - { name: horas, in: query, schema: { type: integer, default: 24 }, example: 24 }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de carritos
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDCarrito: 4, IDUsuario: 3, Correo: cliente@shopcart.test, FechaActualizacion: '2026-10-30T09:00:00.000Z', Lineas: 2, Valor: 478.9 }]
+
+  /bitacora:
+    get:
+      tags: [Bitácora]
+      summary: Consulta la bitácora, filtrable por módulo (Administrador). Es de solo lectura
+      parameters:
+        - { name: modulo, in: query, schema: { type: string, enum: [Catalogo, Inventario, Cupones, Pedidos] }, example: Pedidos }
+        - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
+        - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de registros
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                tamano: 20
+                datos: [{ IDBitacora: 121, Fecha: '2026-11-01T15:37:57.000Z', IDUsuario: 2, Usuario: Óscar Operador, Modulo: Pedidos, Entidad: Pedido, IDEntidad: 1, Accion: Modificacion, ValorAnterior: '{"Estado":"Despachado"}', ValorNuevo: '{"Estado":"Entregado"}' }]
+        '403': { $ref: '#/components/responses/Prohibido' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+      example: 1
+    Pagina:
+      name: pagina
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+      example: 1
+    Tamano:
+      name: tamano
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      example: 20
+    CarritoToken:
+      name: X-Carrito-Token
+      in: header
+      description: Token del carrito de invitado (GUID)
+      schema: { type: string, format: uuid }
+      example: e458443c-0117-4ea6-a9f9-54a6c6bb7bd7
+  schemas:
+    Rol: { type: string, enum: [Cliente, Operador, Administrador] }
+    EstadoPedido:
+      type: string
+      enum: [Pagado, EnPreparacion, Despachado, Entregado, DevueltoParcial, Devuelto, Cancelado]
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            codigo: { type: string }
+            mensaje: { type: string }
+            detalle: {}
+  responses:
+    Validacion:
+      description: Datos inválidos (400)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { codigo: VALIDACION, mensaje: Datos inválidos, detalle: [{ campo: cantidad, mensaje: 'Too small: expected number to be >=1' }] } }
+    NoAutenticado:
+      description: Sin token, token inválido o expirado (401)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { codigo: TOKEN_EXPIRADO, mensaje: El token expiró } }
+    Prohibido:
+      description: El rol no tiene permiso (403)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { codigo: PROHIBIDO, mensaje: No tiene permiso para este recurso } }
+    NoEncontrado:
+      description: No existe o no es del usuario (404)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { codigo: NEGOCIO, mensaje: El pedido no existe. } }
+    Conflicto:
+      description: Choca con el estado actual (409)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { codigo: NEGOCIO, mensaje: La cantidad supera el disponible. } }
+    Sesion:
+      description: Sesión abierta
+      content:
+        application/json:
+          example:
+            accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            refreshToken: q3b1vH0...token-de-un-solo-uso
+            expiresIn: 900
+            usuario: { id: 3, correo: cliente@shopcart.test, nombre: Carla Cliente, rol: Cliente }
+    Producto:
+      description: Producto con variantes
+      content:
+        application/json:
+          example:
+            IDProducto: 1
+            Nombre: Audífonos inalámbricos
+            Descripcion: Audífonos Bluetooth con estuche de carga
+            IDCategoria: 1
+            Categoria: Electrónica
+            Activo: true
+            variantes: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Atributos: { Color: Negro }, Precio: 349, Activa: true, Existencia: 40, Reservado: 0, Disponible: 40 }]
+    Carrito:
+      description: Carrito con totales
+      content:
+        application/json:
+          example:
+            IDCarrito: 3
+            TokenInvitado: null
+            Cupon: BIENVENIDA10
+            Subtotal: 1047
+            Descuento: 104.7
+            Total: 942.3
+            lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Atributos: { Color: Negro }, Cantidad: 3, PrecioUnitario: 349, Subtotal: 1047, Descuento: 104.7, Total: 942.3, Disponible: 40 }]
+    Reserva:
+      description: Reserva de existencia
+      content:
+        application/json:
+          example:
+            IDReserva: 1
+            Estado: Activa
+            Expira: '2026-11-01T15:52:57.000Z'
+            Vencida: false
+            Cupon: Q50
+            Subtotal: 1036.8
+            Descuento: 50
+            Total: 986.8
+            Direccion: 6a avenida 12-34 zona 1
+            Ciudad: Guatemala
+            Telefono: '55551234'
+            lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Cantidad: 2, PrecioUnitario: 349, Descuento: 33.66 }]
+    Pedido:
+      description: Pedido con líneas e historial
+      content:
+        application/json:
+          example:
+            IDPedido: 1
+            IDUsuario: 3
+            Cliente: Carla Cliente
+            Estado: Pagado
+            Cupon: Q50
+            Subtotal: 1036.8
+            Descuento: 50
+            Total: 986.8
+            IVA: 105.73
+            ReferenciaPago: SIM-741A8A6C-9C9D-4A7D-977A-703C1F7BFDBF
+            lineas: [{ IDPedidoDetalle: 1, IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Cantidad: 2, PrecioUnitario: 349, Descuento: 33.66, CantidadDevuelta: 0 }]
+            historial: [{ EstadoAnterior: null, EstadoNuevo: Pagado, IDUsuario: 3, Usuario: Carla Cliente, Comentario: Pedido creado }]
+    Devoluciones:
+      description: Devoluciones del pedido con sus líneas
+      content:
+        application/json:
+          example:
+            - IDDevolucion: 1
+              IDPedido: 1
+              IDUsuario: 2
+              Motivo: Producto defectuoso
+              Monto: 314.1
+              lineas: [{ IDDevolucion: 1, IDPedidoDetalle: 1, SKU: ELE-AUD-NEG, Cantidad: 1, Monto: 314.1 }]
