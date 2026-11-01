@@ -1,33 +1,3 @@
--- Checkout: reserva de 15 minutos con precio y descuento congelados.
-
--- Devuelve la reserva (encabezado y líneas) de un cliente.
-CREATE OR ALTER PROCEDURE dbo.SP_Checkout_ObtenerReserva
-    @IDUsuario INT,
-    @IDReserva INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF NOT EXISTS (SELECT 1 FROM dbo.Reservas WHERE IDReserva = @IDReserva AND IDUsuario = @IDUsuario)
-        THROW 52404, N'La reserva no existe.', 1;
-
-    SELECT r.IDReserva, r.Estado, r.Expira,
-           CASE WHEN r.Estado = N'Activa' AND r.Expira <= SYSUTCDATETIME() THEN 1 ELSE 0 END AS Vencida,
-           c.Codigo AS Cupon, r.Subtotal, r.Descuento, r.Total,
-           r.Direccion, r.Ciudad, r.Telefono
-    FROM dbo.Reservas r
-    LEFT JOIN dbo.Cupones c ON c.IDCupon = r.IDCupon
-    WHERE r.IDReserva = @IDReserva;
-
-    SELECT rd.IDVariante, v.SKU, p.Nombre AS Producto, rd.Cantidad, rd.PrecioUnitario, rd.Descuento
-    FROM dbo.ReservaDetalle rd
-    JOIN dbo.Variantes v ON v.IDVariante = rd.IDVariante
-    JOIN dbo.Productos p ON p.IDProducto = v.IDProducto
-    WHERE rd.IDReserva = @IDReserva
-    ORDER BY rd.IDVariante;
-END;
-GO
-
 -- Inicia el pago: reserva la existencia del carrito abierto del cliente.
 -- Las variantes se bloquean con UPDLOCK, HOLDLOCK en orden de IDVariante, así dos
 -- compras simultáneas no leen el mismo disponible ni se bloquean entre sí.
@@ -133,28 +103,6 @@ BEGIN
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH;
-
-    EXEC dbo.SP_Checkout_ObtenerReserva @IDUsuario = @IDUsuario, @IDReserva = @IDReserva;
-END;
-GO
-
--- Cancela el pago: la reserva activa se anula y su existencia queda libre.
-CREATE OR ALTER PROCEDURE dbo.SP_Checkout_CancelarPago
-    @IDUsuario INT,
-    @IDReserva INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    UPDATE dbo.Reservas SET Estado = N'Anulada'
-    WHERE IDReserva = @IDReserva AND IDUsuario = @IDUsuario AND Estado = N'Activa';
-
-    IF @@ROWCOUNT = 0
-    BEGIN
-        IF NOT EXISTS (SELECT 1 FROM dbo.Reservas WHERE IDReserva = @IDReserva AND IDUsuario = @IDUsuario)
-            THROW 52404, N'La reserva no existe.', 1;
-        THROW 52409, N'La reserva ya no está activa.', 1;
-    END;
 
     EXEC dbo.SP_Checkout_ObtenerReserva @IDUsuario = @IDUsuario, @IDReserva = @IDReserva;
 END;
