@@ -43,6 +43,8 @@ describe('seguridad y errores (sin base de datos)', () => {
     const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', expiresIn: 60 });
     const r = await s.pedir('PATCH', '/pedidos/1/estado', { token: cliente, cuerpo: { estado: 'Despachado' } });
     assert.equal(r.estado, 403);
+    // La respuesta sale del manejador central de errores, con su forma de siempre.
+    assert.deepEqual(r.datos, { error: { codigo: 'PROHIBIDO', mensaje: 'El cliente solo puede cancelar su pedido' } });
   });
 
   test('datos inválidos responden 400 con el detalle', async () => {

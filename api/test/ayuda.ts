@@ -2,8 +2,9 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import jwt from 'jsonwebtoken';
 
-// Las pruebas con base de datos exigen una base ShopCart recién creada con los scripts 001 a 012
-// y una conexión: TEST_DB_CONNECTION_STRING (LocalDB con msnodesqlv8) o DB_USER y DB_PASSWORD.
+// Las pruebas con base de datos exigen una base ShopCart recién creada con todos los scripts de
+// database/ (00_base a 06_permisos, como los aplica database/aplicar.sh) y una conexión:
+// TEST_DB_CONNECTION_STRING (LocalDB con msnodesqlv8) o DB_USER y DB_PASSWORD.
 export const hayBase = Boolean(process.env.TEST_DB_CONNECTION_STRING || process.env.DB_PASSWORD);
 
 export const SECRETO = (process.env.JWT_SECRET ??= 'secreto-solo-para-pruebas-0123456789abcdef');

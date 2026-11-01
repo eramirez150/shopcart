@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { AppError } from '../../compartido/errors.js';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
 import { fecha, id, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
@@ -36,8 +37,7 @@ rutasPedidos.patch('/:id/estado', async (req, res) => {
     .object({ estado: z.enum(['EnPreparacion', 'Despachado', 'Entregado', 'Cancelado']), comentario: z.string().trim().max(300).nullish() })
     .parse(req.body);
   if (req.usuario!.rol === 'Cliente' && b.estado !== 'Cancelado') {
-    res.status(403).json({ error: { codigo: 'PROHIBIDO', mensaje: 'El cliente solo puede cancelar su pedido' } });
-    return;
+    throw new AppError(403, 'El cliente solo puede cancelar su pedido', 'PROHIBIDO');
   }
   res.json(await servicio.cambiarEstado(req.usuario!, id.parse(req.params.id), b.estado, b.comentario ?? null));
 });
