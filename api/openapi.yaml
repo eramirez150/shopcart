@@ -12,6 +12,11 @@ info:
     **Carrito de invitado.** Sin sesión, envíe la cabecera `X-Carrito-Token`. El primer `POST /carrito/items`
     sin token crea el carrito y devuelve su `TokenInvitado`. Al iniciar sesión con esa cabecera el carrito se fusiona con la cuenta.
 
+    **Direcciones.** Cada usuario gestiona las suyas en `/direcciones`; la de otro usuario responde 404.
+    `POST /checkout/pagos` recibe `idDireccion` o el texto de una dirección nueva, que queda registrada.
+
+    **Orden.** Los listados aceptan `orden` y se ordenan en el servidor.
+
     **Montos** en quetzales con IVA incluido. **Errores** con la forma `{ "error": { "codigo", "mensaje", "detalle" } }`.
 servers:
   - url: http://localhost:3000/api
@@ -24,6 +29,7 @@ tags:
   - { name: Inventario }
   - { name: Carrito }
   - { name: Cupones }
+  - { name: Direcciones }
   - { name: Checkout }
   - { name: Pedidos }
   - { name: Dashboard }
@@ -100,6 +106,7 @@ paths:
       summary: Lista usuarios (Administrador)
       parameters:
         - { name: rol, in: query, schema: { $ref: '#/components/schemas/Rol' }, example: Operador }
+        - { name: orden, in: query, schema: { type: string, enum: [id, nombre, correo, recientes], default: id }, example: nombre }
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/Tamano' }
       responses:
@@ -214,7 +221,7 @@ paths:
                 total: 1
                 pagina: 1
                 tamano: 20
-                datos: [{ IDProducto: 9, Nombre: Mouse inalámbrico, IDCategoria: 2, Categoria: Computación, PrecioDesde: 89.9, PrecioHasta: 89.9, Disponible: 80, Variantes: 1 }]
+                datos: [{ IDProducto: 9, Nombre: Mouse inalámbrico, IDCategoria: 2, Categoria: Computación, PrecioDesde: 89.9, PrecioHasta: 89.9, Disponible: 80, Variantes: 1, ImagenPrincipal: 'https://picsum.photos/seed/shopcart-9/600/600' }]
         '400': { $ref: '#/components/responses/Validacion' }
     post:
       tags: [Catálogo]
@@ -224,6 +231,30 @@ paths:
         content: { application/json: { example: { idCategoria: 2, nombre: Hub USB-C, descripcion: Hub de 4 puertos } } }
       responses:
         '201': { $ref: '#/components/responses/Producto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /productos/administracion:
+    get:
+      tags: [Catálogo]
+      summary: Catálogo de administración con productos inactivos y sin variantes (Administrador)
+      parameters:
+        - { name: texto, in: query, schema: { type: string, maxLength: 100 }, example: Hub }
+        - { name: idCategoria, in: query, schema: { type: integer }, example: 2 }
+        - { name: activo, in: query, description: Sin valor muestra activos e inactivos, schema: { type: boolean }, example: false }
+        - { name: orden, in: query, schema: { type: string, enum: [nombre, recientes], default: nombre }, example: recientes }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de productos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Pagina' }
+                  - type: object
+                    properties:
+                      datos: { type: array, items: { $ref: '#/components/schemas/ProductoAdministracion' } }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
         '403': { $ref: '#/components/responses/Prohibido' }
   /productos/{id}:
     get:
@@ -264,6 +295,32 @@ paths:
       responses:
         '201': { $ref: '#/components/responses/Producto' }
         '409': { $ref: '#/components/responses/Conflicto' }
+  /productos/{id}/imagenes:
+    post:
+      tags: [Catálogo]
+      summary: Agrega una imagen al producto; la de menor orden es la principal (Administrador)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImagenEntrada' }
+            example: { url: 'https://ejemplo.com/hub-frente.jpg', textoAlternativo: Hub USB-C de frente, orden: 0 }
+      responses:
+        '201': { $ref: '#/components/responses/Producto' }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+  /productos/imagenes/{idImagen}:
+    delete:
+      tags: [Catálogo]
+      summary: Quita una imagen del producto (Administrador)
+      parameters:
+        - { name: idImagen, in: path, required: true, schema: { type: integer, minimum: 1 }, example: 1 }
+      responses:
+        '200': { $ref: '#/components/responses/Producto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
   /productos/variantes/{idVariante}:
     put:
       tags: [Catálogo]
@@ -283,6 +340,7 @@ paths:
       summary: Existencia, reservado y disponible por variante (Operador, Administrador)
       parameters:
         - { name: umbral, in: query, description: Solo variantes con disponible igual o menor, schema: { type: integer }, example: 5 }
+        - { name: orden, in: query, schema: { type: string, enum: [disponible, disponible_desc, sku, producto], default: disponible }, example: sku }
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/Tamano' }
       responses:
@@ -302,6 +360,7 @@ paths:
       summary: Kardex de una variante (Operador, Administrador)
       parameters:
         - { $ref: '#/components/parameters/Id' }
+        - { name: orden, in: query, description: Por orden de registro, schema: { type: string, enum: [recientes, antiguos], default: recientes }, example: antiguos }
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/Tamano' }
       responses:
@@ -317,7 +376,7 @@ paths:
   /inventario/movimientos:
     post:
       tags: [Inventario]
-      summary: Registra entrada, salida o ajuste con motivo; no deja la existencia en negativo (Operador, Administrador)
+      summary: Registra entrada, salida o ajuste con motivo; no deja la existencia en negativo ni por debajo de lo reservado (Operador, Administrador)
       requestBody:
         required: true
         content: { application/json: { example: { idVariante: 1, tipo: Ajuste, cantidad: -2, motivo: Conteo físico } } }
@@ -395,6 +454,7 @@ paths:
       tags: [Cupones]
       summary: Lista cupones (Administrador)
       parameters:
+        - { name: orden, in: query, description: vence = fecha final más próxima primero; usos = más usados primero, schema: { type: string, enum: [id, codigo, vence, usos], default: id }, example: vence }
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/Tamano' }
       responses:
@@ -437,17 +497,79 @@ paths:
           content: { application/json: { example: { IDCupon: 7, Codigo: NOVIEMBRE5, Activo: false } } }
         '404': { $ref: '#/components/responses/NoEncontrado' }
 
-  /checkout/pagos:
+  /direcciones:
+    get:
+      tags: [Direcciones]
+      summary: Direcciones activas del usuario autenticado
+      responses:
+        '200':
+          description: Direcciones, la más reciente primero
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Direccion' } }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
     post:
-      tags: [Checkout]
-      summary: Inicia el pago; reserva la existencia 15 minutos con precio y descuento congelados
+      tags: [Direcciones]
+      summary: Registra una dirección de entrega
       requestBody:
         required: true
         content:
           application/json:
-            example: { direccion: 6a avenida 12-34 zona 1, ciudad: Guatemala, telefono: '55551234', codigoCupon: Q50 }
+            schema: { $ref: '#/components/schemas/DireccionEntrada' }
+            example: { direccion: 6a avenida 12-34 zona 1, ciudad: Guatemala, telefono: '55551234' }
+      responses:
+        '201':
+          description: Dirección creada
+          content: { application/json: { schema: { $ref: '#/components/schemas/Direccion' } } }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+  /direcciones/{id}:
+    put:
+      tags: [Direcciones]
+      summary: Modifica una dirección propia y activa (la de otro usuario responde 404)
+      description: Las reservas y los pedidos ya creados conservan el texto que copiaron.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DireccionEntrada' }
+            example: { direccion: 7a avenida 1-23 zona 4, ciudad: Guatemala, telefono: '55551234' }
+      responses:
+        '200':
+          description: Dirección actualizada
+          content: { application/json: { schema: { $ref: '#/components/schemas/Direccion' } } }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      tags: [Direcciones]
+      summary: Desactiva una dirección propia; no se borra porque puede estar en pedidos (la de otro usuario responde 404)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Dirección desactivada
+          content: { application/json: { schema: { $ref: '#/components/schemas/Direccion' } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /checkout/pagos:
+    post:
+      tags: [Checkout]
+      summary: Inicia el pago; reserva la existencia 15 minutos con precio y descuento congelados
+      description: |
+        Envíe `idDireccion` (una dirección propia y activa) o `direccion`, `ciudad` y `telefono` para registrar una nueva
+        (si ya existe una idéntica se reutiliza). El texto queda copiado en la reserva y en el pedido.
+        Repetir la llamada con el carrito sin cambios, la misma dirección y el mismo cupón devuelve la misma reserva activa (doble clic).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PagoEntrada' }
+            examples:
+              conDireccionGuardada: { value: { idDireccion: 1, codigoCupon: Q50 } }
+              conDireccionNueva: { value: { direccion: 6a avenida 12-34 zona 1, ciudad: Guatemala, telefono: '55551234' } }
       responses:
         '201': { $ref: '#/components/responses/Reserva' }
+        '400': { $ref: '#/components/responses/Validacion' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
         '409': { $ref: '#/components/responses/Conflicto' }
   /checkout/reservas/{id}:
@@ -486,6 +608,7 @@ paths:
         - { name: idCliente, in: query, description: Ignorado para el Cliente, schema: { type: integer }, example: 3 }
         - { name: totalMin, in: query, schema: { type: number }, example: 100 }
         - { name: totalMax, in: query, schema: { type: number }, example: 2000 }
+        - { name: orden, in: query, schema: { type: string, enum: [recientes, antiguos, total_desc, total_asc], default: recientes }, example: total_desc }
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/Tamano' }
       responses:
@@ -581,6 +704,9 @@ paths:
     get:
       tags: [Dashboard]
       summary: Pedidos, ventas, ticket promedio y carritos abandonados (Administrador)
+      description: |
+        `Pedidos` y `Ventas` cuentan los pedidos completados (Entregado o DevueltoParcial) con su venta neta de devoluciones.
+        `TicketPromedio` = `MontoVendido` / `PedidosPagados`: total cobrado entre el número de pedidos pagados (todos menos los cancelados) del periodo.
       parameters:
         - { name: horas, in: query, description: Horas sin cambios para considerar abandonado un carrito, schema: { type: integer, default: 24 }, example: 24 }
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
@@ -588,7 +714,10 @@ paths:
       responses:
         '200':
           description: Indicadores
-          content: { application/json: { example: { Pedidos: 3, Ventas: 2450.5, TicketPromedio: 816.83, CarritosAbandonados: 2 } } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Indicadores' }
+              example: { Pedidos: 9, Ventas: 9707.8, PedidosPagados: 13, MontoVendido: 11509.8, TicketPromedio: 885.37, CarritosAbandonados: 3 }
   /dashboard/carritos-abandonados:
     get:
       tags: [Dashboard]
@@ -614,6 +743,7 @@ paths:
       summary: Consulta la bitácora, filtrable por módulo (Administrador). Es de solo lectura
       parameters:
         - { name: modulo, in: query, schema: { type: string, enum: [Catalogo, Inventario, Cupones, Pedidos] }, example: Pedidos }
+        - { name: orden, in: query, schema: { type: string, enum: [recientes, antiguos], default: recientes }, example: antiguos }
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
         - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
         - { $ref: '#/components/parameters/Pagina' }
@@ -664,6 +794,75 @@ components:
     EstadoPedido:
       type: string
       enum: [Pagado, EnPreparacion, Despachado, Entregado, DevueltoParcial, Devuelto, Cancelado]
+    Pagina:
+      type: object
+      properties:
+        total: { type: integer, description: Filas que cumplen el filtro }
+        pagina: { type: integer }
+        tamano: { type: integer }
+    DireccionEntrada:
+      type: object
+      required: [direccion, ciudad, telefono]
+      properties:
+        direccion: { type: string, minLength: 1, maxLength: 300 }
+        ciudad: { type: string, minLength: 1, maxLength: 100 }
+        telefono: { type: string, minLength: 1, maxLength: 20 }
+    Direccion:
+      type: object
+      properties:
+        IDDireccion: { type: integer }
+        Direccion: { type: string }
+        Ciudad: { type: string }
+        Telefono: { type: string }
+        Activa: { type: boolean }
+        FechaCreacion: { type: string, format: date-time }
+      example: { IDDireccion: 1, Direccion: 6a avenida 12-34 zona 1, Ciudad: Guatemala, Telefono: '55551234', Activa: true, FechaCreacion: '2026-11-01T15:00:00.000Z' }
+    PagoEntrada:
+      type: object
+      description: Requiere idDireccion, o bien direccion, ciudad y telefono.
+      properties:
+        idDireccion: { type: integer, minimum: 1, description: Dirección propia y activa }
+        direccion: { type: string, minLength: 1, maxLength: 300 }
+        ciudad: { type: string, minLength: 1, maxLength: 100 }
+        telefono: { type: string, minLength: 1, maxLength: 20 }
+        codigoCupon: { type: string, minLength: 1, maxLength: 30, description: Reemplaza al cupón del carrito }
+      anyOf:
+        - required: [idDireccion]
+        - required: [direccion, ciudad, telefono]
+    ImagenEntrada:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, format: uri, maxLength: 500, description: Dirección http o https }
+        textoAlternativo: { type: string, maxLength: 150, nullable: true }
+        orden: { type: integer, minimum: 0, default: 0 }
+    ProductoAdministracion:
+      type: object
+      properties:
+        IDProducto: { type: integer }
+        Nombre: { type: string }
+        IDCategoria: { type: integer }
+        Categoria: { type: string }
+        CategoriaActiva: { type: boolean }
+        Activo: { type: boolean }
+        FechaCreacion: { type: string, format: date-time }
+        Variantes: { type: integer, description: 0 si el producto no tiene variantes }
+        VariantesActivas: { type: integer }
+        PrecioDesde: { type: number, nullable: true }
+        PrecioHasta: { type: number, nullable: true }
+        Existencia: { type: integer }
+        Disponible: { type: integer }
+        ImagenPrincipal: { type: string, nullable: true }
+      example: { IDProducto: 51, Nombre: Hub USB-C, IDCategoria: 2, Categoria: Computación, CategoriaActiva: true, Activo: false, FechaCreacion: '2026-11-01T15:00:00.000Z', Variantes: 0, VariantesActivas: 0, PrecioDesde: null, PrecioHasta: null, Existencia: 0, Disponible: 0, ImagenPrincipal: null }
+    Indicadores:
+      type: object
+      properties:
+        Pedidos: { type: integer, description: Pedidos completados (Entregado o DevueltoParcial) }
+        Ventas: { type: number, description: Venta neta de devoluciones de los pedidos completados }
+        PedidosPagados: { type: integer, description: Pedidos del periodo menos los cancelados }
+        MontoVendido: { type: number, description: Total cobrado de los pedidos pagados }
+        TicketPromedio: { type: number, description: MontoVendido / PedidosPagados }
+        CarritosAbandonados: { type: integer }
     Error:
       type: object
       properties:
@@ -725,6 +924,7 @@ components:
             Categoria: Electrónica
             Activo: true
             variantes: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Atributos: { Color: Negro }, Precio: 349, Activa: true, Existencia: 40, Reservado: 0, Disponible: 40 }]
+            imagenes: [{ IDProductoImagen: 1, Url: 'https://picsum.photos/seed/shopcart-1/600/600', TextoAlternativo: Audífonos inalámbricos, Orden: 0 }]
     Carrito:
       description: Carrito con totales
       content:
@@ -750,6 +950,7 @@ components:
             Subtotal: 1036.8
             Descuento: 50
             Total: 986.8
+            IDDireccion: 1
             Direccion: 6a avenida 12-34 zona 1
             Ciudad: Guatemala
             Telefono: '55551234'
@@ -768,6 +969,10 @@ components:
             Descuento: 50
             Total: 986.8
             IVA: 105.73
+            IDDireccion: 1
+            Direccion: 6a avenida 12-34 zona 1
+            Ciudad: Guatemala
+            Telefono: '55551234'
             ReferenciaPago: SIM-741A8A6C-9C9D-4A7D-977A-703C1F7BFDBF
             lineas: [{ IDPedidoDetalle: 1, IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Cantidad: 2, PrecioUnitario: 349, Descuento: 33.66, CantidadDevuelta: 0 }]
             historial: [{ EstadoAnterior: null, EstadoNuevo: Pagado, IDUsuario: 3, Usuario: Carla Cliente, Comentario: Pedido creado }]
