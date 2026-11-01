@@ -6,7 +6,9 @@ import { Registro } from './paginas/Registro';
 import { PanelInicio, PanelLayout } from './panel/PanelLayout';
 import { RutaProtegida } from './sesion/RutaProtegida';
 import { Buscar } from './tienda/Buscar';
+import { CarritoPagina } from './tienda/CarritoPagina';
 import { Categorias } from './tienda/Categorias';
+import { Checkout, PedidoConfirmado } from './tienda/Checkout';
 import { Detalle } from './tienda/Detalle';
 import { Inicio } from './tienda/Inicio';
 import { TiendaLayout } from './tienda/TiendaLayout';
@@ -34,6 +36,11 @@ export function App() {
         <Route path="buscar" element={<Buscar />} />
         <Route path="categorias" element={<Categorias />} />
         <Route path="producto/:id" element={<Detalle />} />
+        <Route path="carrito" element={<CarritoPagina />} />
+        <Route element={<RutaProtegida roles={['Cliente']} />}>
+          <Route path="checkout" element={<Checkout />} />
+          <Route path="checkout/listo/:id" element={<PedidoConfirmado />} />
+        </Route>
         <Route path="*" element={<NoEncontrada />} />
       </Route>
 
