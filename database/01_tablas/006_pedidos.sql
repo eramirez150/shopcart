@@ -64,6 +64,26 @@ CREATE INDEX IX_Pedidos_Estado_Fecha ON dbo.Pedidos (Estado, FechaCreacion) INCL
 CREATE INDEX IX_Pedidos_Fecha ON dbo.Pedidos (FechaCreacion) INCLUDE (Estado, Total, IDUsuario);
 GO
 
+-- Segunda barrera de los estados: aunque un UPDATE no pase por SP_Pedidos_CambiarEstado,
+-- un cambio de estado que no está en PedidoTransiciones se rechaza y se deshace.
+-- SP_Devoluciones_Registrar usa las transiciones Entregado -> DevueltoParcial/Devuelto
+-- y DevueltoParcial -> Devuelto, que sí están en la tabla.
+CREATE TRIGGER dbo.TR_Pedidos_ValidarTransicion ON dbo.Pedidos
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN deleted d ON d.IDPedido = i.IDPedido
+        WHERE i.Estado <> d.Estado
+          AND NOT EXISTS (SELECT 1 FROM dbo.PedidoTransiciones t
+                          WHERE t.EstadoOrigen = d.Estado AND t.EstadoDestino = i.Estado))
+        THROW 52409, N'Transición de estado no permitida.', 1;
+END;
+GO
+
 CREATE TABLE dbo.PedidoDetalle (
     IDPedidoDetalle  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_PedidoDetalle PRIMARY KEY,
     IDPedido         INT           NOT NULL CONSTRAINT FK_PedidoDetalle_Pedidos REFERENCES dbo.Pedidos (IDPedido),
