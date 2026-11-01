@@ -5,9 +5,8 @@ La especificación está en [docs/especificacion.md](docs/especificacion.md). Es
 
 ## Requisitos
 
-- Docker con Docker Compose, para la base de datos.
-- Node.js 24 o superior, para la API.
-- `sqlcmd` (o el que trae el contenedor de SQL Server) para crear el usuario de la aplicación.
+- Docker con Docker Compose.
+- Node.js 24 o superior, solo para desarrollar la API fuera de Docker.
 
 ## Instalación
 
@@ -17,23 +16,25 @@ cd shopcart
 cp .env.example .env
 ```
 
-Editar `.env` y escribir una clave propia en `MSSQL_SA_PASSWORD` (mínimo 8 caracteres con mayúsculas, minúsculas, números y símbolos). El archivo de ejemplo la trae vacía a propósito: si no se define, `docker compose` se detiene con un error.
+Editar `.env` y definir estos tres valores, sin comillas. Si falta alguno, `docker compose` se detiene con un error.
+
+| Variable | Descripción |
+| --- | --- |
+| `MSSQL_SA_PASSWORD` | Clave de `sa`: mínimo 8 caracteres con mayúsculas, minúsculas, números y símbolos |
+| `APP_DB_PASSWORD` | Clave de `shopcart_app`, con las mismas reglas |
+| `JWT_SECRET` | Al menos 32 caracteres aleatorios |
 
 ```bash
 docker compose up --build
 ```
 
-La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden y solo una vez.
+La API queda en `http://localhost:3000/api` y su documentación en `http://localhost:3000/api/docs`. La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden y solo una vez.
 
 ### Usuario de la aplicación
 
-La API no usa `sa`: usa `shopcart_app`, que solo tiene `EXECUTE` sobre los stored procedures (script `012_permisos.sql`). Su contraseña no está en el repositorio; se crea una vez con la clave que elija:
+La API no usa `sa`: usa `shopcart_app`, que solo tiene `EXECUTE` sobre los stored procedures por medio del rol `RolShopCartApp` (script `012_permisos.sql`). `database/aplicar.sh` lo crea con la clave de `APP_DB_PASSWORD`.
 
-```bash
-docker compose exec db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "<clave-de-sa>" -C -d ShopCart -b -Q "CREATE LOGIN shopcart_app WITH PASSWORD = N'<clave-de-la-app>'; CREATE USER shopcart_app FOR LOGIN shopcart_app; ALTER ROLE RolShopCartApp ADD MEMBER shopcart_app;"
-```
-
-### API
+### API fuera de Docker
 
 ```bash
 cd api
