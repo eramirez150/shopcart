@@ -108,7 +108,7 @@ CREATE TABLE dbo.Carritos (
 );
 -- Un solo carrito abierto por usuario y por token de invitado.
 CREATE UNIQUE INDEX UX_Carritos_UsuarioAbierto ON dbo.Carritos (IDUsuario) WHERE Estado = N'Abierto' AND IDUsuario IS NOT NULL;
-CREATE UNIQUE INDEX UX_Carritos_TokenInvitado ON dbo.Carritos (TokenInvitado) WHERE TokenInvitado IS NOT NULL;
+CREATE UNIQUE INDEX UX_Carritos_TokenInvitado ON dbo.Carritos (TokenInvitado) WHERE Estado = N'Abierto' AND TokenInvitado IS NOT NULL;
 CREATE INDEX IX_Carritos_Estado_Fecha ON dbo.Carritos (Estado, FechaActualizacion);
 GO
 

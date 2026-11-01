@@ -23,7 +23,8 @@ esac
 export SQLCMDPASSWORD="$MSSQL_SA_PASSWORD"
 # -b termina con error ante cualquier fallo de SQL.
 # -I activa QUOTED_IDENTIFIER, necesario para índices filtrados y columnas calculadas.
-SQLCMD="/opt/mssql-tools18/bin/sqlcmd -S db -U sa -C -b -I"
+# -f 65001 lee los scripts como UTF-8 para conservar tildes y eñes.
+SQLCMD="/opt/mssql-tools18/bin/sqlcmd -S db -U sa -C -b -I -f 65001"
 
 $SQLCMD -Q "IF DB_ID(N'$DB_NAME') IS NULL CREATE DATABASE [$DB_NAME];"
 
