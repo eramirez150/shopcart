@@ -2,6 +2,7 @@
 // Lo usan Mi cuenta y el panel; cada uno agrega sus propias acciones.
 import type { Devolucion, Pedido } from '../api/tipos';
 import { fechaYHora, NOMBRE_ESTADO, quetzales } from '../formato';
+import { Precio } from './Precio';
 
 export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devoluciones: Devolucion[] | null }) {
   const skuDe = new Map(pedido.lineas.map((l) => [l.IDPedidoDetalle, l.Producto]));
@@ -35,33 +36,21 @@ export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devolu
       </dl>
 
       <h2>Productos</h2>
-      <div className="tabla-contenedor">
-        <table className="tabla">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th className="num">Cantidad</th>
-              <th className="num">Precio</th>
-              <th className="num">Descuento</th>
-              <th className="num">Devueltas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedido.lineas.map((l) => (
-              <tr key={l.IDPedidoDetalle}>
-                <td>
-                  {l.Producto}
-                  <small className="texto-suave bloque">{l.SKU}</small>
-                </td>
-                <td className="num">{l.Cantidad}</td>
-                <td className="num">{quetzales(l.PrecioUnitario)}</td>
-                <td className="num">{quetzales(l.Descuento)}</td>
-                <td className="num">{l.CantidadDevuelta}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="resumen-lineas lineas-pedido">
+        {pedido.lineas.map((l) => (
+          <li key={l.IDPedidoDetalle}>
+            <span>
+              <strong>{l.Producto}</strong>
+              <small className="texto-suave">
+                {l.SKU} · {l.Cantidad} × {quetzales(l.PrecioUnitario)}
+                {l.Descuento > 0 && ` · descuento ${quetzales(l.Descuento)}`}
+                {l.CantidadDevuelta > 0 && ` · ${l.CantidadDevuelta} devuelta${l.CantidadDevuelta === 1 ? '' : 's'}`}
+              </small>
+            </span>
+            <Precio valor={Math.round((l.Cantidad * l.PrecioUnitario - l.Descuento) * 100) / 100} tamano="chico" />
+          </li>
+        ))}
+      </ul>
 
       <dl className="totales totales-pedido">
         <div>
@@ -74,7 +63,9 @@ export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devolu
         </div>
         <div className="totales-total">
           <dt>Total</dt>
-          <dd>{quetzales(pedido.Total)}</dd>
+          <dd>
+            <Precio valor={pedido.Total} tamano="grande" />
+          </dd>
         </div>
         <p className="texto-suave">IVA incluido: {quetzales(pedido.IVA)}</p>
       </dl>

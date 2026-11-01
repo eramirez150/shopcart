@@ -5,8 +5,9 @@ import { Link, useParams } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
 import type { Producto, Variante } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Aviso, Cargando, MensajeError } from '../componentes/Estados';
-import { quetzales, textoAtributos } from '../formato';
+import { Aviso, EsqueletoDetalle, MensajeError } from '../componentes/Estados';
+import { Precio } from '../componentes/Precio';
+import { textoAtributos } from '../formato';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
 
@@ -71,11 +72,11 @@ function Contenido({ producto }: { producto: Producto }) {
       </div>
 
       <div className="detalle-info">
-        <p className="detalle-precio">{variante ? quetzales(variante.Precio) : 'No disponible'}</p>
-        <h1>{producto.Nombre}</h1>
-        <p className="texto-suave">
-          <Link to={`/buscar?idCategoria=${producto.IDCategoria}`}>{producto.Categoria}</Link>
-        </p>
+        <Link className="detalle-categoria" to={`/buscar?idCategoria=${producto.IDCategoria}`}>
+          {producto.Categoria}
+        </Link>
+        <h1 className="detalle-nombre">{producto.Nombre}</h1>
+        <p className="detalle-precio">{variante ? <Precio valor={variante.Precio} tamano="grande" /> : 'No disponible'}</p>
 
         {activas.length > 1 && (
           <fieldset className="opciones">
@@ -122,7 +123,7 @@ function Contenido({ producto }: { producto: Producto }) {
       <div className="barra-agregar">
         <div>
           <small className="texto-suave">Total</small>
-          <strong>{variante ? quetzales(variante.Precio * cantidad) : '—'}</strong>
+          <strong>{variante ? <Precio valor={Math.round(variante.Precio * cantidad * 100) / 100} /> : '—'}</strong>
         </div>
         <button type="button" className="boton boton-principal" disabled={!variante || disponible === 0 || enviando} onClick={() => void agregarAlCarrito()}>
           {enviando ? 'Agregando…' : 'Agregar al carrito'}
@@ -135,7 +136,7 @@ function Contenido({ producto }: { producto: Producto }) {
 export function Detalle() {
   const { id } = useParams();
   const r = useApi(() => api<Producto>(`/productos/${id}`), id ?? '');
-  if (r.cargando) return <Cargando />;
+  if (r.cargando) return <EsqueletoDetalle />;
   if (r.error || !r.datos)
     return (
       <main className="contenedor">

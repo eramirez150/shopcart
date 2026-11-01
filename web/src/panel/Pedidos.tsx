@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { api } from '../api/cliente';
 import { ESTADOS_PEDIDO, type Pagina, type PedidoResumen } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { fecha, NOMBRE_ESTADO, quetzales } from '../formato';
@@ -83,9 +83,9 @@ export function Pedidos() {
         {error && <p className="campo-error filtros-panel-error">{error}</p>}
       </form>
 
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
-      {r.datos && r.datos.total === 0 && <Vacio titulo="No hay pedidos con esos filtros." />}
+      {r.datos && r.datos.total === 0 && <Vacio titulo="No hay pedidos con esos filtros." ilustracion="pedidos" />}
       {r.datos && r.datos.total > 0 && (
         <>
           <div className="tabla-contenedor">

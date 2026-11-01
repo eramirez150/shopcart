@@ -6,7 +6,7 @@ import { Link } from 'react-router';
 import { api } from '../api/cliente';
 import type { Pagina } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { fechaYHora, hoyISO, quetzales } from '../formato';
@@ -97,7 +97,7 @@ function CarritosAbandonados({ horas }: { horas: string }) {
     <section className="bloque-grafica">
       <h2>Carritos abandonados</h2>
       <p className="texto-suave">Abiertos, con productos y sin cambios en las últimas {horas} horas.</p>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.total === 0 && <Vacio titulo="No hay carritos abandonados." />}
       {r.datos && r.datos.total > 0 && (
@@ -198,7 +198,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {d && series && !r.cargando && (
         <>

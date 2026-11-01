@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { api, armarConsulta, type Consulta } from '../api/cliente';
 import type { Categoria, Pagina, ProductoResumen } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoGrilla, MensajeError, Vacio } from '../componentes/Estados';
 import { Carrusel } from './Carrusel';
 import { Icono, iconoDeCategoria } from './Iconos';
 import { GrillaProductos } from './TarjetaProducto';
@@ -53,9 +53,11 @@ function Seccion({ titulo, consulta }: { titulo: string; consulta: Consulta }) {
     <section className="seccion">
       <div className="seccion-cabeza">
         <h2>{titulo}</h2>
-        <Link to={`/buscar${filtro}`}>Ver más</Link>
+        <Link to={`/buscar${filtro}`} className="ver-mas">
+          Ver más <Icono nombre="flecha" />
+        </Link>
       </div>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoGrilla />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.datos.length === 0 && <Vacio titulo="Todavía no hay productos en esta sección." />}
       {r.datos && r.datos.datos.length > 0 && <GrillaProductos productos={r.datos.datos} />}
@@ -68,7 +70,7 @@ export function Inicio() {
   const lista = categorias.datos ?? [];
   return (
     <main className="inicio">
-      {categorias.cargando && <Cargando />}
+      {categorias.cargando && <div className="esqueleto esqueleto-carrusel" role="status" aria-label="Cargando" />}
       {categorias.error && <MensajeError mensaje={categorias.error} reintentar={categorias.recargar} />}
       {lista.length > 0 && (
         <>

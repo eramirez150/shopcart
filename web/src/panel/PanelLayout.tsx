@@ -1,6 +1,6 @@
 // Panel de operador y administrador: menú lateral con las opciones del rol.
 import { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import type { Rol } from '../api/tipos';
 import { useSesion } from '../sesion/SesionContexto';
 
@@ -30,6 +30,7 @@ export function PanelLayout() {
   const { usuario, cerrarSesion } = useSesion();
   const navegar = useNavigate();
   const [abierto, setAbierto] = useState(false);
+  const { pathname } = useLocation();
   const opciones = OPCIONES_PANEL.filter((o) => usuario && o.roles.includes(usuario.rol));
 
   async function salir() {
@@ -65,7 +66,7 @@ export function PanelLayout() {
           </button>
         </div>
       </aside>
-      <main className="panel-contenido">
+      <main className="panel-contenido vista" key={pathname}>
         <Outlet />
       </main>
     </div>

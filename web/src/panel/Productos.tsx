@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { api } from '../api/cliente';
 import type { Categoria, Pagina, ProductoAdministracion } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { quetzales } from '../formato';
@@ -72,7 +72,7 @@ export function Productos() {
           </button>
         </div>
       </form>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.total === 0 && <Vacio titulo="No hay productos con esos filtros." />}
       {r.datos && r.datos.total > 0 && (

@@ -2,7 +2,7 @@
 import { api } from '../api/cliente';
 import type { Pagina, RegistroBitacora } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { fechaYHora } from '../formato';
@@ -66,7 +66,7 @@ export function Bitacora() {
         </div>
         {rangoInvalido && <p className="campo-error filtros-panel-error">La fecha inicial no puede ser posterior a la final.</p>}
       </div>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.total === 0 && <Vacio titulo="No hay registros con esos filtros." />}
       {r.datos && r.datos.total > 0 && (

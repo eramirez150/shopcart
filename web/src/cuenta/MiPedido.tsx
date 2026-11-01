@@ -5,7 +5,7 @@ import { api, mensajeDe } from '../api/cliente';
 import type { Devolucion, Pedido } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { DetallePedido } from '../componentes/DetallePedido';
-import { Aviso, Cargando, MensajeError } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError } from '../componentes/Estados';
 
 export const cargarPedido = async (id: string) => {
   const [pedido, devoluciones] = await Promise.all([api<Pedido>(`/pedidos/${id}`), api<Devolucion[]>(`/pedidos/${id}/devoluciones`)]);
@@ -44,7 +44,7 @@ export function MiPedido() {
       </p>
       <h1>Pedido #{id}</h1>
       {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
-      {r.cargando && !r.datos && <Cargando />}
+      {r.cargando && !r.datos && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && (
         <>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
 import type { Producto, ProductoResumen } from '../api/tipos';
-import { quetzales } from '../formato';
+import { Precio } from '../componentes/Precio';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
 
@@ -48,30 +48,28 @@ export function TarjetaProducto({ producto }: { producto: ProductoResumen }) {
   }
 
   return (
-    <article className="tarjeta">
+    <article className={`tarjeta ${agotado ? 'tarjeta-sin-existencia' : ''}`}>
       <Link to={detalle} className="tarjeta-enlace">
         <div className="tarjeta-foto">
           {producto.ImagenPrincipal ? <img src={producto.ImagenPrincipal} alt={producto.Nombre} loading="lazy" /> : <span className="sin-foto">Sin foto</span>}
-          {agotado && <span className="tarjeta-agotado">Agotado</span>}
         </div>
         <h3 className="tarjeta-nombre">{producto.Nombre}</h3>
         {producto.Calificacion != null && <Estrellas valor={producto.Calificacion} ventas={producto.Ventas} />}
         <p className="tarjeta-precios">
-          {producto.PrecioAnterior != null && producto.PrecioAnterior > producto.PrecioDesde && <s className="precio-anterior">{quetzales(producto.PrecioAnterior)}</s>}
-          <span className="precio">
-            {producto.PrecioHasta > producto.PrecioDesde && <small>Desde </small>}
-            {quetzales(producto.PrecioDesde)}
-          </span>
+          {producto.PrecioHasta > producto.PrecioDesde && <span className="precio-desde">desde</span>}
+          <Precio valor={producto.PrecioDesde} />
+          {producto.PrecioAnterior != null && producto.PrecioAnterior > producto.PrecioDesde && <Precio valor={producto.PrecioAnterior} tamano="chico" tachado />}
         </p>
+        {agotado && <p className="tarjeta-agotado">Agotado</p>}
       </Link>
       <button
         type="button"
-        className="tarjeta-agregar"
+        className={`tarjeta-agregar ${estado}`}
         aria-label={producto.Variantes === 1 ? `Agregar ${producto.Nombre} al carrito` : `Elegir opciones de ${producto.Nombre}`}
         disabled={agotado || estado === 'agregando'}
         onClick={() => void agregarRapido()}
       >
-        <Icono nombre={estado === 'agregado' ? 'carrito' : 'mas'} />
+        <Icono key={estado} nombre={estado === 'agregado' ? 'listo' : 'mas'} />
       </button>
       {error && (
         <p className="tarjeta-error" role="alert">

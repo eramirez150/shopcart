@@ -5,7 +5,7 @@ import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Cupon, Pagina } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { Campo } from '../componentes/Campo';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { fecha, quetzales } from '../formato';
@@ -174,7 +174,7 @@ export function Cupones() {
           <option value="usos">Más usados</option>
         </select>
       </div>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.total === 0 && <Vacio titulo="No hay cupones." />}
       {r.datos && r.datos.total > 0 && (

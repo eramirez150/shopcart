@@ -5,7 +5,7 @@ import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Categoria } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { Campo } from '../componentes/Campo';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { maximo, requerido, sinErrores } from '../validacion';
 
 function Formulario({ categoria, terminar }: { categoria: Categoria | null; terminar: (texto?: string) => void }) {
@@ -93,7 +93,7 @@ export function CategoriasPanel() {
           Nueva categoría
         </button>
       )}
-      {r.cargando && !r.datos && <Cargando />}
+      {r.cargando && !r.datos && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.length === 0 && <Vacio titulo="No hay categorías." />}
       {r.datos && r.datos.length > 0 && (

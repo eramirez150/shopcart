@@ -2,7 +2,7 @@
 // Es el destino de "Ver más", de las categorías y del buscador.
 import { useState, type FormEvent } from 'react';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoGrilla, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { numero } from '../validacion';
@@ -94,9 +94,9 @@ export function Buscar() {
         </form>
       )}
 
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoGrilla />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
-      {r.datos && r.datos.total === 0 && <Vacio titulo="No encontramos productos con esos filtros.">Prueba con otra palabra o quita algún filtro.</Vacio>}
+      {r.datos && r.datos.total === 0 && <Vacio titulo="No encontramos productos con esos filtros." ilustracion="busqueda">Prueba con otra palabra o quita algún filtro.</Vacio>}
       {r.datos && r.datos.total > 0 && (
         <>
           <GrillaProductos productos={r.datos.datos} />

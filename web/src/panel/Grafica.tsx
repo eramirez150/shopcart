@@ -5,6 +5,8 @@ import { useEffect, useRef } from 'react';
 
 // Solo se registran las piezas que se usan, para que el paquete final sea pequeño.
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
+// Misma tipografía que el resto del sitio.
+Chart.defaults.font.family = "'Bricolage Grotesque Variable', system-ui, sans-serif";
 
 interface Props {
   etiquetas: string[];
@@ -21,21 +23,33 @@ export function GraficaBarras({ etiquetas, valores, formato, horizontal = false,
     if (!lienzo.current) return;
     const estilo = getComputedStyle(document.documentElement);
     const acento = estilo.getPropertyValue('--acento').trim();
-    const texto = estilo.getPropertyValue('--texto-suave').trim();
-    const borde = estilo.getPropertyValue('--borde').trim();
+    const texto = estilo.getPropertyValue('--tinta-suave').trim();
+    const tinta = estilo.getPropertyValue('--tinta').trim();
+    const borde = estilo.getPropertyValue('--linea').trim();
     const ejeValor = { beginAtZero: true, grid: { color: borde }, border: { display: false }, ticks: { color: texto, precision: 0, callback: (v: string | number) => formato(Number(v)) } };
     const ejeCategoria = { grid: { display: false }, ticks: { color: texto, autoSkip: true } };
     const grafica = new Chart(lienzo.current, {
       type: 'bar',
       data: {
         labels: etiquetas,
-        datasets: [{ data: valores, backgroundColor: acento, borderRadius: 4, borderSkipped: 'start', maxBarThickness: horizontal ? 18 : 28 }],
+        datasets: [{ data: valores, backgroundColor: acento, borderRadius: 4, borderSkipped: 'start', maxBarThickness: horizontal ? 16 : 26, hoverBackgroundColor: tinta }],
       },
       options: {
         indexAxis: horizontal ? 'y' : 'x',
         maintainAspectRatio: false,
         animation: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => formato(Number(c.raw)) } } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: tinta,
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false,
+            titleFont: { weight: 600 },
+            bodyFont: { size: 14, weight: 700 },
+            callbacks: { label: (c) => formato(Number(c.raw)) },
+          },
+        },
         scales: horizontal ? { x: ejeValor, y: ejeCategoria } : { x: ejeCategoria, y: ejeValor },
       },
     });

@@ -114,7 +114,11 @@ export function TiendaLayout() {
           </nav>
           <Link to="/carrito" className="boton-icono encabezado-carrito" aria-label={`Carrito, ${unidades} productos`}>
             <Icono nombre="carrito" />
-            {unidades > 0 && <span className="contador">{unidades > 99 ? '99+' : unidades}</span>}
+            {unidades > 0 && (
+              <span key={unidades} className="contador">
+                {unidades > 99 ? '99+' : unidades}
+              </span>
+            )}
           </Link>
         </div>
         <div className="encabezado-buscador" aria-hidden={compacto || undefined}>
@@ -124,7 +128,8 @@ export function TiendaLayout() {
 
       {menuAbierto && <MenuLateral cerrar={() => setMenuAbierto(false)} />}
 
-      <div className="tienda-contenido">
+      {/* La clave reinicia la animación de entrada en cada página. */}
+      <div className="tienda-contenido vista" key={pathname}>
         <Outlet />
       </div>
 
@@ -140,7 +145,11 @@ export function TiendaLayout() {
         <NavLink to="/carrito">
           <span className="menu-inferior-carrito">
             <Icono nombre="carrito" />
-            {unidades > 0 && <span className="contador">{unidades > 99 ? '99+' : unidades}</span>}
+            {unidades > 0 && (
+              <span key={unidades} className="contador">
+                {unidades > 99 ? '99+' : unidades}
+              </span>
+            )}
           </span>
           Carrito
         </NavLink>

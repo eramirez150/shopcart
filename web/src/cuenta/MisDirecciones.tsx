@@ -6,7 +6,7 @@ import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Direccion } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { CamposDireccion, validarDireccion, type DatosDireccion } from '../componentes/Direccion';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 
 const VACIA: DatosDireccion = { direccion: '', ciudad: '', telefono: '' };
 
@@ -100,9 +100,9 @@ export function MisDirecciones() {
           Agregar dirección
         </button>
       )}
-      {r.cargando && !r.datos && <Cargando />}
+      {r.cargando && !r.datos && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
-      {r.datos && r.datos.length === 0 && <Vacio titulo="No tienes direcciones guardadas." />}
+      {r.datos && r.datos.length === 0 && <Vacio titulo="No tienes direcciones guardadas." ilustracion="direcciones">Agrega una para pagar más rápido.</Vacio>}
       {r.datos && r.datos.length > 0 && (
         <ul className="lista-direcciones">
           {r.datos.map((d) => (

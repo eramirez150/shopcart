@@ -6,7 +6,7 @@ import type { EstadoPedido, Pedido } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { cargarPedido } from '../cuenta/MiPedido';
 import { DetallePedido } from '../componentes/DetallePedido';
-import { Aviso, Cargando, MensajeError } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError } from '../componentes/Estados';
 import { NOMBRE_ESTADO } from '../formato';
 import { maximo, requerido } from '../validacion';
 
@@ -162,7 +162,7 @@ export function PedidoPanel() {
       </p>
       <h1>Pedido #{id}</h1>
       {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
-      {r.cargando && !r.datos && <Cargando />}
+      {r.cargando && !r.datos && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && (
         <div className="panel-dos-columnas">

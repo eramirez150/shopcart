@@ -8,6 +8,8 @@ const trazos = {
   categorias: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   cuenta: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5',
   mas: 'M12 5v14M5 12h14',
+  listo: 'M5 12.5l4.5 4.5L19 7.5',
+  flecha: 'M5 12h14M13 6l6 6-6 6',
   menos: 'M5 12h14',
   cerrar: 'M6 6l12 12M18 6L6 18',
   atras: 'M15 5l-7 7 7 7',

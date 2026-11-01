@@ -34,7 +34,7 @@ const Dashboard = lazy(() => import('./panel/Dashboard').then((m) => ({ default:
 function NoEncontrada() {
   return (
     <main className="contenedor">
-      <Vacio titulo="Esta página no existe">
+      <Vacio titulo="Esta página no existe" ilustracion="busqueda">
         <Link to="/" className="boton boton-principal">
           Ir al inicio
         </Link>

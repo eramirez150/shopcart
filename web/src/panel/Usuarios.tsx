@@ -5,7 +5,7 @@ import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Pagina, Rol, UsuarioAdmin } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { Campo } from '../componentes/Campo';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { useSesion } from '../sesion/SesionContexto';
@@ -134,7 +134,7 @@ export function Usuarios() {
           <option value="recientes">Más recientes</option>
         </select>
       </div>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.total === 0 && <Vacio titulo="No hay usuarios con ese rol." />}
       {r.datos && r.datos.total > 0 && (

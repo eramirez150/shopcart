@@ -244,7 +244,10 @@ Limitaciones conocidas: un usuario desactivado conserva su token de acceso hasta
 | Checkout | Se permite solo al rol Cliente. Pasos: dirección (guardada o nueva), cupón (el del carrito), confirmación, que reserva la existencia 15 minutos, y pago simulado, que crea el pedido. Un 409 al pagar (reserva vencida o carrito cambiado) regresa a la confirmación con el mensaje de la API. |
 | Confirmaciones | Desactivar o eliminar usa `window.confirm`; cancelar un pedido tiene una confirmación en la página. |
 | Gráficas | Chart.js con una sola serie por gráfica en el color de acento, sin doble eje (ventas y pedidos van en gráficas separadas) y con una tabla equivalente debajo. Se carga solo al abrir el dashboard (`React.lazy`), así la tienda no la descarga. |
-| Estilo | Un solo color de acento propio (`#0b6e63`), fondos claros y estados escritos como texto, sin pastillas de colores. Íconos e ilustración del carrito vacío dibujados en SVG para este proyecto. |
+| Identidad visual | Una sola familia tipográfica, Bricolage Grotesque, con eje óptico: titulares gruesos y apretados, y texto pequeño abierto. Fondo papel cálido (`#f6f3ed`), tinta casi negra y un único acento verde pino (`#1d5c47`) en el encabezado, los botones principales y los estados activos. Las superficies se separan por tono, sin bordes ni sombras; solo las filas de tablas y listas llevan una línea tenue porque ayuda a leer. Los estados de pedidos y productos se escriben como texto, sin pastillas de colores. |
+| Productos y precios | La foto ocupa casi toda la tarjeta y el precio es el texto más grueso de cada vista. `componentes/Precio.tsx` reduce la "Q" y los centavos para que el entero domine, con cifras tabulares para que los montos se alineen. |
+| Movimiento | Curvas propias (`--curva`, `--curva-rebote`) y dos duraciones (160 y 280 ms). Las vistas aparecen con opacidad y los bloques suben 10 px en cascada. Otros detalles: el botón redondo late mientras agrega y muestra una marca al terminar, el contador del carrito salta al cambiar, la sección activa del menú inferior se marca con una raya que crece y el encabezado se reduce al bajar. La vista completa solo cambia de opacidad, porque un `transform` en ella movería las barras fijas. Con `prefers-reduced-motion` se desactiva todo. |
+| Carga y vacíos | En lugar de un indicador giratorio, cada vista muestra un esqueleto con la forma del contenido real (cuadrícula, filas o ficha de producto), así la página no salta al llegar los datos. Cada estado vacío y de error tiene una ilustración propia (`componentes/Ilustraciones.tsx`), un titular y, cuando hay algo que hacer, una sola acción. |
 | Accesos de demostración | Con `VITE_MODO_DEMO=true` el login muestra tres botones con las credenciales de prueba. Sin esa variable el código no llega al paquete compilado. |
 
 ## Supuestos
@@ -286,6 +289,7 @@ Solo para desarrollo: `typescript` compila el código, `tsx` ejecuta TypeScript 
 | --- | --- | --- |
 | `react`, `react-dom` | Interfaz | Exigida por el stack |
 | `react-router` | Rutas, rutas protegidas y parámetros de la URL | Exigida por el enunciado; es la librería de rutas habitual de React |
+| `@fontsource-variable/bricolage-grotesque` | Tipografía de la identidad visual | Incluye el archivo de la fuente en el paquete: se sirve desde el propio sitio, sin pedirla a un servicio externo. Solo se descarga el subconjunto latino (unos 77 kB) |
 | `chart.js` | Gráficas de barras del dashboard | Una sola librería de gráficas, sin dependencias, con tooltip y accesible por `aria-label`. Se registran solo las piezas que se usan y se descarga solo en el dashboard |
 
 Solo para desarrollo: `vite` y `@vitejs/plugin-react` sirven y compilan el proyecto, `typescript` comprueba los tipos y `@types/react` y `@types/react-dom` aportan los tipos de React. No se usan librerías de estado, formularios, peticiones ni componentes visuales: `fetch`, los contextos de React y un archivo de estilos alcanzan.
@@ -401,6 +405,7 @@ Verificado con SQL Server 2022 en Docker, Node.js 24 y Chromium sin interfaz (Pl
 - Operador: menú solo con pedidos e inventario y "Sin permiso" en el dashboard; un pedido avanzado de Pagado a Entregado, devolución parcial que lo deja en Devuelto en parte; salida mayor a la existencia rechazada con el mensaje de la API; entrada, salida y ajuste reflejados en el kardex.
 - Administrador: dashboard con indicadores, 4 gráficas y carritos abandonados, y cambio de agrupación; alta de categoría, producto, variante, precio e imagen con sus validaciones; desactivación de producto; alta de cupón con validación de porcentaje y fechas; alta y desactivación de usuario; bitácora filtrada por módulo.
 - Sin `VITE_MODO_DEMO` los botones de demostración no aparecen en el paquete compilado.
+- Tras el rediseño visual se repitieron todas las pruebas de navegador anteriores con los mismos resultados, incluidas las 6 tarjetas exactas a 390 × 844 (la barra pasa de 56 a 48 px). Se revisaron capturas en celular y en computadora de inicio, listado, ficha de producto, carrito con productos y vacío, esqueleto de carga, login, checkout, pedidos, panel y dashboard.
 
 No probado o con limitaciones del entorno de verificación:
 

@@ -6,7 +6,7 @@ import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Atributos, Producto, Variante } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { Campo } from '../componentes/Campo';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { quetzales, textoAtributos } from '../formato';
 import { maximo, numero, requerido, sinErrores } from '../validacion';
 import { cargarTodasLasCategorias } from './Productos';
@@ -344,7 +344,7 @@ export function ProductoEditar() {
       </p>
       <h1>{nuevo ? 'Nuevo producto' : (producto?.Nombre ?? `Producto ${id}`)}</h1>
       {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
-      {r.cargando && !producto && <Cargando />}
+      {r.cargando && !producto && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {!r.cargando && !r.error && (
         <>

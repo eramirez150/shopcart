@@ -4,7 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
 import type { MovimientoKardex, Pagina } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Paginacion } from '../componentes/Paginacion';
 import { useFiltros } from '../componentes/useFiltros';
 import { fechaYHora } from '../formato';
@@ -105,7 +105,7 @@ export function Kardex() {
               <option value="antiguos">Más antiguos</option>
             </select>
           </div>
-          {r.cargando && <Cargando />}
+          {r.cargando && <EsqueletoFilas />}
           {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
           {r.datos && r.datos.total === 0 && <Vacio titulo="Esta variante no tiene movimientos." />}
           {r.datos && r.datos.total > 0 && (

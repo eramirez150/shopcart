@@ -1,7 +1,7 @@
 // Todas las categorías activas.
 import { Link } from 'react-router';
 import { useApi } from '../api/useApi';
-import { Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { Icono, iconoDeCategoria } from './Iconos';
 import { cargarCategorias } from './TiendaLayout';
 
@@ -10,7 +10,7 @@ export function Categorias() {
   return (
     <main className="contenedor">
       <h1>Categorías</h1>
-      {r.cargando && <Cargando />}
+      {r.cargando && <EsqueletoFilas />}
       {r.error && <MensajeError mensaje={r.error} reintentar={r.recargar} />}
       {r.datos && r.datos.length === 0 && <Vacio titulo="No hay categorías disponibles." />}
       <ul className="lista-categorias">

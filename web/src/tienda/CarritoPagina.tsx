@@ -5,7 +5,9 @@ import { Link, useNavigate } from 'react-router';
 import { mensajeDe } from '../api/cliente';
 import type { LineaCarrito } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Aviso, Cargando, MensajeError } from '../componentes/Estados';
+import { Ilustracion } from '../componentes/Ilustraciones';
+import { Precio } from '../componentes/Precio';
+import { Aviso, EsqueletoFilas, EsqueletoGrilla, MensajeError } from '../componentes/Estados';
 import { quetzales, textoAtributos } from '../formato';
 import { useSesion } from '../sesion/SesionContexto';
 import { useCarrito } from './CarritoContexto';
@@ -14,25 +16,13 @@ import { Icono } from './Iconos';
 import { buscarProductos } from './Inicio';
 import { GrillaProductos } from './TarjetaProducto';
 
-function IlustracionCarrito() {
-  return (
-    <svg className="ilustracion" viewBox="0 0 160 120" aria-hidden="true">
-      <ellipse cx="80" cy="108" rx="58" ry="6" fill="var(--acento-suave)" stroke="none" />
-      <path d="M22 22h14l12 58h66l12-42H42" stroke="var(--acento)" strokeWidth="5" />
-      <path d="M58 50h52M62 64h44" stroke="var(--borde)" strokeWidth="5" />
-      <circle cx="58" cy="96" r="7" stroke="var(--acento)" strokeWidth="5" />
-      <circle cx="104" cy="96" r="7" stroke="var(--acento)" strokeWidth="5" />
-    </svg>
-  );
-}
-
 function CarritoVacio() {
   const { usuario } = useSesion();
   const sugeridos = useApi(() => buscarProductos({ orden: 'recientes', soloDisponibles: true, tamano: 6 }), 'sugeridos');
   return (
     <main className="contenedor">
       <div className="carrito-vacio">
-        <IlustracionCarrito />
+        <Ilustracion nombre="carrito" />
         <h1>Tu carrito está vacío</h1>
         <Link to="/buscar?orden=precio_asc&soloDisponibles=true">Ver ofertas</Link>
         {!usuario && (
@@ -49,9 +39,11 @@ function CarritoVacio() {
       <section className="seccion">
         <div className="seccion-cabeza">
           <h2>Te puede interesar</h2>
-          <Link to="/buscar?orden=recientes">Ver más</Link>
+          <Link to="/buscar?orden=recientes" className="ver-mas">
+            Ver más <Icono nombre="flecha" />
+          </Link>
         </div>
-        {sugeridos.cargando && <Cargando />}
+        {sugeridos.cargando && <EsqueletoGrilla />}
         {sugeridos.error && <MensajeError mensaje={sugeridos.error} reintentar={sugeridos.recargar} />}
         {sugeridos.datos && <GrillaProductos productos={sugeridos.datos.datos} />}
       </section>
@@ -96,8 +88,8 @@ function Linea({ linea }: { linea: LineaCarrito }) {
         </button>
       </div>
       <div className="linea-total">
-        {linea.Descuento > 0 && <s className="precio-anterior">{quetzales(linea.Subtotal)}</s>}
-        <strong>{quetzales(linea.Total)}</strong>
+        {linea.Descuento > 0 && <Precio valor={linea.Subtotal} tamano="chico" tachado />}
+        <Precio valor={linea.Total} />
       </div>
       {error && <p className="campo-error linea-error">{error}</p>}
     </li>
@@ -181,7 +173,9 @@ export function Totales({ subtotal, descuento, total }: { subtotal: number; desc
       </div>
       <div className="totales-total">
         <dt>Total</dt>
-        <dd>{quetzales(total)}</dd>
+        <dd>
+          <Precio valor={total} tamano="grande" />
+        </dd>
       </div>
       <p className="texto-suave">Los precios incluyen IVA.</p>
     </dl>
@@ -193,7 +187,7 @@ export function CarritoPagina() {
   const { usuario } = useSesion();
   const navegar = useNavigate();
 
-  if (cargando && !carrito) return <Cargando />;
+  if (cargando && !carrito) return <main className="contenedor"><EsqueletoFilas filas={3} /></main>;
   if (error && !carrito) return <MensajeError mensaje={error} reintentar={() => void recargar()} />;
   if (!carrito || carrito.lineas.length === 0) return <CarritoVacio />;
 

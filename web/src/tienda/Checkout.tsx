@@ -8,7 +8,7 @@ import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Direccion, Pedido, Reserva } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { CamposDireccion, validarDireccion, type DatosDireccion } from '../componentes/Direccion';
-import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
+import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
 import { quetzales, textoAtributos } from '../formato';
 import { useCarrito } from './CarritoContexto';
 import { FormularioCupon, Totales } from './CarritoPagina';
@@ -38,7 +38,7 @@ function PasoDireccion({ seguir }: { seguir: (e: Eleccion, texto: string) => voi
     if (d) seguir({ id: d.IDDireccion }, `${d.Direccion}, ${d.Ciudad}`);
   }
 
-  if (direcciones.cargando) return <Cargando />;
+  if (direcciones.cargando) return <EsqueletoFilas />;
   if (direcciones.error) return <MensajeError mensaje={direcciones.error} reintentar={direcciones.recargar} />;
 
   return (
@@ -149,11 +149,11 @@ export function Checkout() {
     }
   }
 
-  if (cargando && !carrito) return <Cargando />;
+  if (cargando && !carrito) return <EsqueletoFilas />;
   if (!reserva && (!carrito || carrito.lineas.length === 0)) {
     return (
       <main className="contenedor">
-        <Vacio titulo="No hay productos para pagar.">
+        <Vacio titulo="No hay productos para pagar." ilustracion="carrito">
           <Link to="/" className="boton boton-principal">
             Ir a la tienda
           </Link>
