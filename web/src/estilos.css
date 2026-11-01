@@ -1,0 +1,497 @@
+/* Estilos de ShopCart. Un solo color de acento, fondos claros y mucho espacio.
+   Primero para celular; las reglas para pantallas grandes van en @media (min-width). */
+
+:root {
+  --acento: #0b6e63;
+  --acento-oscuro: #075048;
+  --acento-suave: #e6f2f0;
+  --texto: #1d2323;
+  --texto-suave: #5d6766;
+  --borde: #e2e6e5;
+  --fondo: #ffffff;
+  --fondo-gris: #f5f7f6;
+  --error: #a3261b;
+  --radio: 12px;
+  --hueco: 12px;
+  --alto-barra: 52px;
+  --alto-buscador: 60px;
+  --alto-menu: 60px;
+  --seguro-abajo: env(safe-area-inset-bottom, 0px);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  margin: 0 0 0.6em;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+}
+
+a {
+  color: var(--acento);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.contenedor {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.texto-suave {
+  color: var(--texto-suave);
+}
+
+.texto-centro {
+  text-align: center;
+}
+
+.oculto-visual {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* ---------- Botones */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton-principal {
+  background: var(--acento);
+  color: #fff;
+}
+
+.boton-principal:not(:disabled):hover {
+  background: var(--acento-oscuro);
+}
+
+.boton-secundario {
+  border-color: var(--borde);
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+.boton-secundario:not(:disabled):hover {
+  border-color: var(--acento);
+}
+
+.boton-peligro {
+  border-color: var(--error);
+  color: var(--error);
+  background: var(--fondo);
+}
+
+.boton-ancho {
+  width: 100%;
+}
+
+.boton-chico {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+}
+
+.boton-enlace {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--acento);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* ---------- Formularios */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.campo label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.campo input,
+.campo select,
+.campo textarea,
+.control {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--fondo);
+  width: 100%;
+}
+
+.campo textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus,
+.control:focus {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.campo [aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.campo-error {
+  color: var(--error);
+}
+
+.campo-ayuda {
+  color: var(--texto-suave);
+}
+
+.casilla {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.casilla input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--acento);
+}
+
+.aviso {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  background: var(--fondo-gris);
+}
+
+.aviso-error {
+  border-color: var(--error);
+  color: var(--error);
+  background: #fff;
+}
+
+.aviso-ok {
+  border-color: var(--acento);
+  color: var(--acento-oscuro);
+  background: var(--acento-suave);
+}
+
+/* ---------- Estados de carga, vacío y error */
+.estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+.estado p {
+  margin: 0;
+}
+
+.estado-titulo {
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.estado-error .estado-titulo {
+  color: var(--error);
+}
+
+.girador {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--borde);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Acceso */
+.pantalla-acceso {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--fondo-gris);
+}
+
+.tarjeta-acceso {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 22px;
+  background: var(--fondo);
+  border-radius: 16px;
+  border: 1px solid var(--borde);
+}
+
+.tarjeta-acceso h1 {
+  margin: 18px 0 20px;
+  font-size: 1.3rem;
+}
+
+.marca {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  color: inherit;
+  font-size: 1.2rem;
+}
+
+.marca-grande {
+  font-size: 1.6rem;
+  color: var(--acento);
+}
+
+.demo {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+.demo p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+/* ---------- Paginación */
+.paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+.paginacion div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Panel */
+.panel {
+  min-height: 100dvh;
+  background: var(--fondo-gris);
+}
+
+.panel-barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 8px;
+  background: var(--acento);
+  color: #fff;
+}
+
+.panel-rol {
+  font-weight: 500;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-left: 6px;
+}
+
+.panel-lateral {
+  position: fixed;
+  top: 56px;
+  bottom: 0;
+  left: 0;
+  z-index: 15;
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--fondo);
+  border-right: 1px solid var(--borde);
+  transform: translateX(-100%);
+  transition: transform 0.2s;
+  overflow-y: auto;
+}
+
+.panel-lateral.abierto {
+  transform: none;
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.25);
+}
+
+.panel-lateral nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel-lateral nav a {
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--texto);
+}
+
+.panel-lateral nav a.active {
+  background: var(--acento-suave);
+  color: var(--acento-oscuro);
+  font-weight: 600;
+}
+
+.panel-pie {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde);
+  font-size: 0.9rem;
+}
+
+.panel-pie p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.panel-contenido {
+  padding: 20px 16px 40px;
+  max-width: 1200px;
+}
+
+.accesos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--hueco);
+}
+
+.acceso {
+  padding: 18px;
+  border-radius: var(--radio);
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  text-decoration: none;
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.acceso:hover {
+  border-color: var(--acento);
+}
+
+@media (min-width: 900px) {
+  .panel-menu-boton {
+    display: none;
+  }
+
+  .panel-barra {
+    padding-left: 20px;
+  }
+
+  .panel-lateral {
+    transform: none;
+  }
+
+  .panel-lateral.abierto {
+    box-shadow: none;
+  }
+
+  .panel-contenido {
+    margin-left: 250px;
+    padding: 28px 32px 48px;
+  }
+}
