@@ -16,6 +16,7 @@ const ADMIN: Rol[] = ['Administrador'];
 // Cada opción indica qué roles la ven. Las rutas también están protegidas en App.tsx.
 export const OPCIONES_PANEL: Opcion[] = [
   { ruta: '/panel', texto: 'Inicio', roles: PERSONAL },
+  { ruta: '/panel/dashboard', texto: 'Dashboard', roles: ADMIN },
   { ruta: '/panel/pedidos', texto: 'Pedidos y devoluciones', roles: PERSONAL },
   { ruta: '/panel/inventario', texto: 'Inventario y kardex', roles: PERSONAL },
   { ruta: '/panel/categorias', texto: 'Categorías', roles: ADMIN },

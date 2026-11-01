@@ -1,6 +1,7 @@
 // Rutas de la aplicación. Las secciones privadas pasan por RutaProtegida con los roles permitidos.
+import { lazy, Suspense } from 'react';
 import { Link, Route, Routes } from 'react-router';
-import { Vacio } from './componentes/Estados';
+import { Cargando, Vacio } from './componentes/Estados';
 import { Cuenta } from './cuenta/Cuenta';
 import { MiPedido } from './cuenta/MiPedido';
 import { MisDirecciones } from './cuenta/MisDirecciones';
@@ -26,6 +27,9 @@ import { Checkout, PedidoConfirmado } from './tienda/Checkout';
 import { Detalle } from './tienda/Detalle';
 import { Inicio } from './tienda/Inicio';
 import { TiendaLayout } from './tienda/TiendaLayout';
+
+// El dashboard trae Chart.js: se descarga solo cuando el administrador lo abre.
+const Dashboard = lazy(() => import('./panel/Dashboard').then((m) => ({ default: m.Dashboard })));
 
 function NoEncontrada() {
   return (
@@ -70,6 +74,14 @@ export function App() {
           <Route path="inventario" element={<Inventario />} />
           <Route path="inventario/:id" element={<Kardex />} />
           <Route element={<RutaProtegida roles={['Administrador']} />}>
+            <Route
+              path="dashboard"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Dashboard />
+                </Suspense>
+              }
+            />
             <Route path="categorias" element={<CategoriasPanel />} />
             <Route path="productos" element={<Productos />} />
             <Route path="productos/:id" element={<ProductoEditar />} />
