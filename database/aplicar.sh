@@ -1,9 +1,12 @@
 #!/bin/sh
 # Aplica los scripts de las carpetas numeradas de esta carpeta.
 #
-# Orden: las carpetas 01_ a 06_ en orden numérico y, dentro de cada una, los
+# Orden: las carpetas 00_ a 06_ en orden numérico y, dentro de cada una, los
 # archivos en orden alfabético (incluidas las subcarpetas). pruebas/ no se aplica.
 #
+#   00_base                  Crea la base (001, conectado a master) y la tabla
+#                            ScriptsAplicados (002). Se ejecutan en cada arranque,
+#                            fuera de transacción, y no hacen nada si ya existen.
 #   01_tablas, 02_semillas   Se aplican una sola vez. Cada archivo se registra
 #                            en dbo.ScriptsAplicados con su ruta relativa.
 #   03_funciones a           Usan CREATE OR ALTER y se aplican en cada ejecución,
@@ -36,15 +39,12 @@ SQLCMD="/opt/mssql-tools18/bin/sqlcmd -S db -U sa -C -b -I -f 65001"
 
 RAIZ=/scripts
 
-$SQLCMD -Q "IF DB_ID(N'$DB_NAME') IS NULL CREATE DATABASE [$DB_NAME];" < /dev/null
-
-$SQLCMD -d "$DB_NAME" -Q "
-IF OBJECT_ID(N'dbo.ScriptsAplicados', N'U') IS NULL
-    CREATE TABLE dbo.ScriptsAplicados (
-        IDScriptAplicado INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-        Nombre NVARCHAR(200) NOT NULL UNIQUE,
-        FechaAplicado DATETIME2(0) NOT NULL DEFAULT SYSUTCDATETIME()
-    );" < /dev/null
+# 00_base: la base y el registro de scripts. Van fuera de transacción porque
+# CREATE DATABASE no se permite dentro de una.
+echo "Aplicando 00_base/001_crear_base.sql"
+$SQLCMD -d master -v DB_NAME="$DB_NAME" -i "$RAIZ/00_base/001_crear_base.sql" < /dev/null
+echo "Aplicando 00_base/002_scripts_aplicados.sql"
+$SQLCMD -d "$DB_NAME" -i "$RAIZ/00_base/002_scripts_aplicados.sql" < /dev/null
 
 # Ejecuta un archivo dentro de una transacción. Con $3 = registrar, guarda
 # también su ruta relativa en dbo.ScriptsAplicados.
@@ -74,7 +74,7 @@ ejecutar() {
 }
 
 lista=$(mktemp)
-(cd "$RAIZ" && find . -type f -name '*.sql' ! -path './pruebas/*' | sed 's|^\./||' | LC_ALL=C sort) > "$lista"
+(cd "$RAIZ" && find . -type f -name '*.sql' ! -path './pruebas/*' ! -path './00_base/*' | sed 's|^\./||' | LC_ALL=C sort) > "$lista"
 
 while IFS= read -r nombre; do
     case "$nombre" in
