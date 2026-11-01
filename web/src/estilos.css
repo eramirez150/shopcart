@@ -1502,3 +1502,156 @@ svg {
     top: 130px;
   }
 }
+
+/* ======================================================================
+   Mi cuenta y detalle de pedido
+   ====================================================================== */
+.cuenta-salir {
+  margin-top: 24px;
+}
+
+.bloque {
+  display: block;
+}
+
+.texto-partido {
+  word-break: break-all;
+}
+
+.lista-pedidos,
+.lista-direcciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-pedidos a,
+.lista-direcciones li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--borde);
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.lista-pedidos span,
+.lista-direcciones li > span:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-pedidos-derecha {
+  align-items: flex-end;
+}
+
+.lista-direcciones {
+  margin-top: 16px;
+}
+
+.lista-direcciones .acciones {
+  margin: 0;
+  flex-wrap: nowrap;
+}
+
+.tarjeta-formulario {
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--fondo);
+  max-width: 560px;
+}
+
+.datos {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.datos dt {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+}
+
+.datos dd {
+  margin: 0;
+}
+
+.historial {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--borde);
+}
+
+.historial li {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 14px;
+}
+
+.totales-pedido {
+  max-width: 360px;
+  margin-left: auto;
+  margin-top: 12px;
+}
+
+.confirmar {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--error);
+  border-radius: var(--radio);
+}
+
+.confirmar p {
+  margin-top: 0;
+}
+
+/* ---------- Tablas */
+.tabla-contenedor {
+  overflow-x: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--fondo);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla th,
+.tabla td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+
+.tabla th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--texto-suave);
+  white-space: nowrap;
+  background: var(--fondo-gris);
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (min-width: 700px) {
+  .datos {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

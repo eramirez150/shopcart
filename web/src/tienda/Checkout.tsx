@@ -7,38 +7,13 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { Direccion, Pedido, Reserva } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Campo } from '../componentes/Campo';
+import { CamposDireccion, validarDireccion, type DatosDireccion } from '../componentes/Direccion';
 import { Aviso, Cargando, MensajeError, Vacio } from '../componentes/Estados';
 import { quetzales, textoAtributos } from '../formato';
-import { maximo, requerido, sinErrores } from '../validacion';
 import { useCarrito } from './CarritoContexto';
 import { FormularioCupon, Totales } from './CarritoPagina';
 
 const PASOS = ['Dirección', 'Cupón', 'Confirmación', 'Pago'];
-
-export interface DatosDireccion {
-  direccion: string;
-  ciudad: string;
-  telefono: string;
-}
-
-export function validarDireccion(d: DatosDireccion) {
-  return sinErrores({
-    direccion: requerido(d.direccion, 'Escribe la dirección.') ?? maximo(d.direccion, 300),
-    ciudad: requerido(d.ciudad, 'Escribe la ciudad.') ?? maximo(d.ciudad, 100),
-    telefono: requerido(d.telefono, 'Escribe un teléfono.') ?? (/^[0-9 +()-]{8,20}$/.test(d.telefono.trim()) ? undefined : 'Escribe un teléfono de 8 a 20 dígitos.'),
-  });
-}
-
-export function CamposDireccion({ datos, errores, cambiar }: { datos: DatosDireccion; errores: Record<string, string>; cambiar: (d: DatosDireccion) => void }) {
-  return (
-    <>
-      <Campo etiqueta="Dirección" name="direccion" autoComplete="street-address" value={datos.direccion} error={errores.direccion} onChange={(e) => cambiar({ ...datos, direccion: e.target.value })} />
-      <Campo etiqueta="Ciudad" name="ciudad" autoComplete="address-level2" value={datos.ciudad} error={errores.ciudad} onChange={(e) => cambiar({ ...datos, ciudad: e.target.value })} />
-      <Campo etiqueta="Teléfono" name="telefono" type="tel" autoComplete="tel" value={datos.telefono} error={errores.telefono} onChange={(e) => cambiar({ ...datos, telefono: e.target.value })} />
-    </>
-  );
-}
 
 // Elegida: una dirección guardada (id) o una nueva escrita en el formulario.
 type Eleccion = { id: number } | { nueva: DatosDireccion };

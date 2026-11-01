@@ -1,6 +1,10 @@
 // Rutas de la aplicación. Las secciones privadas pasan por RutaProtegida con los roles permitidos.
 import { Link, Route, Routes } from 'react-router';
 import { Vacio } from './componentes/Estados';
+import { Cuenta } from './cuenta/Cuenta';
+import { MiPedido } from './cuenta/MiPedido';
+import { MisDirecciones } from './cuenta/MisDirecciones';
+import { MisPedidos } from './cuenta/MisPedidos';
 import { Login } from './paginas/Login';
 import { Registro } from './paginas/Registro';
 import { PanelInicio, PanelLayout } from './panel/PanelLayout';
@@ -40,6 +44,10 @@ export function App() {
         <Route element={<RutaProtegida roles={['Cliente']} />}>
           <Route path="checkout" element={<Checkout />} />
           <Route path="checkout/listo/:id" element={<PedidoConfirmado />} />
+          <Route path="cuenta" element={<Cuenta />} />
+          <Route path="cuenta/pedidos" element={<MisPedidos />} />
+          <Route path="cuenta/pedidos/:id" element={<MiPedido />} />
+          <Route path="cuenta/direcciones" element={<MisDirecciones />} />
         </Route>
         <Route path="*" element={<NoEncontrada />} />
       </Route>
