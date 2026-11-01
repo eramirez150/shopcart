@@ -45,6 +45,10 @@ export interface ProductoResumen {
   Disponible: number;
   Variantes: number;
   ImagenPrincipal: string | null;
+  // La API actual no envía estos campos. La tarjeta los muestra solo si llegan.
+  PrecioAnterior?: number | null;
+  Calificacion?: number | null;
+  Ventas?: number | null;
 }
 
 export type Atributos = Record<string, string>;
