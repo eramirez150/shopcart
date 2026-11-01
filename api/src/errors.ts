@@ -11,7 +11,7 @@ export class AppError extends Error {
   }
 }
 
-// Los SP lanzan THROW 52000 + código HTTP (52404 -> 404). Ver database/003_inventario.sql.
+// Los SP lanzan THROW 52000 + código HTTP (52404 -> 404). Ver la sección de scripts del README.
 export function traducir(e: unknown): AppError {
   if (e instanceof AppError) return e;
   if (e instanceof ZodError) {

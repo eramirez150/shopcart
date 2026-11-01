@@ -1,5 +1,5 @@
 -- Prueba manual de permisos: un usuario con el rol de la aplicación solo puede
--- ejecutar stored procedures. No es un script numerado: aplicar.sh no lo ejecuta.
+-- ejecutar stored procedures. Está en pruebas/, que aplicar.sh no ejecuta.
 -- Uso: sqlcmd -S <servidor> -d ShopCart -I -b -i database/pruebas/permisos.sql
 -- Crea un usuario temporal sin inicio de sesión y lo elimina al terminar.
 SET NOCOUNT ON;

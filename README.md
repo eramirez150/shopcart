@@ -28,11 +28,11 @@ Editar `.env` y definir estos tres valores, sin comillas. Si falta alguno, `dock
 docker compose up --build
 ```
 
-La API queda en `http://localhost:3000/api` y su documentación en `http://localhost:3000/api/docs`. La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden y solo una vez.
+La API queda en `http://localhost:3000/api` y su documentación en `http://localhost:3000/api/docs`. La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden: tablas y semillas una sola vez; funciones, vistas, procedimientos y permisos en cada arranque.
 
 ### Usuario de la aplicación
 
-La API no usa `sa`: usa `shopcart_app`, que solo tiene `EXECUTE` sobre los stored procedures por medio del rol `RolShopCartApp` (script `012_permisos.sql`). `database/aplicar.sh` lo crea con la clave de `APP_DB_PASSWORD`.
+La API no usa `sa`: usa `shopcart_app`, que solo tiene `EXECUTE` sobre los stored procedures por medio del rol `RolShopCartApp` (script `06_permisos/001_rol_aplicacion.sql`). `database/aplicar.sh` lo crea con la clave de `APP_DB_PASSWORD`.
 
 ### API fuera de Docker
 
@@ -68,11 +68,11 @@ npm test
 
 `seguridad.test.ts` no necesita base de datos. `flujo.test.ts` y `concurrencia.test.ts` exigen una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas.
 
-Las pruebas de permisos del usuario de la aplicación están en `database/pruebas/permisos.sql` (no es un script numerado y `aplicar.sh` no lo ejecuta).
+Las pruebas de permisos del usuario de la aplicación están en `database/pruebas/permisos.sql` (`aplicar.sh` no ejecuta la carpeta `pruebas/`).
 
 ## Credenciales de prueba
 
-Solo para desarrollo, creadas por `002_semillas.sql`. Cámbielas o elimínelas en cualquier entorno real.
+Solo para desarrollo, creadas por los scripts de `database/02_semillas`. Cámbielas o elimínelas en cualquier entorno real.
 
 | Rol | Correo | Contraseña |
 | --- | --- | --- |
@@ -85,24 +85,59 @@ Cupones de ejemplo: `BIENVENIDA10` (10 %, una vez por cliente), `Q50` (Q50 con c
 
 ## Scripts de base de datos
 
-- Cada script se llama `NNN_descripcion.sql`, con un prefijo de tres dígitos. `aplicar.sh` rechaza otros nombres.
-- `aplicar.sh` ejecuta cada script pendiente dentro de una transacción junto con su registro en `dbo.ScriptsAplicados`. Si algo falla, no queda nada a medias y el contenedor `db-init` termina con error.
-- Un script no abre ni confirma transacciones propias. Los SP usan `CREATE OR ALTER`.
+Cada objeto vive en su propio archivo y el archivo se llama como el objeto (`SP_Pedidos_Listar.sql`). `aplicar.sh` recorre las carpetas en orden numérico y, dentro de cada una, los archivos en orden alfabético.
 
-| Script | Contenido |
+```text
+database/
+  01_tablas/          Tablas, índices y triggers por módulo (001_usuarios, 002_catalogo, ...)
+  02_semillas/        Datos de prueba: usuarios por rol, categorías, 50 productos, kardex y cupones
+  03_funciones/       FU_Modulo_Proceso.sql
+  04_vistas/          VW_Modulo_Proceso.sql
+  05_procedimientos/  Una subcarpeta por módulo, con SP_Modulo_Proceso.sql
+  06_permisos/        Rol de aplicación con solo EXECUTE
+  pruebas/            Pruebas manuales; aplicar.sh no las ejecuta
+  aplicar.sh
+```
+
+| Carpeta | Cómo se aplica |
 | --- | --- |
-| `001_tablas.sql` | Tablas, llaves, restricciones, índices, bitácora inmutable y sus triggers |
-| `002_semillas.sql` | Usuarios por rol, 8 categorías, 50 productos con variantes, kardex inicial y cupones |
-| `003_inventario.sql` | Disponibilidad, kardex (`SP_Inventario_RegistrarMovimiento`) y movimientos manuales |
-| `004_cupones.sql` | Cálculo de descuento, validación con causa específica y consumo del uso |
-| `005_checkout.sql` | Reserva de 15 minutos |
-| `006_pedidos.sql` | Creación atómica del pedido y cambio de estado |
-| `007_autenticacion.sql` | Registro, refresh tokens con rotación y gestión de usuarios |
-| `008_catalogo.sql` | Categorías, productos y variantes, búsqueda con filtros |
-| `009_carrito.sql` | Carrito de usuario o invitado, cupón y fusión al iniciar sesión |
-| `010_cupones_devoluciones.sql` | Administración de cupones y devoluciones |
-| `011_reportes.sql` | Listado de pedidos, dashboard y bitácora |
-| `012_permisos.sql` | Rol de aplicación con solo `EXECUTE` |
+| `01_tablas`, `02_semillas` | Una sola vez. Cada archivo se registra en `dbo.ScriptsAplicados` con su ruta relativa. |
+| `03_funciones` a `06_permisos` | En cada ejecución, con `CREATE OR ALTER`. No se registran: un cambio en un SP llega a una base que ya existe. |
+
+- Cada archivo se ejecuta en su propia transacción (en `01` y `02`, junto con su registro). Si algo falla, no queda nada a medias y el contenedor `db-init` termina con error.
+- Un archivo no abre ni confirma transacciones propias.
+- Las tablas no se pueden reaplicar: un cambio en una tabla ya creada exige un archivo nuevo en `01_tablas` (por ejemplo `010_cambio.sql` con `ALTER TABLE`), nunca editar el existente.
+- Si una vista o función depende de otra, se les pone un prefijo numérico para que se creen en orden. Hoy ninguna lo necesita.
+
+### Agregar un procedimiento
+
+1. Crear `database/05_procedimientos/<Modulo>/SP_<Modulo>_<Proceso>.sql` con una sola instrucción `CREATE OR ALTER PROCEDURE dbo.SP_<Modulo>_<Proceso>` y `GO` al final.
+2. Poner encima un comentario breve que explique qué hace.
+3. Ejecutar `docker compose up db-init`: el archivo nuevo se aplica y los demás se reaplican sin cambios.
+
+Una función se agrega igual en `03_funciones` y una vista en `04_vistas`. El módulo es la carpeta; los errores se lanzan con `THROW 52000 + código HTTP`.
+
+### Vistas de control
+
+Son de solo lectura, sirven para revisar desde SSMS y la API no las usa.
+
+| Vista | Qué muestra |
+| --- | --- |
+| `VW_Inventario_Control` | Una fila por variante: existencia, reservado, disponible y la diferencia con la suma del kardex, que debe ser 0. |
+| `VW_Pedidos_Resumen` | Una fila por pedido: cliente, estado, líneas, unidades, devoluciones, totales y cupón. |
+
+```sql
+SELECT * FROM dbo.VW_Inventario_Control WHERE DiferenciaKardex <> 0;
+SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
+```
+
+### Reglas por módulo
+
+- Un pedido completado es `Entregado` o `DevueltoParcial`; las ventas del dashboard son netas de devoluciones.
+- Cualquier cambio en el carrito anula su reserva activa: el cliente debe iniciar el pago otra vez.
+- Las escrituras del catálogo exigen rol Administrador y nada con ventas o movimientos se elimina: se desactiva.
+- El hash de la contraseña lo calcula la API (bcrypt); del refresh token solo se guarda su SHA-256.
+- Los errores usan `THROW` con `52000` más el código HTTP: `52400` datos inválidos, `52401` no autenticado, `52403` sin permiso, `52404` no existe y `52409` conflicto con el estado actual.
 
 ## Decisiones técnicas
 
@@ -204,4 +239,4 @@ stateDiagram-v2
 
 ## Estado de la verificación
 
-Los scripts y las pruebas se ejecutaron en SQL Server LocalDB 2019. `docker compose up` (SQL Server 2022 y `aplicar.sh`) no se ha podido probar en la máquina de desarrollo.
+Los scripts y las pruebas se ejecutaron en SQL Server LocalDB 2019. `docker compose up` (SQL Server 2022 y `aplicar.sh`) también se probó: la base se crea desde cero, la segunda ejecución omite tablas y semillas, y las pruebas de la API pasan contra ella.

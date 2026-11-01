@@ -13,7 +13,7 @@ Se evalúa el último commit anterior a cada cierre. El historial debe ser legib
 
 ## Stack obligatorio
 
-- Microsoft SQL Server 2019 o superior, con scripts SQL numerados y sin ORM.
+- Microsoft SQL Server 2019 o superior, con scripts SQL ordenados en carpetas numeradas (un objeto por archivo) y sin ORM.
 - Node.js 24 LTS o superior, Express y TypeScript en modo `strict`.
 - React 18 o superior con TypeScript.
 - Todo el acceso a datos, incluidas las lecturas, se hace por stored procedures con parámetros tipados.
