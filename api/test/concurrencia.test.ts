@@ -117,6 +117,35 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
     assert.equal((await existencia(idProducto)).Disponible, 7);
   });
 
+  test('una salida o un ajuste manual no deja la existencia por debajo de lo reservado', async () => {
+    const { idProducto, idVariante } = await crearVariante(5);
+    const [u] = await usuariosConCarrito(1, idVariante);
+    await s.pedir('PATCH', `/carrito/items/${idVariante}`, { token: u!.token, cuerpo: { cantidad: 4 } });
+    assert.equal((await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion })).estado, 201);
+
+    const mov = (tipo: string, cantidad: number) =>
+      s.pedir('POST', '/inventario/movimientos', { token: admin, cuerpo: { idVariante, tipo, cantidad, motivo: 'Prueba reservado' } });
+    const salida = await mov('Salida', 2);
+    assert.equal(salida.estado, 409);
+    assert.match(salida.datos.error.mensaje, /reservadas/);
+    assert.equal((await mov('Ajuste', -2)).estado, 409);
+    // Solo queda libre 1 unidad: esa sí se puede retirar.
+    assert.equal((await mov('Salida', 1)).estado, 201);
+    assert.equal((await mov('Ajuste', -1)).estado, 409);
+    // Una entrada siempre se acepta.
+    assert.equal((await mov('Entrada', 3)).estado, 201);
+    const conEntrada = await existencia(idProducto);
+    assert.equal(conEntrada.Existencia, 7);
+    assert.equal(conEntrada.Disponible, 3);
+
+    // Retiros simultáneos: nunca bajan de lo reservado.
+    const intentos = await Promise.all(Array.from({ length: 6 }, () => mov('Salida', 1)));
+    assert.equal(intentos.filter((r) => r.estado === 201).length, 3);
+    const v = await existencia(idProducto);
+    assert.equal(v.Existencia, 4);
+    assert.equal(v.Disponible, 0);
+  });
+
   test('cupón con límite total 5: 20 pedidos simultáneos consumen exactamente 5 usos', async () => {
     const codigo = 'LIM' + marca();
     const cupon = await s.pedir('POST', '/cupones', {
