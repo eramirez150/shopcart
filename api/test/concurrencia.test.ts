@@ -89,6 +89,34 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
     assert.equal((await existencia(idProducto)).Existencia, 9); // una sola salida
   });
 
+  test('doble clic en pagar: 10 inicios de pago simultáneos devuelven la misma reserva activa', async () => {
+    const { idProducto, idVariante } = await crearVariante(10);
+    const [u] = await usuariosConCarrito(1, idVariante);
+    await s.pedir('PATCH', `/carrito/items/${idVariante}`, { token: u!.token, cuerpo: { cantidad: 3 } });
+
+    const intentos = await Promise.all(
+      Array.from({ length: 10 }, () => s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion })),
+    );
+    assert.ok(intentos.every((r) => r.estado === 201), JSON.stringify(intentos.map((r) => r.estado)));
+    const ids = new Set(intentos.map((r) => r.datos.IDReserva));
+    assert.equal(ids.size, 1);
+    const idReserva = intentos[0]!.datos.IDReserva as number;
+    assert.equal((await s.pedir('GET', `/checkout/reservas/${idReserva}`, { token: u!.token })).datos.Estado, 'Activa');
+    // Se reservó una sola vez.
+    assert.equal((await existencia(idProducto)).Disponible, 7);
+
+    // Repetir después, sin cambios, devuelve la misma reserva y no anula la anterior.
+    const otra = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion });
+    assert.equal(otra.datos.IDReserva, idReserva);
+    assert.equal(otra.datos.Estado, 'Activa');
+
+    // Con otra dirección ya no es un doble clic: se crea otra reserva y la anterior se anula.
+    const cambio = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, direccion: 'Otra dirección 1-1' } });
+    assert.notEqual(cambio.datos.IDReserva, idReserva);
+    assert.equal((await s.pedir('GET', `/checkout/reservas/${idReserva}`, { token: u!.token })).datos.Estado, 'Anulada');
+    assert.equal((await existencia(idProducto)).Disponible, 7);
+  });
+
   test('cupón con límite total 5: 20 pedidos simultáneos consumen exactamente 5 usos', async () => {
     const codigo = 'LIM' + marca();
     const cupon = await s.pedir('POST', '/cupones', {

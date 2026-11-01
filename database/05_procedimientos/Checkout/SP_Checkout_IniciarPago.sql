@@ -1,4 +1,5 @@
 -- Inicia el pago: reserva la existencia del carrito abierto del cliente.
+-- Repetir la llamada con el carrito sin cambios devuelve la misma reserva (doble clic).
 -- La dirección se elige con @IDDireccion (debe ser del cliente y estar activa) o se
 -- registra en ese momento con @Direccion, @Ciudad y @Telefono; si el cliente ya tiene
 -- una dirección activa idéntica se reutiliza. El texto se copia en la reserva.
@@ -67,8 +68,29 @@ BEGIN
             END;
         END;
 
-        -- Una reserva activa anterior, vencida o no, libera su lugar: se anula
-        -- antes de crear la nueva (hay un índice único de reserva activa por carrito).
+        -- Doble clic: si el carrito ya tiene una reserva activa y no vencida con la misma
+        -- dirección y el mismo cupón, se devuelve esa reserva sin anularla. Cualquier cambio
+        -- del carrito anula su reserva, así que una reserva activa implica un carrito sin
+        -- cambios. Un código que no existe nunca coincide y se rechaza más abajo.
+        DECLARE @IDCuponPedido INT = @IDCupon;
+        IF @Codigo IS NOT NULL AND LEN(LTRIM(RTRIM(@Codigo))) > 0
+            SET @IDCuponPedido = ISNULL((SELECT IDCupon FROM dbo.Cupones WHERE Codigo = LTRIM(RTRIM(@Codigo))), -1);
+
+        SELECT @IDReserva = IDReserva
+        FROM dbo.Reservas
+        WHERE IDCarrito = @IDCarrito AND Estado = N'Activa' AND Expira > SYSUTCDATETIME()
+          AND IDDireccion = @IDDireccion
+          AND (IDCupon = @IDCuponPedido OR (IDCupon IS NULL AND @IDCuponPedido IS NULL));
+
+        IF @IDReserva IS NOT NULL
+        BEGIN
+            COMMIT TRANSACTION;
+            EXEC dbo.SP_Checkout_ObtenerReserva @IDUsuario = @IDUsuario, @IDReserva = @IDReserva;
+            RETURN;
+        END;
+
+        -- Otra reserva activa (vencida, o con otra dirección o cupón) libera su lugar:
+        -- se anula antes de crear la nueva (hay un índice único de reserva activa por carrito).
         UPDATE dbo.Reservas SET Estado = N'Anulada'
         WHERE IDCarrito = @IDCarrito AND Estado = N'Activa';
 
