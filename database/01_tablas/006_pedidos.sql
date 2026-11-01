@@ -50,6 +50,7 @@ CREATE TABLE dbo.Pedidos (
     Descuento          DECIMAL(12,2) NOT NULL CONSTRAINT CK_Pedidos_Descuento CHECK (Descuento >= 0),
     Total              DECIMAL(12,2) NOT NULL CONSTRAINT CK_Pedidos_Total CHECK (Total >= 0),
     IVA                DECIMAL(12,2) NOT NULL CONSTRAINT CK_Pedidos_IVA CHECK (IVA >= 0),
+    IDDireccion        INT           NOT NULL CONSTRAINT FK_Pedidos_Direcciones REFERENCES dbo.Direcciones (IDDireccion),
     Direccion          NVARCHAR(300) NOT NULL,
     Ciudad             NVARCHAR(100) NOT NULL,
     Telefono           NVARCHAR(20)  NOT NULL,

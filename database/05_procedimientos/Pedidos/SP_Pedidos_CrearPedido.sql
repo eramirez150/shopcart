@@ -14,14 +14,14 @@ BEGIN
 
     DECLARE @IDPedido INT, @Estado NVARCHAR(10), @Expira DATETIME2(0), @IDCupon INT,
             @IDCarrito INT, @Subtotal DECIMAL(12,2), @Descuento DECIMAL(12,2), @Total DECIMAL(12,2),
-            @Direccion NVARCHAR(300), @Ciudad NVARCHAR(100), @Telefono NVARCHAR(20);
+            @IDDireccion INT, @Direccion NVARCHAR(300), @Ciudad NVARCHAR(100), @Telefono NVARCHAR(20);
 
     BEGIN TRY
         BEGIN TRANSACTION;
 
         SELECT @Estado = Estado, @Expira = Expira, @IDCupon = IDCupon, @IDCarrito = IDCarrito,
                @Subtotal = Subtotal, @Descuento = Descuento, @Total = Total,
-               @Direccion = Direccion, @Ciudad = Ciudad, @Telefono = Telefono
+               @IDDireccion = IDDireccion, @Direccion = Direccion, @Ciudad = Ciudad, @Telefono = Telefono
         FROM dbo.Reservas WITH (UPDLOCK, HOLDLOCK)
         WHERE IDReserva = @IDReserva AND IDUsuario = @IDUsuario;
 
@@ -50,10 +50,10 @@ BEGIN
                 THROW 52409, N'La existencia ya no alcanza para el pedido.', 1;
 
             INSERT INTO dbo.Pedidos (IDUsuario, IDReserva, Estado, IDCupon, Subtotal, Descuento, Total, IVA,
-                                     Direccion, Ciudad, Telefono, ReferenciaPago)
+                                     IDDireccion, Direccion, Ciudad, Telefono, ReferenciaPago)
             VALUES (@IDUsuario, @IDReserva, N'Pagado', @IDCupon, @Subtotal, @Descuento, @Total,
                     ROUND(@Total - @Total / 1.12, 2),   -- los precios ya incluyen el IVA de 12 %
-                    @Direccion, @Ciudad, @Telefono, N'SIM-' + CONVERT(NVARCHAR(36), NEWID()));
+                    @IDDireccion, @Direccion, @Ciudad, @Telefono, N'SIM-' + CONVERT(NVARCHAR(36), NEWID()));
 
             SET @IDPedido = SCOPE_IDENTITY();
 

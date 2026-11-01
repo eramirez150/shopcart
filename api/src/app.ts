@@ -11,6 +11,7 @@ import { rutasCarrito } from './modules/carrito/routes.js';
 import { rutasCategorias, rutasProductos } from './modules/catalogo/routes.js';
 import { rutasCheckout } from './modules/checkout/routes.js';
 import { rutasCupones } from './modules/cupones/routes.js';
+import { rutasDirecciones } from './modules/direcciones/routes.js';
 import { rutasInventario } from './modules/inventario/routes.js';
 import { rutasPedidos } from './modules/pedidos/routes.js';
 import { rutasBitacora, rutasDashboard } from './modules/reportes/routes.js';
@@ -38,6 +39,7 @@ export function crearApp() {
   app.use('/api/inventario', rutasInventario);
   app.use('/api/carrito', rutasCarrito);
   app.use('/api/cupones', rutasCupones);
+  app.use('/api/direcciones', rutasDirecciones);
   app.use('/api/checkout', rutasCheckout);
   app.use('/api/pedidos', rutasPedidos);
   app.use('/api/dashboard', rutasDashboard);

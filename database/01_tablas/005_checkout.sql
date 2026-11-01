@@ -14,6 +14,7 @@ CREATE TABLE dbo.Reservas (
     Subtotal         DECIMAL(12,2) NOT NULL CONSTRAINT CK_Reservas_Subtotal CHECK (Subtotal >= 0),
     Descuento        DECIMAL(12,2) NOT NULL CONSTRAINT CK_Reservas_Descuento CHECK (Descuento >= 0),
     Total            DECIMAL(12,2) NOT NULL CONSTRAINT CK_Reservas_Total CHECK (Total >= 0),
+    IDDireccion      INT           NOT NULL CONSTRAINT FK_Reservas_Direcciones REFERENCES dbo.Direcciones (IDDireccion),
     Direccion        NVARCHAR(300) NOT NULL,
     Ciudad           NVARCHAR(100) NOT NULL,
     Telefono         NVARCHAR(20)  NOT NULL,

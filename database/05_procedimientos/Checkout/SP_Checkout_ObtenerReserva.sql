@@ -12,7 +12,7 @@ BEGIN
     SELECT r.IDReserva, r.Estado, r.Expira,
            CASE WHEN r.Estado = N'Activa' AND r.Expira <= SYSUTCDATETIME() THEN 1 ELSE 0 END AS Vencida,
            c.Codigo AS Cupon, r.Subtotal, r.Descuento, r.Total,
-           r.Direccion, r.Ciudad, r.Telefono
+           r.IDDireccion, r.Direccion, r.Ciudad, r.Telefono
     FROM dbo.Reservas r
     LEFT JOIN dbo.Cupones c ON c.IDCupon = r.IDCupon
     WHERE r.IDReserva = @IDReserva;

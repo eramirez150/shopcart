@@ -1,12 +1,16 @@
 -- Inicia el pago: reserva la existencia del carrito abierto del cliente.
+-- La dirección se elige con @IDDireccion (debe ser del cliente y estar activa) o se
+-- registra en ese momento con @Direccion, @Ciudad y @Telefono; si el cliente ya tiene
+-- una dirección activa idéntica se reutiliza. El texto se copia en la reserva.
 -- Las variantes se bloquean con UPDLOCK, HOLDLOCK en orden de IDVariante, así dos
 -- compras simultáneas no leen el mismo disponible ni se bloquean entre sí.
 CREATE OR ALTER PROCEDURE dbo.SP_Checkout_IniciarPago
-    @IDUsuario INT,
-    @Direccion NVARCHAR(300),
-    @Ciudad    NVARCHAR(100),
-    @Telefono  NVARCHAR(20),
-    @Codigo    NVARCHAR(30) = NULL
+    @IDUsuario   INT,
+    @IDDireccion INT = NULL,
+    @Direccion   NVARCHAR(300) = NULL,
+    @Ciudad      NVARCHAR(100) = NULL,
+    @Telefono    NVARCHAR(20) = NULL,
+    @Codigo      NVARCHAR(30) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -14,9 +18,11 @@ BEGIN
 
     IF dbo.FU_Auth_Rol(@IDUsuario) IS NULL THROW 52403, N'Usuario no autorizado.', 1;
 
-    IF ISNULL(LEN(LTRIM(RTRIM(@Direccion))), 0) = 0 OR ISNULL(LEN(LTRIM(RTRIM(@Ciudad))), 0) = 0
-       OR ISNULL(LEN(LTRIM(RTRIM(@Telefono))), 0) = 0
-        THROW 52400, N'La dirección, la ciudad y el teléfono son obligatorios.', 1;
+    SET @Direccion = LTRIM(RTRIM(@Direccion));
+    SET @Ciudad = LTRIM(RTRIM(@Ciudad));
+    SET @Telefono = LTRIM(RTRIM(@Telefono));
+    IF @IDDireccion IS NULL AND (ISNULL(LEN(@Direccion), 0) = 0 OR ISNULL(LEN(@Ciudad), 0) = 0 OR ISNULL(LEN(@Telefono), 0) = 0)
+        THROW 52400, N'Seleccione una dirección o indique la dirección, la ciudad y el teléfono.', 1;
 
     DECLARE @IDCarrito INT, @IDCupon INT, @IDReserva INT;
     DECLARE @Lineas TABLE (
@@ -37,6 +43,29 @@ BEGIN
         WHERE IDUsuario = @IDUsuario AND Estado = N'Abierto';
 
         IF @IDCarrito IS NULL THROW 52404, N'El cliente no tiene un carrito abierto.', 1;
+
+        -- Dirección: la elegida debe ser del cliente; una nueva se registra.
+        IF @IDDireccion IS NOT NULL
+        BEGIN
+            SELECT @Direccion = Direccion, @Ciudad = Ciudad, @Telefono = Telefono
+            FROM dbo.Direcciones
+            WHERE IDDireccion = @IDDireccion AND IDUsuario = @IDUsuario AND Activa = 1;
+            IF @@ROWCOUNT = 0 THROW 52404, N'La dirección no existe.', 1;
+        END
+        ELSE
+        BEGIN
+            SELECT TOP (1) @IDDireccion = IDDireccion
+            FROM dbo.Direcciones
+            WHERE IDUsuario = @IDUsuario AND Activa = 1
+              AND Direccion = @Direccion AND Ciudad = @Ciudad AND Telefono = @Telefono
+            ORDER BY IDDireccion;
+            IF @IDDireccion IS NULL
+            BEGIN
+                INSERT INTO dbo.Direcciones (IDUsuario, Direccion, Ciudad, Telefono)
+                VALUES (@IDUsuario, @Direccion, @Ciudad, @Telefono);
+                SET @IDDireccion = SCOPE_IDENTITY();
+            END;
+        END;
 
         -- Una reserva activa anterior, vencida o no, libera su lugar: se anula
         -- antes de crear la nueva (hay un índice único de reserva activa por carrito).
@@ -83,10 +112,10 @@ BEGIN
         FROM dbo.FU_Cupones_CalculoDescuento(@IDCarrito, @IDCupon);
 
         INSERT INTO dbo.Reservas (IDUsuario, IDCarrito, Estado, Expira, IDCupon, Subtotal, Descuento, Total,
-                                  Direccion, Ciudad, Telefono)
+                                  IDDireccion, Direccion, Ciudad, Telefono)
         SELECT @IDUsuario, @IDCarrito, N'Activa', DATEADD(MINUTE, 15, SYSUTCDATETIME()), @IDCupon,
                SUM(Subtotal), SUM(Descuento), SUM(Subtotal) - SUM(Descuento),
-               LTRIM(RTRIM(@Direccion)), LTRIM(RTRIM(@Ciudad)), LTRIM(RTRIM(@Telefono))
+               @IDDireccion, @Direccion, @Ciudad, @Telefono
         FROM @Calculo;
 
         SET @IDReserva = SCOPE_IDENTITY();

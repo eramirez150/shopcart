@@ -27,3 +27,18 @@ CREATE TABLE dbo.RefreshTokens (
 CREATE INDEX IX_RefreshTokens_IDUsuario ON dbo.RefreshTokens (IDUsuario) WHERE FechaRevocado IS NULL;
 GO
 
+
+-- Direcciones de entrega de cada usuario. Solo el dueño las ve y las modifica.
+-- No se borran: se desactivan, porque las reservas y los pedidos las referencian.
+-- Reservas y Pedidos copian además el texto, así un cambio posterior no altera un pedido.
+CREATE TABLE dbo.Direcciones (
+    IDDireccion     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Direcciones PRIMARY KEY,
+    IDUsuario       INT           NOT NULL CONSTRAINT FK_Direcciones_Usuarios REFERENCES dbo.Usuarios (IDUsuario),
+    Direccion       NVARCHAR(300) NOT NULL CONSTRAINT CK_Direcciones_Direccion CHECK (LEN(Direccion) > 0),
+    Ciudad          NVARCHAR(100) NOT NULL CONSTRAINT CK_Direcciones_Ciudad CHECK (LEN(Ciudad) > 0),
+    Telefono        NVARCHAR(20)  NOT NULL CONSTRAINT CK_Direcciones_Telefono CHECK (LEN(Telefono) > 0),
+    Activa          BIT           NOT NULL CONSTRAINT DF_Direcciones_Activa DEFAULT (1),
+    FechaCreacion   DATETIME2(0)  NOT NULL CONSTRAINT DF_Direcciones_FechaCreacion DEFAULT (SYSUTCDATETIME())
+);
+CREATE INDEX IX_Direcciones_IDUsuario ON dbo.Direcciones (IDUsuario) WHERE Activa = 1;
+GO

@@ -15,7 +15,7 @@ BEGIN
         THROW 52404, N'El pedido no existe.', 1;
 
     SELECT p.IDPedido, p.IDUsuario, u.Nombre AS Cliente, p.Estado, c.Codigo AS Cupon,
-           p.Subtotal, p.Descuento, p.Total, p.IVA, p.Direccion, p.Ciudad, p.Telefono,
+           p.Subtotal, p.Descuento, p.Total, p.IVA, p.IDDireccion, p.Direccion, p.Ciudad, p.Telefono,
            p.ReferenciaPago, p.FechaCreacion, p.FechaActualizacion
     FROM dbo.Pedidos p
     JOIN dbo.Usuarios u ON u.IDUsuario = p.IDUsuario
