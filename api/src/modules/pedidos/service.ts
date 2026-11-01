@@ -1,4 +1,4 @@
-import { AppError } from '../../errors.js';
+import { AppError } from '../../compartido/errors.js';
 import type { UsuarioToken } from '../../middleware/auth.js';
 import * as repo from './repository.js';
 

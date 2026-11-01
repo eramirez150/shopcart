@@ -18,7 +18,7 @@ export interface Respuesta {
 
 export async function iniciarServidor() {
   const { crearApp } = await import('../src/app.js');
-  const { cerrarPool } = await import('../src/db.js');
+  const { cerrarPool } = await import('../src/compartido/db.js');
   const servidor = crearApp().listen(0, '127.0.0.1');
   await once(servidor, 'listening');
   const base = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}/api`;

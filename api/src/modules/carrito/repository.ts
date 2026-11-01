@@ -1,4 +1,4 @@
-import { ejecutar, filas, primera, sql, type Resultado } from '../../db.js';
+import { ejecutar, filas, primera, sql, type Resultado } from '../../compartido/db.js';
 
 // Identifica al dueño del carrito: usuario autenticado (del JWT) o token de invitado.
 export interface Dueno {

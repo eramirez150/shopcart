@@ -1,4 +1,4 @@
-import { ejecutar, filas, pagina, primera, sql, type Resultado } from '../../db.js';
+import { ejecutar, filas, pagina, primera, sql, type Resultado } from '../../compartido/db.js';
 
 export interface FiltrosBusqueda {
   texto?: string;

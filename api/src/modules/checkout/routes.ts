@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, idUsuario } from '../../middleware/auth.js';
-import { id } from '../../esquemas.js';
+import { id } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
 
 export const rutasCheckout = Router();

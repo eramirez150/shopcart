@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { config } from '../config.js';
-import { AppError } from '../errors.js';
+import { config } from '../compartido/config.js';
+import { AppError } from '../compartido/errors.js';
 
 export type Rol = 'Cliente' | 'Operador' | 'Administrador';
 export interface UsuarioToken {

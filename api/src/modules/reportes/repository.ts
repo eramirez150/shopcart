@@ -1,4 +1,4 @@
-import { ejecutar, filas, pagina, primera, sql } from '../../db.js';
+import { ejecutar, filas, pagina, primera, sql } from '../../compartido/db.js';
 
 export interface Rango {
   desde?: string;

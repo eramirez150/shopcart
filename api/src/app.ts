@@ -4,7 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { parse } from 'yaml';
-import { config } from './config.js';
+import { config } from './compartido/config.js';
 import { manejarErrores, noEncontrado } from './middleware/error.js';
 import { rutasAuth } from './modules/auth/routes.js';
 import { rutasCarrito } from './modules/carrito/routes.js';

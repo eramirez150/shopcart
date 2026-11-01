@@ -1,4 +1,4 @@
-import { ejecutar, primera, sql } from '../../db.js';
+import { ejecutar, primera, sql } from '../../compartido/db.js';
 import type { Rol } from '../../middleware/auth.js';
 
 export interface UsuarioFila {

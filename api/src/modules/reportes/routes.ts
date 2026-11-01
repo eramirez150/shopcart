@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
-import { fecha, paginacion } from '../../esquemas.js';
+import { fecha, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
 
 export const rutasDashboard = Router();

@@ -1,4 +1,4 @@
-import { AppError } from '../../errors.js';
+import { AppError } from '../../compartido/errors.js';
 import * as repo from './repository.js';
 
 export type TipoMovimiento = 'Entrada' | 'Salida' | 'Ajuste';

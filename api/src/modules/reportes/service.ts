@@ -1,4 +1,4 @@
-import { AppError } from '../../errors.js';
+import { AppError } from '../../compartido/errors.js';
 import * as repo from './repository.js';
 
 // Las fechas son opcionales; si vienen las dos, el rango debe tener sentido.

@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { config } from '../../config.js';
-import { AppError } from '../../errors.js';
+import { config } from '../../compartido/config.js';
+import { AppError } from '../../compartido/errors.js';
 import { firmarAcceso } from '../../middleware/auth.js';
 import * as repo from './repository.js';
 

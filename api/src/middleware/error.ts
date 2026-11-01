@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { AppError, traducir } from '../errors.js';
+import { AppError, traducir } from '../compartido/errors.js';
 
 export function noEncontrado(_req: Request, _res: Response, next: NextFunction): void {
   next(new AppError(404, 'Ruta no encontrada', 'NO_ENCONTRADO'));

@@ -1,4 +1,4 @@
-import { ejecutar, pagina, primera, sql } from '../../db.js';
+import { ejecutar, pagina, primera, sql } from '../../compartido/db.js';
 
 export async function crear(idUsuario: number, correo: string, claveHash: string, nombre: string, rol: string) {
   const r = await ejecutar('SP_Usuarios_Crear', {

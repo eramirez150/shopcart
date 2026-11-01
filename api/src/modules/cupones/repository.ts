@@ -1,4 +1,4 @@
-import { ejecutar, pagina, primera, sql } from '../../db.js';
+import { ejecutar, pagina, primera, sql } from '../../compartido/db.js';
 
 export interface CuponEntrada {
   tipo: string;

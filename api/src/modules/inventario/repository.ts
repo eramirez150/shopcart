@@ -1,4 +1,4 @@
-import { ejecutar, pagina, primera, sql } from '../../db.js';
+import { ejecutar, pagina, primera, sql } from '../../compartido/db.js';
 
 export async function registrar(idUsuario: number, idVariante: number, tipo: string, cantidad: number, motivo: string) {
   const r = await ejecutar('SP_Inventario_Registrar', {

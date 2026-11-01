@@ -1,4 +1,4 @@
-import { ejecutar, filas, primera, sql, type Resultado } from '../../db.js';
+import { ejecutar, filas, primera, sql, type Resultado } from '../../compartido/db.js';
 
 function reserva(r: Resultado) {
   return { ...primera<object>(r)!, lineas: filas(r, 1) };
