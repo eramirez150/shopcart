@@ -1,4 +1,4 @@
--- Datos de prueba: usuarios por rol, categorías, 50 productos con variantes,
+-- Datos de prueba: usuarios por rol, categorías, 50 productos con imagen y variantes,
 -- existencia inicial registrada en el kardex y cupones de ejemplo.
 -- Las claves de los usuarios están en el README (solo para desarrollo).
 
@@ -84,6 +84,15 @@ FROM (VALUES
     (N'Juguetes', N'Pelota saltarina', N'Pelota de goma')
 ) AS p (Categoria, Nombre, Descripcion)
 JOIN dbo.Categorias c ON c.Nombre = p.Categoria;
+GO
+
+------------------------------------------------------------
+-- Imágenes: una por producto. Son imágenes de muestra de picsum.photos; en
+-- producción se reemplazan por las fotos reales del producto.
+------------------------------------------------------------
+INSERT INTO dbo.ProductoImagenes (IDProducto, Url, TextoAlternativo, Orden)
+SELECT IDProducto, N'https://picsum.photos/seed/shopcart-' + CAST(IDProducto AS NVARCHAR(10)) + N'/600/600', Nombre, 0
+FROM dbo.Productos;
 GO
 
 ------------------------------------------------------------

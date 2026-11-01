@@ -95,3 +95,21 @@ rutasProductos.put('/variantes/:idVariante', ...admin, async (req, res) => {
   const b = variante.extend({ activa: z.boolean().default(true) }).parse(req.body);
   res.json(await servicio.actualizarVariante(idUsuario(req), id.parse(req.params.idVariante), b.sku, b.atributos, b.precio, b.activa));
 });
+
+// ---- Imágenes de producto
+rutasProductos.post('/:id/imagenes', ...admin, async (req, res) => {
+  const b = z
+    .object({
+      url: z.url({ protocol: /^https?$/ }).max(500),
+      textoAlternativo: z.string().trim().max(150).nullish(),
+      orden: z.number().int().min(0).default(0),
+    })
+    .parse(req.body);
+  res
+    .status(201)
+    .json(await servicio.agregarImagen(idUsuario(req), id.parse(req.params.id), b.url, b.textoAlternativo ?? null, b.orden));
+});
+
+rutasProductos.delete('/imagenes/:idImagen', ...admin, async (req, res) => {
+  res.json(await servicio.eliminarImagen(idUsuario(req), id.parse(req.params.idImagen)));
+});

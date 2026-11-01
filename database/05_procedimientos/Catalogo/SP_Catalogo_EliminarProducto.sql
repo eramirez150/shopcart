@@ -1,5 +1,5 @@
 -- Un producto con ventas, reservas, movimientos o en carritos se desactiva
--- (junto con sus variantes); si nunca se usó, se elimina.
+-- (junto con sus variantes); si nunca se usó, se elimina con sus variantes e imágenes.
 CREATE OR ALTER PROCEDURE dbo.SP_Catalogo_EliminarProducto
     @IDUsuario  INT,
     @IDProducto INT
@@ -32,6 +32,7 @@ BEGIN
     END
     ELSE
     BEGIN
+        DELETE FROM dbo.ProductoImagenes WHERE IDProducto = @IDProducto;
         DELETE FROM dbo.Variantes WHERE IDProducto = @IDProducto;
         DELETE FROM dbo.Productos WHERE IDProducto = @IDProducto;
         SELECT N'Eliminado' AS Resultado;

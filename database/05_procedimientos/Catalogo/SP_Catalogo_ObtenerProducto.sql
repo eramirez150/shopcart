@@ -1,4 +1,4 @@
--- Producto con sus variantes. Los clientes solo ven lo activo.
+-- Producto con sus variantes y sus imágenes. Los clientes solo ven lo activo.
 CREATE OR ALTER PROCEDURE dbo.SP_Catalogo_ObtenerProducto
     @IDProducto     INT,
     @IncluirInactivos BIT = 0
@@ -18,5 +18,10 @@ BEGIN
     JOIN dbo.FU_Inventario_Disponibilidad() d ON d.IDVariante = v.IDVariante
     WHERE v.IDProducto = @IDProducto AND (@IncluirInactivos = 1 OR v.Activa = 1)
     ORDER BY v.IDVariante;
+
+    SELECT IDProductoImagen, Url, TextoAlternativo, Orden
+    FROM dbo.ProductoImagenes
+    WHERE IDProducto = @IDProducto
+    ORDER BY Orden, IDProductoImagen;
 END;
 GO

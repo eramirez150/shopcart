@@ -59,6 +59,7 @@ function producto(r: Resultado) {
   return {
     ...primera<object>(r)!,
     variantes: filas<{ Atributos: string }>(r, 1).map((v) => ({ ...v, Atributos: JSON.parse(v.Atributos) as unknown })),
+    imagenes: filas(r, 2),
   };
 }
 
@@ -126,5 +127,23 @@ export async function actualizarVariante(
       Precio: [sql.Decimal(12, 2), precio],
       Activa: [sql.Bit, activa],
     }),
+  );
+}
+
+export async function agregarImagen(idUsuario: number, idProducto: number, url: string, textoAlternativo: string | null, orden: number) {
+  return producto(
+    await ejecutar('SP_Catalogo_AgregarImagen', {
+      IDUsuario: [sql.Int, idUsuario],
+      IDProducto: [sql.Int, idProducto],
+      Url: [sql.NVarChar(500), url],
+      TextoAlternativo: [sql.NVarChar(150), textoAlternativo],
+      Orden: [sql.Int, orden],
+    }),
+  );
+}
+
+export async function eliminarImagen(idUsuario: number, idImagen: number) {
+  return producto(
+    await ejecutar('SP_Catalogo_EliminarImagen', { IDUsuario: [sql.Int, idUsuario], IDProductoImagen: [sql.Int, idImagen] }),
   );
 }

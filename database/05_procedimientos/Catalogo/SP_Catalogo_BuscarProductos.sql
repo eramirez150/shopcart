@@ -35,7 +35,10 @@ BEGIN
         GROUP BY p.IDProducto, p.Nombre, p.Descripcion, p.IDCategoria, c.Nombre, p.FechaCreacion
     )
     SELECT IDProducto, Nombre, Descripcion, IDCategoria, Categoria, PrecioDesde, PrecioHasta,
-           Disponible, Variantes, COUNT(*) OVER () AS TotalFilas
+           Disponible, Variantes,
+           (SELECT TOP (1) i.Url FROM dbo.ProductoImagenes i
+            WHERE i.IDProducto = Resumen.IDProducto ORDER BY i.Orden, i.IDProductoImagen) AS ImagenPrincipal,
+           COUNT(*) OVER () AS TotalFilas
     FROM Resumen
     WHERE (@PrecioMin IS NULL OR PrecioHasta >= @PrecioMin)
       AND (@PrecioMax IS NULL OR PrecioDesde <= @PrecioMax)

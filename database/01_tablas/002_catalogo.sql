@@ -21,6 +21,20 @@ CREATE INDEX IX_Productos_IDCategoria ON dbo.Productos (IDCategoria) INCLUDE (No
 CREATE INDEX IX_Productos_Nombre ON dbo.Productos (Nombre);
 GO
 
+-- Imágenes de un producto. Url es una dirección http(s) pública; Orden define cuál se
+-- muestra primero (la de menor Orden es la principal).
+CREATE TABLE dbo.ProductoImagenes (
+    IDProductoImagen INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ProductoImagenes PRIMARY KEY,
+    IDProducto       INT           NOT NULL CONSTRAINT FK_ProductoImagenes_Productos REFERENCES dbo.Productos (IDProducto),
+    Url              NVARCHAR(500) NOT NULL CONSTRAINT CK_ProductoImagenes_Url CHECK (Url LIKE N'https://%' OR Url LIKE N'http://%'),
+    TextoAlternativo NVARCHAR(150) NULL,
+    Orden            INT           NOT NULL CONSTRAINT DF_ProductoImagenes_Orden DEFAULT (0)
+                                            CONSTRAINT CK_ProductoImagenes_Orden CHECK (Orden >= 0),
+    FechaCreacion    DATETIME2(0)  NOT NULL CONSTRAINT DF_ProductoImagenes_FechaCreacion DEFAULT (SYSUTCDATETIME())
+);
+CREATE INDEX IX_ProductoImagenes_IDProducto ON dbo.ProductoImagenes (IDProducto, Orden);
+GO
+
 -- Atributos guarda un objeto JSON, por ejemplo {"Talla":"M","Color":"Azul"}.
 -- Existencia es la existencia física y siempre coincide con la suma del kardex.
 CREATE TABLE dbo.Variantes (
