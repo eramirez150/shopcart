@@ -54,6 +54,29 @@ export async function buscarProductos(f: FiltrosBusqueda) {
   return pagina(r, f.pagina, f.tamano);
 }
 
+export interface FiltrosAdministracion {
+  texto?: string;
+  idCategoria?: number;
+  activo?: boolean;
+  orden: string;
+  pagina: number;
+  tamano: number;
+}
+
+// Incluye productos inactivos y sin variantes (solo Administrador).
+export async function listarAdministracion(idUsuario: number, f: FiltrosAdministracion) {
+  const r = await ejecutar('SP_Catalogo_ListarAdministracion', {
+    IDUsuario: [sql.Int, idUsuario],
+    Texto: [sql.NVarChar(100), f.texto ?? null],
+    IDCategoria: [sql.Int, f.idCategoria ?? null],
+    Activo: [sql.Bit, f.activo ?? null],
+    Orden: [sql.NVarChar(20), f.orden],
+    Pagina: [sql.Int, f.pagina],
+    Tamano: [sql.Int, f.tamano],
+  });
+  return pagina(r, f.pagina, f.tamano);
+}
+
 // Los atributos se guardan como texto JSON; la API los devuelve como objeto.
 function producto(r: Resultado) {
   return {

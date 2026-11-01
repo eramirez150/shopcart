@@ -51,6 +51,21 @@ rutasProductos.get('/', async (req, res) => {
   res.json(await servicio.buscar(q));
 });
 
+// Catálogo de administración: incluye inactivos y productos sin variantes.
+// Va antes de '/:id' para que "administracion" no se lea como un id.
+rutasProductos.get('/administracion', ...admin, async (req, res) => {
+  const q = z
+    .object({
+      texto: z.string().trim().min(1).max(100).optional(),
+      idCategoria: id.optional(),
+      activo: bool.optional(),
+      orden: z.enum(['nombre', 'recientes']).default('nombre'),
+      ...paginacion,
+    })
+    .parse(req.query);
+  res.json(await servicio.listarAdministracion(idUsuario(req), q));
+});
+
 rutasProductos.get('/:id', autenticarOpcional, async (req, res) => {
   res.json(await servicio.obtenerProducto(id.parse(req.params.id), servicio.veInactivos(req.usuario?.rol)));
 });

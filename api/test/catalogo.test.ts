@@ -42,4 +42,35 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
     // Un producto sin uso se elimina junto con sus imágenes.
     assert.equal((await s.pedir('DELETE', `/productos/${idProducto}`, { token: admin })).datos.Resultado, 'Eliminado');
   });
+
+  test('administración: lista productos inactivos y sin variantes que la búsqueda pública oculta', async () => {
+    const marca = 'Admin lista ' + Date.now();
+    const sinVariantes = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' sin variantes' } });
+    const inactivo = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' inactivo' } });
+    await s.pedir('POST', `/productos/${inactivo.datos.IDProducto}/variantes`, {
+      token: admin,
+      cuerpo: { sku: 'ADM-' + Date.now(), precio: 10, existenciaInicial: 5 },
+    });
+    await s.pedir('PUT', `/productos/${inactivo.datos.IDProducto}`, { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' inactivo', activo: false } });
+
+    // La búsqueda pública no muestra ninguno de los dos.
+    assert.equal((await s.pedir('GET', `/productos?texto=${encodeURIComponent(marca)}`)).datos.total, 0);
+
+    const ruta = `/productos/administracion?texto=${encodeURIComponent(marca)}`;
+    const lista = await s.pedir('GET', ruta, { token: admin });
+    assert.equal(lista.estado, 200);
+    assert.equal(lista.datos.total, 2);
+    const fila = (id: number) => lista.datos.datos.find((p: { IDProducto: number }) => p.IDProducto === id);
+    assert.equal(fila(sinVariantes.datos.IDProducto).Variantes, 0);
+    assert.equal(fila(sinVariantes.datos.IDProducto).PrecioDesde, null);
+    assert.equal(fila(inactivo.datos.IDProducto).Activo, false);
+    assert.equal(fila(inactivo.datos.IDProducto).Existencia, 5);
+
+    const soloInactivos = await s.pedir('GET', ruta + '&activo=false', { token: admin });
+    assert.deepEqual(soloInactivos.datos.datos.map((p: { IDProducto: number }) => p.IDProducto), [inactivo.datos.IDProducto]);
+
+    const cliente = await s.registrar('adm');
+    assert.equal((await s.pedir('GET', ruta, { token: cliente.token })).estado, 403);
+    assert.equal((await s.pedir('GET', ruta)).estado, 401);
+  });
 });
