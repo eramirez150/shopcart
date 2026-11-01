@@ -166,10 +166,12 @@ FROM (VALUES
 JOIN dbo.Productos pr ON pr.Nombre = v.Producto;
 GO
 
--- La existencia inicial entra por el kardex para que ambos coincidan.
-INSERT INTO dbo.Kardex (IDVariante, Tipo, Cantidad, ExistenciaResultante, Motivo, IDUsuario)
+-- La existencia inicial entra por el kardex para que ambos coincidan. Se fecha 90 días
+-- atrás para que quede antes de los pedidos de demostración (002_demostracion.sql).
+INSERT INTO dbo.Kardex (IDVariante, Tipo, Cantidad, ExistenciaResultante, Motivo, IDUsuario, Fecha)
 SELECT v.IDVariante, N'Entrada', v.Existencia, v.Existencia, N'Inventario inicial',
-       (SELECT IDUsuario FROM dbo.Usuarios WHERE Correo = N'admin@shopcart.test')
+       (SELECT IDUsuario FROM dbo.Usuarios WHERE Correo = N'admin@shopcart.test'),
+       DATEADD(DAY, -90, SYSUTCDATETIME())
 FROM dbo.Variantes v
 WHERE v.Existencia > 0;
 GO
