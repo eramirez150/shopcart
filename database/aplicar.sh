@@ -89,4 +89,15 @@ EOF
     esac
 done
 
+# La aplicación entra con shopcart_app, que solo tiene EXECUTE por el rol RolShopCartApp.
+# Su clave viene del entorno y no debe llevar comillas.
+$SQLCMD -d "$DB_NAME" -v CLAVE="$APP_DB_PASSWORD" -Q "
+IF SUSER_ID(N'shopcart_app') IS NULL
+    CREATE LOGIN shopcart_app WITH PASSWORD = N'\$(CLAVE)';
+ELSE
+    ALTER LOGIN shopcart_app WITH PASSWORD = N'\$(CLAVE)';
+IF DATABASE_PRINCIPAL_ID(N'shopcart_app') IS NULL
+    CREATE USER shopcart_app FOR LOGIN shopcart_app;
+ALTER ROLE RolShopCartApp ADD MEMBER shopcart_app;"
+
 echo "Base de datos lista"

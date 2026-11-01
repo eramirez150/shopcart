@@ -22,11 +22,28 @@ services:
         condition: service_healthy
     environment:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Definir MSSQL_SA_PASSWORD en .env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Definir APP_DB_PASSWORD en .env}
       DB_NAME: ${DB_NAME:-ShopCart}
     volumes:
       - ./database:/scripts:ro
     entrypoint: ["/bin/sh", "/scripts/aplicar.sh"]
     restart: "no"
+
+  api:
+    build: ./api
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: db
+      DB_PORT: "1433"
+      DB_NAME: ${DB_NAME:-ShopCart}
+      DB_USER: shopcart_app
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Definir APP_DB_PASSWORD en .env}
+      JWT_SECRET: ${JWT_SECRET:?Definir JWT_SECRET en .env}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+    ports:
+      - "127.0.0.1:${API_PORT:-3000}:3000"
 
 volumes:
   db-data:
