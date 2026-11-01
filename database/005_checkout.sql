@@ -42,6 +42,8 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
+    IF dbo.FU_Auth_Rol(@IDUsuario) IS NULL THROW 52403, N'Usuario no autorizado.', 1;
+
     IF ISNULL(LEN(LTRIM(RTRIM(@Direccion))), 0) = 0 OR ISNULL(LEN(LTRIM(RTRIM(@Ciudad))), 0) = 0
        OR ISNULL(LEN(LTRIM(RTRIM(@Telefono))), 0) = 0
         THROW 52400, N'La dirección, la ciudad y el teléfono son obligatorios.', 1;

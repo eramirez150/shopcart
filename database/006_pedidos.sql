@@ -52,6 +52,8 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
+    IF dbo.FU_Auth_Rol(@IDUsuario) IS NULL THROW 52403, N'Usuario no autorizado.', 1;
+
     DECLARE @IDPedido INT, @Estado NVARCHAR(10), @Expira DATETIME2(0), @IDCupon INT,
             @IDCarrito INT, @Subtotal DECIMAL(12,2), @Descuento DECIMAL(12,2), @Total DECIMAL(12,2),
             @Direccion NVARCHAR(300), @Ciudad NVARCHAR(100), @Telefono NVARCHAR(20);
