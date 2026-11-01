@@ -159,7 +159,37 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 | Venta neta | Un pedido completado es `Entregado` o `DevueltoParcial`. El dashboard descuenta las devoluciones y las fechas filtran por la del pedido. |
 | Pago | Simulado: confirmar el pago crea el pedido con una referencia única. |
 
-Limitaciones conocidas: un usuario desactivado conserva su token de acceso hasta que vence (15 minutos) y no puede renovarlo; no hay límite de intentos de inicio de sesión.
+Limitaciones conocidas: un usuario desactivado conserva su token de acceso hasta que vence (15 minutos) y no puede renovarlo ni pagar, aunque puede seguir modificando su carrito durante ese tiempo; no hay límite de intentos de inicio de sesión.
+
+## Supuestos
+
+El enunciado no define estos puntos, así que se decidieron de esta forma:
+
+- Un pedido completado es `Entregado` o `DevueltoParcial`.
+- Cancelar devuelve el uso del cupón; una devolución no lo devuelve.
+- Modificar el carrito anula la reserva activa.
+- Se puede armar el carrito como invitado, pero pagar exige iniciar sesión.
+- Un pedido usa como máximo un cupón.
+- Los precios publicados incluyen IVA del 12 %: el IVA del pedido se calcula a partir del total y no se suma.
+- El pago es simulado porque el enunciado no exige pasarela.
+
+## Librerías
+
+Todas respetan el stack obligatorio. Ninguna accede a datos por su cuenta: `mssql` solo ejecuta stored procedures.
+
+| Librería | Para qué se usa | Por qué |
+| --- | --- | --- |
+| `express` | Servidor HTTP y rutas | Exigida por el stack |
+| `mssql` | Ejecutar stored procedures con parámetros tipados | Controlador de SQL Server para Node.js; no es un ORM |
+| `zod` | Validar los datos de entrada | Los esquemas son breves y dan tipos de TypeScript |
+| `jsonwebtoken` | Firmar y verificar los tokens de acceso | Implementación estándar de JWT |
+| `bcryptjs` | Guardar el hash de las contraseñas | Escrita en JavaScript: no necesita compilar código nativo en Docker |
+| `helmet` | Cabeceras de seguridad | Las configura en un solo lugar |
+| `cors` | Definir los orígenes permitidos | Middleware habitual de Express |
+| `swagger-ui-express` | Publicar la documentación en `/api/docs` | Muestra `openapi.yaml` y su botón para autorizar con JWT |
+| `yaml` | Leer `openapi.yaml` al iniciar | Node.js no lee YAML por sí solo |
+
+Solo para desarrollo: `typescript` compila el código, `tsx` ejecuta TypeScript en modo de desarrollo y en las pruebas, y los paquetes `@types/*` aportan los tipos de las librerías.
 
 ## Modelo entidad-relación
 
