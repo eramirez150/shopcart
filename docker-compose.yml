@@ -3,9 +3,9 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Definir MSSQL_SA_PASSWORD en .env}
     ports:
-      - "${DB_PORT:-14335}:1433"
+      - "127.0.0.1:${DB_PORT:-14335}:1433"
     volumes:
       - db-data:/var/opt/mssql
     healthcheck:
@@ -21,7 +21,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Definir MSSQL_SA_PASSWORD en .env}
       DB_NAME: ${DB_NAME:-ShopCart}
     volumes:
       - ./database:/scripts:ro
