@@ -92,6 +92,10 @@ export async function obtenerProducto(id: number, incluirInactivos: boolean) {
   );
 }
 
+export async function obtenerRelacionados(id: number, incluirInactivos: boolean) {
+  return filas(await ejecutar('SP_Catalogo_ObtenerRelacionados', { IDProducto: [sql.Int, id], IncluirInactivos: [sql.Bit, incluirInactivos] }));
+}
+
 export async function crearProducto(idUsuario: number, idCategoria: number, nombre: string, descripcion: string | null) {
   return producto(
     await ejecutar('SP_Catalogo_CrearProducto', {

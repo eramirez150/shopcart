@@ -14,5 +14,5 @@ export const buscar = (f: repo.FiltrosBusqueda) => {
 };
 
 export const { listarCategorias, crearCategoria, actualizarCategoria, eliminarCategoria } = repo;
-export const { obtenerProducto, crearProducto, actualizarProducto, eliminarProducto, crearVariante, actualizarVariante } = repo;
+export const { obtenerProducto, obtenerRelacionados, crearProducto, actualizarProducto, eliminarProducto, crearVariante, actualizarVariante } = repo;
 export const { agregarImagen, eliminarImagen, listarAdministracion } = repo;

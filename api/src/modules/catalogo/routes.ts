@@ -70,6 +70,10 @@ rutasProductos.get('/:id', autenticarOpcional, async (req, res) => {
   res.json(await servicio.obtenerProducto(id.parse(req.params.id), servicio.veInactivos(req.usuario?.rol)));
 });
 
+rutasProductos.get('/:id/relacionados', autenticarOpcional, async (req, res) => {
+  res.json(await servicio.obtenerRelacionados(id.parse(req.params.id), servicio.veInactivos(req.usuario?.rol)));
+});
+
 const producto = z.object({
   idCategoria: id,
   nombre: z.string().trim().min(1).max(150),

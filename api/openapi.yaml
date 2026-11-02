@@ -285,6 +285,31 @@ paths:
           description: Resultado
           content: { application/json: { example: { Resultado: Desactivado } } }
         '404': { $ref: '#/components/responses/NoEncontrado' }
+  /productos/{id}/relacionados:
+    get:
+      tags: [Catálogo]
+      summary: Hasta 12 productos para sugerir, primero los de la misma categoría y luego otros al azar (público)
+      description: Solo productos activos con variantes activas, sin el producto actual, con la misma forma que el listado.
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Productos relacionados
+          content:
+            application/json:
+              example:
+                - IDProducto: 2
+                  Nombre: Bocina portátil
+                  Descripcion: Bocina Bluetooth resistente al agua
+                  IDCategoria: 1
+                  Categoria: Electrónica
+                  PrecioDesde: 299.9
+                  PrecioHasta: 299.9
+                  Disponible: 30
+                  Variantes: 1
+                  ImagenPrincipal: https://m.media-amazon.com/images/I/8165VSHcJlL._AC_UY436_FMwebp_QL65_.jpg
+        '400': { $ref: '#/components/responses/Validacion' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
   /productos/{id}/resenas:
     get:
       tags: [Reseñas]
