@@ -47,6 +47,45 @@ describe('separación de servicios', () => {
     }
   });
 
+  const preflight = (base: string, origen: string, cabeceras = 'authorization') =>
+    fetch(base + '/salud', {
+      method: 'OPTIONS',
+      headers: { origin: origen, 'access-control-request-method': 'POST', 'access-control-request-headers': cabeceras },
+    });
+  const TIENDA = 'http://localhost:5173';
+  const ADMIN = 'http://localhost:5174';
+
+  test('CORS: cada servicio acepta su origen con métodos y cabeceras explícitos', async () => {
+    const tienda = await preflight(s.base, TIENDA);
+    assert.equal(tienda.status, 204);
+    assert.equal(tienda.headers.get('access-control-allow-origin'), TIENDA);
+    assert.equal(tienda.headers.get('access-control-allow-methods'), 'GET,POST,PUT,PATCH,DELETE');
+    assert.match(tienda.headers.get('access-control-allow-headers')!, /X-Carrito-Token/);
+
+    const admin = await preflight(s.baseAdmin, ADMIN);
+    assert.equal(admin.status, 204);
+    assert.equal(admin.headers.get('access-control-allow-origin'), ADMIN);
+    assert.equal(admin.headers.get('access-control-allow-methods'), 'GET,POST,PUT,PATCH,DELETE');
+    assert.doesNotMatch(admin.headers.get('access-control-allow-headers')!, /X-Carrito-Token/);
+  });
+
+  test('CORS: un origen ajeno no recibe ninguna cabecera de permiso', async () => {
+    const casos: [string, string][] = [
+      [s.base, 'http://sitio-malo.test'],
+      [s.base, ADMIN],
+      [s.baseAdmin, 'http://sitio-malo.test'],
+      [s.baseAdmin, TIENDA],
+    ];
+    for (const [base, origen] of casos) {
+      const r = await preflight(base, origen);
+      for (const cabecera of ['allow-origin', 'allow-methods', 'allow-headers']) {
+        assert.equal(r.headers.get('access-control-' + cabecera), null, `${origen} ${cabecera}`);
+      }
+      const simple = await fetch(base + '/salud', { headers: { origin: origen } });
+      assert.equal(simple.headers.get('access-control-allow-origin'), null, origen);
+    }
+  });
+
   test('/api/salud identifica al servicio que respondió', async () => {
     assert.deepEqual((await s.tienda('GET', '/salud')).datos, { estado: 'ok', servicio: 'tienda' });
     assert.deepEqual((await s.admin('GET', '/salud')).datos, { estado: 'ok', servicio: 'admin' });

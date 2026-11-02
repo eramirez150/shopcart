@@ -9,16 +9,27 @@ import { manejarErrores, noEncontrado } from '../middleware/error.js';
 
 export interface Servicio {
   nombre: 'tienda' | 'admin';
+  origenPorDefecto: string;
+  cabeceras: string[];
   rutas: Record<string, Router>;
 }
 
+const METODOS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
 // Lo que comparten los dos servicios: seguridad, documentación, salud y errores.
-export function crearApp({ nombre, rutas }: Servicio) {
+export function crearApp({ nombre, origenPorDefecto, cabeceras, rutas }: Servicio) {
+  const origenes = config.corsOrigenes(origenPorDefecto);
   const app = express();
   app.disable('x-powered-by');
   // upgrade-insecure-requests se desactiva para poder abrir /api/docs por http en desarrollo.
   app.use(helmet({ contentSecurityPolicy: { directives: { 'upgrade-insecure-requests': null } } }));
-  app.use(cors({ origin: config.corsOrigenes, allowedHeaders: ['Content-Type', 'Authorization', 'X-Carrito-Token'] }));
+  // Un origen ajeno no recibe ninguna cabecera de permiso, tampoco métodos ni cabeceras.
+  app.use(
+    cors((req, responder) => {
+      const permitido = origenes.includes(req.headers.origin ?? '');
+      responder(null, permitido ? { origin: true, methods: METODOS, allowedHeaders: cabeceras } : { origin: false });
+    }),
+  );
   app.use(express.json({ limit: '100kb' }));
 
   // Documentación: openapi.yaml escrito a mano, con botón Authorize para el JWT.

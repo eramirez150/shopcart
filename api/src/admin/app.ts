@@ -11,6 +11,8 @@ import { rutasUsuarios } from './rutas/usuarios.js';
 export function crearAppAdmin() {
   return crearApp({
     nombre: 'admin',
+    origenPorDefecto: 'http://localhost:5174',
+    cabeceras: ['Content-Type', 'Authorization'],
     rutas: {
       '/api/admin/auth': rutasAuth,
       '/api/admin/usuarios': rutasUsuarios,

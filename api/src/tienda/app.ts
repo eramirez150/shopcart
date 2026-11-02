@@ -10,6 +10,8 @@ import { rutasCategorias, rutasProductos } from './publico/catalogo.js';
 export function crearAppTienda() {
   return crearApp({
     nombre: 'tienda',
+    origenPorDefecto: 'http://localhost:5173',
+    cabeceras: ['Content-Type', 'Authorization', 'X-Carrito-Token'],
     rutas: {
       '/api/publico/auth': rutasAuth,
       '/api/publico/categorias': rutasCategorias,

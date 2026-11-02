@@ -1,3 +1,18 @@
+# Los dos servicios de la API usan la misma imagen, la misma base y los mismos SP.
+x-api: &api
+  build: ./api
+  depends_on:
+    db-init:
+      condition: service_completed_successfully
+
+x-api-entorno: &api-entorno
+  DB_HOST: db
+  DB_PORT: "1433"
+  DB_NAME: ${DB_NAME:-ShopCart}
+  DB_USER: shopcart_app
+  DB_PASSWORD: ${APP_DB_PASSWORD:?Definir APP_DB_PASSWORD en .env}
+  JWT_SECRET: ${JWT_SECRET:?Definir JWT_SECRET en .env}
+
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -29,21 +44,25 @@ services:
     entrypoint: ["/bin/sh", "/scripts/aplicar.sh"]
     restart: "no"
 
-  api:
-    build: ./api
-    depends_on:
-      db-init:
-        condition: service_completed_successfully
+  api-tienda:
+    <<: *api
+    command: ["node", "dist/tienda/index.js"]
     environment:
-      DB_HOST: db
-      DB_PORT: "1433"
-      DB_NAME: ${DB_NAME:-ShopCart}
-      DB_USER: shopcart_app
-      DB_PASSWORD: ${APP_DB_PASSWORD:?Definir APP_DB_PASSWORD en .env}
-      JWT_SECRET: ${JWT_SECRET:?Definir JWT_SECRET en .env}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      <<: *api-entorno
+      PORT: "3000"
+      CORS_ORIGIN: ${CORS_ORIGIN_TIENDA:-http://localhost:5173}
     ports:
-      - "127.0.0.1:${API_PORT:-3000}:3000"
+      - "127.0.0.1:${API_TIENDA_PORT:-3000}:3000"
+
+  api-admin:
+    <<: *api
+    command: ["node", "dist/admin/index.js"]
+    environment:
+      <<: *api-entorno
+      PORT: "3001"
+      CORS_ORIGIN: ${CORS_ORIGIN_ADMIN:-http://localhost:5174}
+    ports:
+      - "127.0.0.1:${API_ADMIN_PORT:-3001}:3001"
 
 volumes:
   db-data:

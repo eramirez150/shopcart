@@ -18,7 +18,8 @@ const conCadenaDePruebas = Boolean(process.env.TEST_DB_CONNECTION_STRING);
 export const config = {
   // Cada servicio define su puerto por defecto; PORT lo reemplaza.
   puerto: (porDefecto: number) => Number(process.env.PORT ?? porDefecto),
-  corsOrigenes: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((s) => s.trim()),
+  // CORS_ORIGIN: orígenes de este servicio, separados por coma. Cada contenedor recibe el suyo.
+  corsOrigenes: (porDefecto: string) => (process.env.CORS_ORIGIN ?? porDefecto).split(',').map((s) => s.trim()),
   jwt: {
     secreto,
     accesoMinutos: Number(process.env.JWT_ACCESS_MINUTES ?? 15),
