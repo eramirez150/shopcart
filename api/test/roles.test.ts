@@ -195,7 +195,7 @@ describe('roles y permisos', { skip: !hayBase && 'sin conexión a la base' }, ()
     assert.equal(await estado('PATCH', `/admin/usuarios/${u.id}`, u.token, { activo: false }), 409);
   });
 
-  test('con usuarios.gestionar no se crean ni se tocan administradores', async () => {
+  test('con usuarios.gestionar no se asignan roles de empleado ni se toca a un administrador', async () => {
     const u = await crearUsuario((await crearRol(['usuarios.gestionar'])).Nombre);
     const colega = await crearUsuario((await crearRol(['cupones.gestionar'])).Nombre);
     const correo = `rol-${marca()}@shopcart.test`;
@@ -204,10 +204,14 @@ describe('roles y permisos', { skip: !hayBase && 'sin conexión a la base' }, ()
     assert.equal(await estado('PATCH', `/admin/usuarios/${colega.id}`, u.token, { rol: 'Administrador' }), 403);
     assert.equal(await estado('PATCH', '/admin/usuarios/1', u.token, { activo: false }), 403);
     assert.equal(await estado('PATCH', '/admin/usuarios/1', u.token, { rol: 'Operador' }), 403);
+    // Con un rol fuerte y una clave elegida por él podría entrar con más permisos que los suyos.
+    assert.equal(await estado('POST', '/admin/usuarios', u.token, { correo, clave: 'Prueba-123456', nombre: 'Falso', rol: 'Operador' }), 403);
+    assert.equal(await estado('PATCH', `/admin/usuarios/${colega.id}`, u.token, { rol: 'Operador' }), 403);
 
     // Fuera de eso sí gestiona usuarios.
     assert.equal(await estado('GET', '/admin/usuarios', u.token), 200);
-    assert.equal(await estado('POST', '/admin/usuarios', u.token, { correo, clave: 'Prueba-123456', nombre: 'Bueno', rol: 'Operador' }), 201);
+    assert.equal(await estado('POST', '/admin/usuarios', u.token, { correo, clave: 'Prueba-123456', nombre: 'Bueno', rol: 'Cliente' }), 201);
+    assert.equal(await estado('PATCH', `/admin/usuarios/${colega.id}`, u.token, { activo: false }), 200);
   });
 
   test('cambiar el rol de un usuario cierra sus sesiones', async () => {

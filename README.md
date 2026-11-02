@@ -79,6 +79,8 @@ Las pruebas que necesitan tocar la base directamente están en `database/pruebas
 docker compose run --rm --entrypoint /bin/sh db-init /scripts/pruebas/ejecutar.sh
 ```
 
+En Git Bash para Windows, anteponer `MSYS_NO_PATHCONV=1` para que no reescriba `/bin/sh`.
+
 | Archivo | Qué comprueba |
 | --- | --- |
 | `permisos.sql` | `shopcart_app` solo puede ejecutar SP: no lee ni modifica tablas, incluidas las de roles. `FU_Auth_TienePermiso` da todo al Administrador, nada de personal al Cliente y al Operador solo pedidos e inventario; ningún rol tiene `roles.gestionar` en `RolPermisos`. |
@@ -152,6 +154,9 @@ Cada servicio solo acepta sus orígenes. Con Docker Compose se definen en `.env`
 | --- | --- | --- |
 | `CORS_ORIGIN_TIENDA` | Tienda | `http://localhost:5173` |
 | `CORS_ORIGIN_ADMIN` | Administración | `http://localhost:5174` |
+| `API_TIENDA_PORT` | Tienda, puerto publicado | `3000` |
+| `API_ADMIN_PORT` | Administración, puerto publicado | `3001` |
+| `DB_PORT` | Base de datos, puerto publicado | `14335` |
 
 ### Permisos
 
@@ -271,7 +276,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 | Dos servicios | Un proyecto, una imagen y dos puntos de entrada. La tienda no monta las rutas de administración, ni al revés: responden 404. Cada token lleva audiencia `tienda` o `admin` y cada refresh token guarda la suya; el otro servicio los rechaza con 401 sin revocarlos. |
 | Login por servicio | La tienda solo acepta Cliente y administración cualquier otro rol. Entrar por el servicio equivocado responde igual que una clave incorrecta, después de comparar el hash, para no revelar que la cuenta existe. El registro solo existe en la tienda. |
 | Roles y permisos | `Usuarios.Rol` guarda el nombre del rol, con llave foránea a `Roles`. `FU_Auth_TienePermiso` decide; el middleware la consulta en cada petición por `SP_Auth_TienePermiso` y los SP la repiten, así quitar un permiso tiene efecto inmediato. El Cliente se sigue tratando por nombre para la propiedad de pedidos y devoluciones. |
-| Escalar privilegios | `roles.gestionar` no se puede asignar a ningún rol. Con `usuarios.gestionar` no se asigna el rol Administrador ni se modifica a un administrador. Nadie cambia su propio rol ni se desactiva. Cambiar un rol cierra las sesiones del usuario. |
+| Escalar privilegios | `roles.gestionar` no se puede asignar a ningún rol. Con `usuarios.gestionar` no se asignan ni se cambian roles de empleado, porque quien crea un usuario elige su clave, ni se modifica a un administrador. Nadie cambia su propio rol ni se desactiva. Cambiar un rol cierra las sesiones del usuario. |
 | Estados | Tabla `PedidoTransiciones`, validada en el servicio, en `SP_Pedidos_CambiarEstado` y en el trigger `TR_Pedidos_ValidarTransicion` (AFTER UPDATE), que rechaza con 52409 cualquier cambio de estado fuera de la tabla aunque no pase por los SP. |
 | Existencia | Solo `SP_Inventario_RegistrarMovimiento` la cambia, junto con su fila de kardex en la misma transacción. |
 | Bitácora | Triggers sobre productos, variantes, cupones, estado de pedidos, roles, permisos de cada rol y rol de cada usuario, más un trigger `INSTEAD OF UPDATE, DELETE` que la hace inmutable. El SP guarda el usuario con `sp_set_session_context`. |
@@ -281,7 +286,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 | Venta neta | Un pedido completado es `Entregado` o `DevueltoParcial`. El dashboard descuenta las devoluciones y las fechas filtran por la del pedido. El ticket promedio es la excepción: monto vendido entre pedidos pagados, según el glosario. |
 | Pago | Simulado: confirmar el pago crea el pedido con una referencia única. |
 
-Limitaciones conocidas: un cliente desactivado o con otro rol conserva su token de acceso hasta que vence (15 minutos) y no puede renovarlo; si lo desactivaron tampoco puede pagar, aunque puede seguir modificando su carrito durante ese tiempo. En administración el permiso se consulta en cada petición, así que el acceso se pierde de inmediato. Quien tiene `usuarios.gestionar` puede asignar a otros usuarios cualquier rol activo que no sea Administrador, aunque tenga más permisos que el suyo. No hay límite de intentos de inicio de sesión.
+Limitaciones conocidas: un cliente desactivado o con otro rol conserva su token de acceso hasta que vence (15 minutos) y no puede renovarlo; si lo desactivaron tampoco puede pagar, aunque puede seguir modificando su carrito durante ese tiempo. En administración el permiso se consulta en cada petición, así que el acceso se pierde de inmediato. No hay límite de intentos de inicio de sesión.
 
 ## Supuestos
 

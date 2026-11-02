@@ -1,6 +1,6 @@
 -- Cambia el rol o el estado activo de un usuario. Nunca se borra. Al desactivarlo o
 -- cambiarle el rol se cierran sus sesiones. Nadie cambia su propio rol ni se desactiva,
--- y solo el Administrador asigna ese rol o modifica a otro administrador.
+-- y solo el Administrador cambia roles o modifica a otro administrador.
 CREATE OR ALTER PROCEDURE dbo.SP_Usuarios_Actualizar
     @IDUsuario  INT,
     @IDObjetivo INT,
@@ -26,8 +26,8 @@ BEGIN
         THROW 52409, N'Un usuario no puede cambiar su propio rol ni desactivarse.', 1;
     IF @RolActual IS NULL
         THROW 52404, N'El usuario no existe.', 1;
-    IF N'Administrador' IN (@Rol, @RolActual) AND dbo.FU_Auth_TienePermiso(@IDUsuario, N'roles.gestionar') = 0
-        THROW 52403, N'Solo el Administrador asigna ese rol o modifica a un administrador.', 1;
+    IF (@Rol <> @RolActual OR @RolActual = N'Administrador') AND dbo.FU_Auth_TienePermiso(@IDUsuario, N'roles.gestionar') = 0
+        THROW 52403, N'Solo el Administrador cambia roles o modifica a un administrador.', 1;
     IF @Activo = 1 AND @Rol IS NULL AND NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Nombre = @RolActual AND Activo = 1)
         THROW 52409, N'El rol del usuario está inactivo: asígnele otro para reactivarlo.', 1;
 
