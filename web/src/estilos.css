@@ -38,6 +38,7 @@
   --alto-barra-compacta: 48px;
   --alto-buscador: 64px;
   --alto-menu: 64px;
+  --alto-agregar: 76px;
   --seguro-abajo: env(safe-area-inset-bottom, 0px);
 
   --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -596,7 +597,7 @@ svg {
 }
 
 .esqueleto-carrusel {
-  height: 220px;
+  height: 248px;
   border-radius: 0;
 }
 
@@ -875,8 +876,10 @@ svg {
   outline-color: var(--grafito);
 }
 
+/* Flex quita el hueco de línea del ícono: así "Carrito" se alinea con las demás etiquetas. */
 .menu-inferior-carrito {
   position: relative;
+  display: flex;
 }
 
 .contador {
@@ -1029,9 +1032,7 @@ svg {
   grid-template-columns: repeat(4, 1fr);
   height: calc(var(--alto-menu) + var(--seguro-abajo));
   padding-bottom: var(--seguro-abajo);
-  background: var(--blanco);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--grafito);
 }
 
 .menu-inferior a {
@@ -1043,8 +1044,13 @@ svg {
   gap: 3px;
   font-size: 0.72rem;
   font-weight: 560;
-  color: var(--tinta-suave);
+  color: var(--plata);
   transition: color var(--rapido) var(--curva);
+}
+
+.menu-inferior a:focus-visible {
+  outline-color: var(--blanco);
+  outline-offset: -4px;
 }
 
 /* La sección activa se marca con una raya de acento que crece desde el centro. */
@@ -1056,14 +1062,17 @@ svg {
   width: 28px;
   height: 3px;
   margin-left: -14px;
-  border-radius: 0 0 3px 3px;
   background: var(--acento);
   transform: scaleX(0);
   transition: transform var(--medio) var(--curva);
 }
 
+.menu-inferior a.active,
+.menu-inferior a:hover {
+  color: var(--blanco);
+}
+
 .menu-inferior a.active {
-  color: var(--acento);
   font-weight: 680;
 }
 
@@ -1074,8 +1083,6 @@ svg {
 .menu-inferior .contador {
   top: -6px;
   right: -11px;
-  background: var(--acento);
-  color: var(--blanco);
 }
 
 /* ---------- Carrusel de promociones */
@@ -1099,33 +1106,53 @@ svg {
   scroll-snap-align: start;
 }
 
+/* Cada diapositiva combina tres colores: fondo, cuña diagonal y silueta. Los fondos son
+   oscuros para que el texto y los puntos del carrusel siempre se lean en blanco. */
 .promocion {
   position: relative;
   display: flex;
   align-items: flex-end;
-  min-height: 220px;
-  padding: 28px 20px 40px;
+  height: 100%;
+  min-height: 248px;
+  padding: 24px 20px 40px;
   overflow: hidden;
   color: var(--blanco);
-  background: var(--acento-oscuro);
+  background: var(--acento);
 }
 
 .promocion:hover {
   color: var(--blanco);
 }
 
+.promocion::before {
+  content: '';
+  position: absolute;
+  inset: 0 -60% 0 60%;
+  background: var(--plata);
+  transform: skewX(var(--corte));
+  transform-origin: 0 100%;
+}
+
 .promocion-1 {
+  background: var(--grafito);
+}
+
+.promocion-1::before {
   background: var(--acento);
 }
 
 .promocion-2 {
+  background: var(--acento-oscuro);
+}
+
+.promocion-2::before {
   background: var(--grafito);
 }
 
 .promocion > div {
   position: relative;
   z-index: 1;
-  max-width: 70%;
+  max-width: 62%;
 }
 
 .promocion p {
@@ -1137,47 +1164,57 @@ svg {
   font-weight: 640;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.75;
 }
 
 .promocion-titulo {
   margin: 6px 0 !important;
-  font-size: clamp(2.2rem, 1.6rem + 3vw, 3.6rem);
+  font-size: clamp(2.5rem, 1.5rem + 4vw, 4.6rem);
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 0.95;
 }
 
 .promocion-texto {
-  opacity: 0.8;
+  font-size: 0.92rem;
+  line-height: 1.3;
 }
 
 .promocion-boton {
   display: inline-flex;
-  margin-top: 16px;
-  font-weight: 650;
-  border-bottom: 2px solid currentColor;
-  padding-bottom: 2px;
+  align-items: center;
+  min-height: 36px;
+  margin-top: 14px;
+  padding: 0 14px;
+  border-radius: var(--radio-chico);
+  background: var(--blanco);
+  color: var(--tinta);
+  font-size: 0.9rem;
+  font-weight: 680;
 }
 
-/* El ícono de la categoría, enorme y recortado, funciona como imagen de fondo. */
-.promocion-icono {
+/* Silueta sólida de la categoría, apoyada en el borde inferior y montada sobre la cuña. */
+.silueta {
   position: absolute;
-  right: -28px;
-  bottom: -30px;
-  opacity: 0.16;
+  right: 8px;
+  bottom: -9px;
+  width: 152px;
+  height: 152px;
+  fill: var(--grafito);
+  stroke: none;
 }
 
-.promocion-icono svg {
-  width: 200px;
-  height: 200px;
-  stroke-width: 1.1;
+.promocion-1 .silueta {
+  fill: var(--blanco);
+}
+
+.promocion-2 .silueta {
+  fill: var(--plata);
 }
 
 .carrusel-puntos {
   position: absolute;
   left: 20px;
-  bottom: 18px;
+  bottom: 16px;
   display: flex;
   gap: 6px;
 }
@@ -1203,7 +1240,7 @@ svg {
 /* ---------- Categorías en círculos */
 .circulos {
   display: flex;
-  gap: 16px;
+  gap: 6px;
   overflow-x: auto;
   padding: 24px 16px 8px;
   scroll-snap-type: x proximity;
@@ -1217,7 +1254,7 @@ svg {
 
 .circulo {
   flex: 0 0 auto;
-  width: 70px;
+  width: 84px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1256,12 +1293,11 @@ svg {
 
 .circulo-nombre {
   max-width: 100%;
-  overflow: hidden;
   font-size: 0.78rem;
   font-weight: 560;
+  line-height: 1.2;
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 .lista-categorias {
@@ -1316,11 +1352,11 @@ svg {
 
 /* ---------- Cuadrícula de productos.
    En celular: 2 columnas y filas de un tercio del alto útil, así entran exactamente
-   3 filas (6 productos) entre la barra compacta y el menú inferior. */
+   3 filas (6 productos) entre la barra compacta y el menú inferior, con hueco arriba y abajo. */
 .grilla-productos {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: calc((100dvh - var(--alto-barra-compacta) - var(--alto-menu) - var(--seguro-abajo) - 3 * var(--hueco)) / 3);
+  grid-auto-rows: calc((100dvh - var(--alto-barra-compacta) - var(--alto-menu) - var(--seguro-abajo) - 4 * var(--hueco)) / 3);
   gap: var(--hueco);
 }
 
@@ -1525,10 +1561,11 @@ svg {
 }
 
 /* ---------- Detalle de producto */
+/* El relleno de .tienda-contenido ya libra el menú inferior; aquí se suma la barra de agregar. */
 .detalle {
   max-width: 1160px;
   margin: 0 auto;
-  padding-bottom: 104px;
+  padding-bottom: var(--alto-agregar);
 }
 
 .detalle-foto {
@@ -1717,10 +1754,9 @@ svg {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-height: var(--alto-agregar);
   padding: 12px 16px;
   background: var(--blanco);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 
 .barra-agregar div {
@@ -2204,11 +2240,29 @@ svg {
 
   .promocion {
     min-height: 300px;
-    padding: 48px 40px 56px;
+    padding: 40px 40px 56px;
   }
 
-  .promocion-icono svg {
-    width: 300px;
+  .promocion::before {
+    left: 54%;
+  }
+
+  .promocion > div {
+    max-width: 52%;
+  }
+
+  .promocion-texto {
+    font-size: 1.05rem;
+  }
+
+  .silueta {
+    right: 7%;
+    bottom: -15px;
+    width: 256px;
+    height: 256px;
+  }
+
+  .esqueleto-carrusel {
     height: 300px;
   }
 
@@ -2337,8 +2391,6 @@ svg {
     margin-top: 32px;
     padding: 20px 0 0;
     background: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     border-top: 1px solid var(--linea);
   }
 

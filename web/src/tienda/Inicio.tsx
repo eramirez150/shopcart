@@ -5,6 +5,7 @@ import { api, armarConsulta, type Consulta } from '../api/cliente';
 import type { Categoria, Pagina, ProductoResumen } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { EsqueletoGrilla, MensajeError, Vacio } from '../componentes/Estados';
+import { Silueta } from '../componentes/Ilustraciones';
 import { Carrusel } from './Carrusel';
 import { Icono, iconoDeCategoria } from './Iconos';
 import { GrillaProductos } from './TarjetaProducto';
@@ -23,9 +24,7 @@ function Promocion({ categoria, indice }: { categoria: Categoria; indice: number
         {categoria.Descripcion && <p className="promocion-texto">{categoria.Descripcion}</p>}
         <span className="promocion-boton">Ver productos</span>
       </div>
-      <span className="promocion-icono" aria-hidden="true">
-        <Icono nombre={iconoDeCategoria(categoria.Nombre)} />
-      </span>
+      <Silueta icono={iconoDeCategoria(categoria.Nombre)} />
     </Link>
   );
 }
