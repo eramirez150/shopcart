@@ -106,7 +106,7 @@ paths:
     post:
       tags: [Usuarios]
       summary: Crea un usuario con un rol activo (permiso usuarios.gestionar)
-      description: Solo el Administrador asigna el rol Administrador. Un rol inexistente o inactivo responde 400.
+      description: Solo el Administrador asigna roles de empleado; con usuarios.gestionar únicamente se crean clientes (403). Un rol inexistente o inactivo responde 400.
       requestBody:
         required: true
         content:
@@ -124,7 +124,7 @@ paths:
       summary: Cambia el rol o desactiva un usuario, nunca se borra (permiso usuarios.gestionar)
       description: |
         Cambiar el rol o desactivar cierra las sesiones del usuario. Nadie cambia su propio rol ni se desactiva (409).
-        Solo el Administrador asigna ese rol o modifica a un administrador (403).
+        Solo el Administrador cambia roles o modifica a un administrador (403).
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
