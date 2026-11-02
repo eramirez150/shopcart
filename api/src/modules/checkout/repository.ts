@@ -35,5 +35,5 @@ export async function cancelarPago(idUsuario: number, idReserva: number) {
 
 export async function crearPedido(idUsuario: number, idReserva: number) {
   const r = await ejecutar('SP_Pedidos_CrearPedido', { IDUsuario: [sql.Int, idUsuario], IDReserva: [sql.Int, idReserva] });
-  return { ...primera<object>(r)!, lineas: filas(r, 1), historial: filas(r, 2) };
+  return { ...primera<object>(r)!, lineas: filas(r, 1), historial: filas(r, 2), envio: primera(r, 3) ?? null };
 }

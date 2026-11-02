@@ -71,7 +71,7 @@ npm run typecheck
 npm test
 ```
 
-`servicios.test.ts` no necesita base de datos y tampoco el primer bloque de `seguridad.test.ts` y de `sesiones.test.ts`. Lo demás (`roles`, `flujo`, `concurrencia`, `direcciones`, `dashboard`, `catalogo`, `orden`, `reglas` y los segundos bloques de `seguridad` y `sesiones`) exige una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas. Con Docker Compose, la base se recrea con `docker compose down -v` y `docker compose up -d db db-init`, y las pruebas se ejecutan desde `api/` con `DB_USER=shopcart_app` y `DB_PASSWORD` igual a `APP_DB_PASSWORD`.
+`servicios.test.ts` no necesita base de datos y tampoco el primer bloque de `seguridad.test.ts` y de `sesiones.test.ts`. Lo demás (`roles`, `flujo`, `concurrencia`, `direcciones`, `dashboard`, `despacho`, `catalogo`, `orden`, `reglas` y los segundos bloques de `seguridad` y `sesiones`) exige una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas. Con Docker Compose, la base se recrea con `docker compose down -v` y `docker compose up -d db db-init`, y las pruebas se ejecutan desde `api/` con `DB_USER=shopcart_app` y `DB_PASSWORD` igual a `APP_DB_PASSWORD`.
 
 Las pruebas que necesitan tocar la base directamente están en `database/pruebas/` (`aplicar.sh` no ejecuta esa carpeta) y se ejecutan con `sa`:
 
@@ -251,6 +251,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 - Carrito abandonado: abierto, con productos y sin cambios en las últimas 24 horas. Las 24 horas son el valor por defecto del parámetro `horas` de `/api/admin/dashboard/indicadores` y `/api/admin/dashboard/carritos-abandonados`.
 - Cualquier cambio en el carrito anula su reserva activa: el cliente debe iniciar el pago otra vez. Repetir el inicio del pago **sin** cambios devuelve la misma reserva (doble clic).
 - Direcciones: cada cliente registra, lista, modifica y desactiva las suyas en `/api/cliente/direcciones`; la de otro usuario responde 404 en la API y en los SP. Al pagar se elige una con `idDireccion` o se envía el texto de una nueva, que queda registrada (si ya existe una idéntica se reutiliza). Reservas y pedidos guardan `IDDireccion` y copian el texto, así modificar o desactivar la dirección después no altera un pedido.
+- Despacho y entrega: `PATCH /api/admin/pedidos/{id}/estado` exige `mensajeria`, `guia`, `pesoKg` y `costoRecogida` para pasar a `Despachado`, y `recibidoPor` para pasar a `Entregado`; si faltan responde 400. En las demás transiciones esos campos se ignoran. El detalle del pedido los devuelve en `envio` (`null` antes del despacho): administración los ve todos y el Cliente todos menos el costo de recogida.
 - Las devoluciones las registra quien tenga `pedidos.gestionar` (`POST /api/admin/pedidos/{id}/devoluciones`); el Cliente consulta las de sus pedidos en `/api/cliente/pedidos/{id}/devoluciones`.
 - Las escrituras del catálogo exigen `catalogo.gestionar` y nada con ventas o movimientos se elimina: se desactiva. Las variantes y los cupones no tienen ruta para borrar: se desactivan con `activa: false` (`PUT /api/admin/productos/variantes/{id}`) y `activo: false` (`PUT /api/admin/cupones/{id}`), porque los referencian carritos, reservas, pedidos y usos.
 - Los atributos de una variante se guardan como un objeto JSON en texto (`{"Talla":"M","Color":"Azul"}`), validado con `ISJSON`; los servicios los reciben y devuelven como objeto. Así cada categoría define sus propios atributos sin tablas adicionales.
@@ -378,8 +379,8 @@ Pedido (las transiciones salen de `PedidoTransiciones`):
 stateDiagram-v2
     [*] --> Pagado: confirmar el pago
     Pagado --> EnPreparacion: Operador
-    EnPreparacion --> Despachado: Operador
-    Despachado --> Entregado: Operador
+    EnPreparacion --> Despachado: Operador, con los datos del envío
+    Despachado --> Entregado: Operador, con quién recibió
     Pagado --> Cancelado: antes del despacho
     EnPreparacion --> Cancelado: antes del despacho
     Entregado --> DevueltoParcial: devolución de parte
@@ -389,6 +390,8 @@ stateDiagram-v2
     Cancelado --> [*]
     Devuelto --> [*]
 ```
+
+Despachar y entregar no agregan estados: guardan sus datos en `PedidoEnvios`, y `SP_Pedidos_CambiarEstado` rechaza con 52400 el cambio si faltan.
 
 Reserva de existencia:
 
@@ -413,15 +416,15 @@ stateDiagram-v2
 3. `GET /api/cliente/direcciones` lista las direcciones del cliente; `POST /api/cliente/direcciones` registra una.
 4. `POST /api/cliente/checkout/pagos` con `idDireccion` (o el texto de una dirección nueva) reserva la existencia 15 minutos.
 5. `POST /api/cliente/checkout/reservas/{id}/pedido` confirma el pago simulado y crea el pedido.
-6. El Operador avanza el pedido con `PATCH /api/admin/pedidos/{id}/estado`; las devoluciones se registran en `POST /api/admin/pedidos/{id}/devoluciones`. El Cliente cancela el suyo con `PATCH /api/cliente/pedidos/{id}/estado`.
+6. El Operador avanza el pedido con `PATCH /api/admin/pedidos/{id}/estado`, con los datos del envío al despachar y quién recibió al entregar; las devoluciones se registran en `POST /api/admin/pedidos/{id}/devoluciones`. El Cliente cancela el suyo con `PATCH /api/cliente/pedidos/{id}/estado`.
 
 ## Estado de la verificación
 
 La separación en dos servicios y los roles se verificaron con SQL Server 2022 en Docker (`mcr.microsoft.com/mssql/server:2022-latest`) y Node.js 24:
 
 - `docker compose` sobre un volumen vacío crea la base desde `00_base`, aplica todos los scripts y `db-init` termina con código 0.
-- `npx tsc --noEmit` sin errores, `npm run build` correcto y `npm test` con 69 pruebas aprobadas sobre una base recién creada, incluidas las de concurrencia.
-- `database/pruebas/ejecutar.sh` con las cuatro pruebas SQL aprobadas.
+- `npx tsc --noEmit` sin errores, `npm run build` correcto y `npm test` con 77 pruebas aprobadas sobre una base recién creada, incluidas las de concurrencia.
+- `database/pruebas/ejecutar.sh` con las cinco pruebas SQL aprobadas.
 - `docker compose up --build` con los cuatro servicios, comprobado con curl: `/api/salud` identifica a cada uno, las rutas públicas responden 200, los dos logins funcionan, el login por el servicio equivocado y el cruce de tokens responden 401, las rutas del otro servicio responden 404, la verificación previa de CORS solo da permisos al origen propio y `/api/docs` documenta solo ese servicio.
 
 No se volvió a probar en SQL Server LocalDB 2019.

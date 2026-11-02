@@ -12,8 +12,17 @@ export interface FiltrosPedidos {
   tamano: number;
 }
 
+// Datos que acompañan el paso a Despachado (mensajería, guía, peso y costo) o a Entregado (quién recibió).
+export interface DatosEnvio {
+  mensajeria?: string;
+  guia?: string;
+  pesoKg?: number;
+  costoRecogida?: number;
+  recibidoPor?: string;
+}
+
 function pedido(r: Resultado) {
-  return { ...primera<{ Estado: string }>(r)!, lineas: filas(r, 1), historial: filas(r, 2) };
+  return { ...primera<{ Estado: string }>(r)!, lineas: filas(r, 1), historial: filas(r, 2), envio: primera(r, 3) ?? null };
 }
 
 function devoluciones(r: Resultado) {
@@ -41,13 +50,18 @@ export async function obtener(idUsuario: number, idPedido: number) {
   return pedido(await ejecutar('SP_Pedidos_Obtener', { IDUsuario: [sql.Int, idUsuario], IDPedido: [sql.Int, idPedido] }));
 }
 
-export async function cambiarEstado(idUsuario: number, idPedido: number, estado: string, comentario: string | null) {
+export async function cambiarEstado(idUsuario: number, idPedido: number, estado: string, comentario: string | null, envio: DatosEnvio) {
   return pedido(
     await ejecutar('SP_Pedidos_CambiarEstado', {
       IDUsuario: [sql.Int, idUsuario],
       IDPedido: [sql.Int, idPedido],
       EstadoNuevo: [sql.NVarChar(20), estado],
       Comentario: [sql.NVarChar(300), comentario],
+      Mensajeria: [sql.NVarChar(100), envio.mensajeria ?? null],
+      Guia: [sql.NVarChar(60), envio.guia ?? null],
+      PesoKg: [sql.Decimal(8, 2), envio.pesoKg ?? null],
+      CostoRecogida: [sql.Decimal(12, 2), envio.costoRecogida ?? null],
+      RecibidoPor: [sql.NVarChar(150), envio.recibidoPor ?? null],
     }),
   );
 }
