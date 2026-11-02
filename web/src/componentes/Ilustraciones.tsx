@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 
 // Ilustraciones de los estados vacíos y de error, dibujadas para ShopCart.
-// Todas siguen el mismo trazo: un círculo de acento suave detrás y línea de tinta encima.
+// Todas siguen el mismo trazo: un círculo plateado detrás y línea de tinta encima.
 export type NombreIlustracion = 'carrito' | 'busqueda' | 'pedidos' | 'direcciones' | 'error' | 'vacio';
 
 const dibujos: Record<NombreIlustracion, ReactElement> = {
