@@ -24,12 +24,13 @@ Editar `.env` y definir estos tres valores, sin comillas. Si falta alguno, `dock
 | `APP_DB_PASSWORD` | Clave de `shopcart_app`, con las mismas reglas |
 | `JWT_SECRET` | Al menos 32 caracteres aleatorios |
 | `VITE_MODO_DEMO` | Opcional. `true` muestra en el login los botones para entrar como cliente, operador o administrador. Por defecto `false` |
+| `WEB_PORT` | Opcional. Puerto de la tienda en la máquina, útil si el `8080` está ocupado. Por defecto `8080` |
 
 ```bash
 docker compose up --build
 ```
 
-Se levantan cuatro servicios: `db`, `db-init` (aplica los scripts y termina), `api` y `web`. **La tienda queda en `http://127.0.0.1:8080`** (también `http://localhost:8080`). El servicio `web` sirve el frontend compilado con nginx y reenvía `/api` a la API, así que el navegador usa un solo origen. `VITE_MODO_DEMO` se fija al compilar: después de cambiarlo, ejecutar otra vez `docker compose up --build`. Para empezar con una base limpia: `docker compose down -v`.
+Se levantan cuatro servicios: `db`, `db-init` (aplica los scripts y termina), `api` y `web`. **La tienda queda en `http://127.0.0.1:8080`** (también `http://localhost:8080`); con `WEB_PORT` definido, en ese puerto. El servicio `web` sirve el frontend compilado con nginx y reenvía `/api` a la API, así que el navegador usa un solo origen. `VITE_MODO_DEMO` se fija al compilar: después de cambiarlo, ejecutar otra vez `docker compose up --build`. Para empezar con una base limpia: `docker compose down -v`.
 
 La API queda en `http://localhost:3000/api` y su documentación en `http://localhost:3000/api/docs`. La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden: `00_base` crea la base, tablas y semillas se aplican una sola vez, y funciones, vistas, procedimientos y permisos en cada arranque.
 
