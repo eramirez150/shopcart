@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
-import { dinero, id, paginacion } from '../../compartido/esquemas.js';
+import { dinero, id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
 
 export const rutasCupones = Router();
@@ -13,8 +13,8 @@ const cupon = z.object({
   fechaInicio: z.iso.datetime().transform((f) => new Date(f)),
   fechaFin: z.iso.datetime().transform((f) => new Date(f)),
   minimoCompra: dinero.default(0),
-  limiteTotal: z.number().int().positive().nullable().default(null),
-  limitePorCliente: z.number().int().positive().nullable().default(null),
+  limiteTotal: z.number().int().positive().max(MAX_INT).nullable().default(null),
+  limitePorCliente: z.number().int().positive().max(MAX_INT).nullable().default(null),
   idCategoria: id.nullable().default(null),
 });
 

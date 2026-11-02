@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
-import { id, paginacion } from '../../compartido/esquemas.js';
+import { id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
 
 export const rutasInventario = Router();
@@ -10,7 +10,7 @@ rutasInventario.use(autenticar, autorizar('Operador', 'Administrador'));
 rutasInventario.get('/existencias', async (req, res) => {
   const q = z
     .object({
-      umbral: z.coerce.number().int().min(0).optional(),
+      umbral: z.coerce.number().int().min(0).max(MAX_INT).optional(),
       orden: z.enum(['disponible', 'disponible_desc', 'sku', 'producto']).default('disponible'),
       ...paginacion,
     })
@@ -28,7 +28,7 @@ rutasInventario.post('/movimientos', async (req, res) => {
     .object({
       idVariante: id,
       tipo: z.enum(['Entrada', 'Salida', 'Ajuste']),
-      cantidad: z.number().int(),
+      cantidad: z.number().int().min(-MAX_INT).max(MAX_INT),
       motivo: z.string().trim().min(1).max(300),
     })
     .parse(req.body);

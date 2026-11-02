@@ -385,7 +385,7 @@ stateDiagram-v2
 Las correcciones de la Fase 1 se verificaron con SQL Server 2022 en Docker (`mcr.microsoft.com/mssql/server:2022-latest`) y Node.js 22:
 
 - `docker compose up db db-init` sobre un volumen vacío crea la base desde `00_base`, aplica todos los scripts y termina con código 0; una segunda ejecución omite tablas y semillas y también termina con código 0.
-- `npx tsc --noEmit` sin errores y `npm test` con 35 pruebas aprobadas sobre una base recién creada.
+- `npx tsc --noEmit` sin errores y `npm test` con 36 pruebas aprobadas sobre una base recién creada.
 - `database/pruebas/ejecutar.sh` con las cuatro pruebas SQL aprobadas.
 - `VW_Inventario_Control` sin diferencias entre la existencia y el kardex después de las semillas.
 - `docker compose up` con los tres servicios: `db-init` termina con código 0 y la API (imagen `node:24-alpine`) responde en `/api/salud`, `/api/docs` y el dashboard con los datos de demostración.
