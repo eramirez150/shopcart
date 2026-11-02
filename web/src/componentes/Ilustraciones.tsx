@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { NombreIcono } from '../tienda/Iconos';
+import { iconoDeCategoria, type NombreIcono } from '../tienda/Iconos';
 
 // Ilustraciones de los estados vacíos y de error, dibujadas para ShopCart.
 // Todas siguen el mismo trazo: un círculo plateado detrás y línea de tinta encima.
@@ -67,6 +67,15 @@ export function Silueta({ icono }: { icono: NombreIcono }) {
     <svg className="silueta" viewBox="0 0 120 120" aria-hidden="true">
       <path fillRule="evenodd" d={siluetas[icono] ?? ETIQUETA} />
     </svg>
+  );
+}
+
+// Lo que se muestra en lugar de la foto de un producto que no tiene: la silueta de su categoría.
+export function SinFoto({ categoria }: { categoria: string }) {
+  return (
+    <span className="sin-foto" role="img" aria-label="Sin foto">
+      <Silueta icono={iconoDeCategoria(categoria)} />
+    </span>
   );
 }
 

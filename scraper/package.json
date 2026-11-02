@@ -1,0 +1,11 @@
+{
+  "name": "shopcart-scraper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "semilla": "node fotos-amazon.mjs semilla"
+  },
+  "dependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

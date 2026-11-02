@@ -1406,10 +1406,12 @@ svg {
   background: var(--pozo);
 }
 
+/* Las fotos de catálogo se muestran completas sobre blanco, sin recortar el producto. */
 .tarjeta-foto img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--blanco);
   transition: transform 600ms var(--curva);
 }
 
@@ -1427,8 +1429,14 @@ svg {
   place-items: center;
   height: 100%;
   min-height: 120px;
-  color: var(--tinta-suave);
-  font-size: 0.85rem;
+}
+
+.sin-foto .silueta {
+  position: static;
+  width: 42%;
+  height: auto;
+  max-width: 200px;
+  fill: var(--plata);
 }
 
 .tarjeta-nombre {
@@ -1579,7 +1587,8 @@ svg {
 .detalle-foto img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--blanco);
   animation: aparecer var(--medio) var(--curva);
 }
 
@@ -1613,7 +1622,8 @@ svg {
 .miniaturas img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--blanco);
 }
 
 .detalle-info {

@@ -6,6 +6,7 @@ import { api, mensajeDe } from '../api/cliente';
 import type { Producto, Variante } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { Aviso, EsqueletoDetalle, MensajeError, Vacio } from '../componentes/Estados';
+import { SinFoto } from '../componentes/Ilustraciones';
 import { Precio } from '../componentes/Precio';
 import { textoAtributos } from '../formato';
 import { useCarrito } from './CarritoContexto';
@@ -63,7 +64,7 @@ function Contenido({ producto }: { producto: Producto }) {
   return (
     <main className="detalle">
       <div className="detalle-galeria">
-        <div className="detalle-foto">{imagen ? <img src={imagen.Url} alt={imagen.TextoAlternativo ?? producto.Nombre} /> : <span className="sin-foto">Sin foto</span>}</div>
+        <div className="detalle-foto">{imagen ? <img src={imagen.Url} alt={imagen.TextoAlternativo ?? producto.Nombre} /> : <SinFoto categoria={producto.Categoria} />}</div>
         {imagenes.length > 1 && (
           <div className="miniaturas">
             {imagenes.map((img, i) => (

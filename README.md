@@ -131,7 +131,22 @@ Solo para desarrollo, creadas por los scripts de `database/02_semillas`. Cámbie
 
 Cupones de ejemplo: `BIENVENIDA10` (10 %, una vez por cliente), `Q50` (Q50 con compra mínima de Q300), `ELECTRO15` (15 % solo en Electrónica), `LIMITADO5` (5 usos en total), `VENCIDO` e `INACTIVO` (para ver los rechazos).
 
-Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer. Cada producto tiene una imagen de muestra de `picsum.photos`.
+Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer.
+
+## Datos de muestra
+
+30 de los 50 productos muestran una foto de referencia; los otros 20 muestran la silueta de su categoría, para no enseñar una foto que no es suya. `001_semillas.sql` inserta una imagen de `picsum.photos` por producto y `002_fotos_reales.sql` la cambia por la foto elegida o la quita.
+
+- Las fotos son referencias de demostración, alojadas por la tienda de origen (`m.media-amazon.com`). No son del proyecto, no se descargan ni se guardan en el repositorio. La tienda necesita internet para mostrarlas.
+- Los nombres y las descripciones de los productos son propios: de la búsqueda solo se guarda la dirección de la imagen.
+- `scraper/fotos-amazon.mjs` visitó una vez, con un Chrome normal, 30 páginas públicas de búsqueda, una por producto y una a la vez, con 4 a 8 segundos de pausa, sin cuenta y sin proxies. No evade CAPTCHA: si aparece uno o un bloqueo, la corrida termina con lo capturado y no reintenta.
+- `scraper/fotos.json` guarda las candidatas de cada búsqueda y, en `imagen`, la elegida al revisarlas a mano. El comando `capturar` se niega a correr si ese archivo existe; para cambiar una foto se edita el archivo y se regenera la semilla sin visitar ningún sitio:
+
+```sh
+cd scraper
+npm install
+npm run semilla
+```
 
 ## Scripts de base de datos
 
@@ -142,7 +157,8 @@ database/
   00_base/            Crea la base (001_crear_base.sql) y el registro de scripts (002_scripts_aplicados.sql)
   01_tablas/          Tablas, índices y triggers por módulo (001_usuarios, 002_catalogo, ...)
   02_semillas/        001: usuarios por rol, categorías, 50 productos con imagen, kardex y cupones
-                      002: direcciones, pedidos, devoluciones y carritos abandonados de demostración
+                      002_demostracion: direcciones, pedidos, devoluciones y carritos abandonados de demostración
+                      002_fotos_reales: fotos de referencia de 30 productos, generado desde scraper/fotos.json
   03_funciones/       FU_Modulo_Proceso.sql
   04_vistas/          VW_Modulo_Proceso.sql
   05_procedimientos/  Una subcarpeta por módulo, con SP_Modulo_Proceso.sql
@@ -295,6 +311,12 @@ Solo para desarrollo: `typescript` compila el código, `tsx` ejecuta TypeScript 
 
 Solo para desarrollo: `vite` y `@vitejs/plugin-react` sirven y compilan el proyecto, `typescript` comprueba los tipos y `@types/react` y `@types/react-dom` aportan los tipos de React. No se usan librerías de estado, formularios, peticiones ni componentes visuales: `fetch`, los contextos de React y un archivo de estilos alcanzan.
 
+### Scraper (`scraper/`)
+
+| Librería | Para qué se usa | Por qué |
+| --- | --- | --- |
+| `playwright-core` | Abrir las páginas de búsqueda en el Chrome instalado | Los resultados se arman en el navegador. No descarga navegadores propios y no forma parte de la API ni del frontend: solo se usó para generar `fotos.json` |
+
 ## Modelo entidad-relación
 
 ```mermaid
@@ -410,7 +432,7 @@ Verificado con SQL Server 2022 en Docker, Node.js 24 y Chromium sin interfaz (Pl
 
 No probado o con limitaciones del entorno de verificación:
 
-- Las imágenes de muestra de `picsum.photos` no se pudieron descargar desde el entorno de prueba; en las capturas se reemplazaron por una imagen local. Con acceso a internet se cargan desde ese sitio.
+- Las imágenes de muestra de `picsum.photos` no se pudieron descargar desde el entorno de prueba; en las capturas se reemplazaron por una imagen local. Hoy la tienda usa las fotos descritas en [Datos de muestra](#datos-de-muestra).
 - La construcción de las imágenes de Docker se probó agregando el certificado del proxy de ese entorno en una copia temporal de los Dockerfile (el `npm ci` fallaba con `SELF_SIGNED_CERT_IN_CHAIN`). Los Dockerfile del repositorio no lo necesitan en una red normal.
 - Solo Chromium; no se probó en Safari ni en Firefox, ni en teléfonos reales.
 - `database/pruebas/ejecutar.sh` no se volvió a ejecutar en esta fase porque la base no cambió.

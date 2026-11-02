@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
 import type { Producto, ProductoResumen } from '../api/tipos';
+import { SinFoto } from '../componentes/Ilustraciones';
 import { Precio } from '../componentes/Precio';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
@@ -51,7 +52,7 @@ export function TarjetaProducto({ producto }: { producto: ProductoResumen }) {
     <article className={`tarjeta ${agotado ? 'tarjeta-sin-existencia' : ''}`}>
       <Link to={detalle} className="tarjeta-enlace">
         <div className="tarjeta-foto">
-          {producto.ImagenPrincipal ? <img src={producto.ImagenPrincipal} alt={producto.Nombre} loading="lazy" /> : <span className="sin-foto">Sin foto</span>}
+          {producto.ImagenPrincipal ? <img src={producto.ImagenPrincipal} alt={producto.Nombre} loading="lazy" /> : <SinFoto categoria={producto.Categoria} />}
         </div>
         <h3 className="tarjeta-nombre">{producto.Nombre}</h3>
         {producto.Calificacion != null && <Estrellas valor={producto.Calificacion} ventas={producto.Ventas} />}
