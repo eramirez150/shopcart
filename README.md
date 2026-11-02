@@ -1,7 +1,16 @@
 # ShopCart
 
 Plataforma web de ventas con SQL Server, dos servicios en Express con TypeScript (tienda y administración) y frontend en React con TypeScript.
-La especificación está en [docs/especificacion.md](docs/especificacion.md). La Fase 1 entregó la base de datos y la API; la Fase 2 agrega el frontend en `web/` y su servicio en Docker.
+La especificación está en [docs/especificacion.md](docs/especificacion.md). La Fase 1 entregó la base de datos y la API; la Fase 2 agrega el frontend en `web/`, con la tienda y el panel en contenedores separados.
+
+## Arquitectura
+
+Cada aplicación web habla solo con su servicio, y los dos servicios comparten base y stored procedures.
+
+| Aplicación | Compilación | Contenedor web | Puerto | Reenvía `/api` a | Quién entra |
+| --- | --- | --- | --- | --- | --- |
+| Tienda | `VITE_APP=tienda` | `web-tienda` | `8081` | `api-tienda:3000` (`/api/publico`, `/api/cliente`) | Clientes |
+| Panel | `VITE_APP=admin` | `web-admin` | `8082` | `api-admin:3001` (`/api/admin`) | Personal |
 
 ## Requisitos
 
@@ -23,14 +32,14 @@ Editar `.env` y definir estos tres valores, sin comillas. Si falta alguno, `dock
 | `MSSQL_SA_PASSWORD` | Clave de `sa`: mínimo 8 caracteres con mayúsculas, minúsculas, números y símbolos |
 | `APP_DB_PASSWORD` | Clave de `shopcart_app`, con las mismas reglas |
 | `JWT_SECRET` | Al menos 32 caracteres aleatorios |
-| `VITE_MODO_DEMO` | Opcional. `true` muestra en el login los botones para entrar como cliente, operador o administrador. Por defecto `false` |
-| `WEB_PORT` | Opcional. Puerto de la tienda en la máquina, útil si el `8080` está ocupado. Por defecto `8080` |
+| `VITE_MODO_DEMO` | Opcional. `true` muestra en cada login los botones para entrar con las cuentas de prueba. Por defecto `false` |
+| `WEB_TIENDA_PORT`, `WEB_ADMIN_PORT` | Opcionales. Puertos de la tienda y del panel en la máquina. Por defecto `8081` y `8082` |
 
 ```bash
 docker compose up --build
 ```
 
-Se levantan cinco servicios: `db`, `db-init` (aplica los scripts y termina), `api-tienda`, `api-admin` y `web`. **La tienda queda en `http://127.0.0.1:8080`** (también `http://localhost:8080`); con `WEB_PORT` definido, en ese puerto. El servicio `web` sirve el frontend compilado con nginx y reenvía `/api` al servicio de la tienda, así que el navegador usa un solo origen. `VITE_MODO_DEMO` se fija al compilar: después de cambiarlo, ejecutar otra vez `docker compose up --build`. Para empezar con una base limpia: `docker compose down -v`.
+Se levantan seis servicios: `db`, `db-init` (aplica los scripts y termina), `api-tienda`, `api-admin`, `web-tienda` y `web-admin`. **La tienda queda en `http://127.0.0.1:8081` y el panel en `http://127.0.0.1:8082`** (también con `localhost`). Cada contenedor web sirve su compilación con nginx y reenvía `/api` a su servicio, así que el navegador usa un solo origen por aplicación. `VITE_APP` y `VITE_MODO_DEMO` se fijan al compilar: después de cambiar `VITE_MODO_DEMO`, ejecutar otra vez `docker compose up --build`. Para empezar con una base limpia: `docker compose down -v`.
 
 La tienda queda en `http://localhost:3000/api` y administración en `http://localhost:3001/api`, cada una con su documentación en `/api/docs`. Ver [Cómo consumir las API](#cómo-consumir-las-api). La base de datos queda disponible solo desde la propia máquina en `127.0.0.1,14335`. Los scripts de `database/` se aplican en orden: `00_base` crea la base, tablas y semillas se aplican una sola vez, y funciones, vistas, procedimientos y permisos en cada arranque.
 
@@ -69,32 +78,36 @@ La documentación interactiva de cada servicio está en `/api/docs` (Swagger UI,
 
 ### Frontend fuera de Docker
 
-Con la base y la API levantadas (por ejemplo `docker compose up -d db db-init api`):
+Con la base y los servicios levantados (por ejemplo `docker compose up -d db db-init api-tienda api-admin`):
 
 ```bash
 cd web
 npm install
-npm run dev        # http://localhost:5173, con recarga
+npm run dev        # tienda en http://localhost:5173, con recarga
+npm run dev:admin  # panel en http://localhost:5174, con recarga
 ```
 
-Vite reenvía `/api` a `http://localhost:3000`; otro destino se indica con `API_PROXY` en el entorno o en `web/.env`. Las variables del navegador están en `web/.env.example` (`VITE_API_URL`, por defecto `/api`, y `VITE_MODO_DEMO`).
+Vite reenvía `/api` a `http://localhost:3000` en la tienda y a `http://localhost:3001` en el panel; otro destino se indica con `API_PROXY` en el entorno o en `web/.env`. Las variables del navegador están en `web/.env.example` (`VITE_API_URL`, por defecto `/api`, y `VITE_MODO_DEMO`). `VITE_APP` elige la aplicación; los comandos `:admin` la fijan con `--mode admin`, que funciona igual en Windows y en Linux.
 
 ```bash
 npm run typecheck  # comprobación de tipos (tsc --noEmit, modo strict)
-npm run build      # tipos y compilación a web/dist
+npm run build      # tipos y compilación de la tienda a web/dist
+npm run build:admin  # lo mismo para el panel
 ```
 
 Estructura de `web/src`:
 
 ```text
 api/          Cliente de la API (token, renovación, errores), tipos de las respuestas y useApi
-sesion/       Sesión del usuario y rutas protegidas por rol
-componentes/  Estados de carga, vacío y error, paginación, campos, filtros en la URL, detalle de pedido
+sesion/       Sesión del usuario y rutas protegidas
+componentes/  Estados de carga, vacío y error, paginación, campos, filtros en la URL, detalle de pedido, página no encontrada
 tienda/       Encabezado, inicio, búsqueda, detalle, carrito y checkout
 cuenta/       Mi cuenta: pedidos y direcciones
-panel/        Paneles de operador y administrador, dashboard
+panel/        Panel del personal y dashboard
 paginas/      Login y registro
-App.tsx       Rutas
+AppTienda.tsx Rutas de la tienda
+AppPanel.tsx  Rutas del panel
+main.tsx      Elige la aplicación según VITE_APP
 estilos.css   Estilos (un solo archivo, primero para celular)
 ```
 
@@ -184,7 +197,7 @@ curl -X POST http://localhost:3001/api/admin/usuarios \
   -d '{"correo":"marketing@shopcart.test","clave":"Clave-segura-1","nombre":"Marta Marketing","rol":"Marketing"}'
 ```
 
-Cada servicio solo acepta sus orígenes. Con Docker Compose se definen en `.env`, separados por coma; dentro del contenedor los dos reciben una sola variable, `CORS_ORIGIN`. Un origen ajeno no recibe ninguna cabecera `Access-Control-Allow-*`, y `X-Carrito-Token` solo se permite en la tienda.
+Las aplicaciones de `web/` no dependen de CORS: llaman a `/api` en su propio origen. Para otros clientes, cada servicio solo acepta sus orígenes. Con Docker Compose se definen en `.env`, separados por coma; dentro del contenedor los dos reciben una sola variable, `CORS_ORIGIN`. Un origen ajeno no recibe ninguna cabecera `Access-Control-Allow-*`, y `X-Carrito-Token` solo se permite en la tienda.
 
 | Variable de Compose | Servicio | Por defecto |
 | --- | --- | --- |
@@ -192,6 +205,8 @@ Cada servicio solo acepta sus orígenes. Con Docker Compose se definen en `.env`
 | `CORS_ORIGIN_ADMIN` | Administración | `http://localhost:5174` |
 | `API_TIENDA_PORT` | Tienda, puerto publicado | `3000` |
 | `API_ADMIN_PORT` | Administración, puerto publicado | `3001` |
+| `WEB_TIENDA_PORT` | Tienda web, puerto publicado | `8081` |
+| `WEB_ADMIN_PORT` | Panel web, puerto publicado | `8082` |
 | `DB_PORT` | Base de datos, puerto publicado | `14335` |
 
 ### Permisos
@@ -352,7 +367,8 @@ Limitaciones conocidas: un cliente desactivado o con otro rol conserva su token 
 | Sesión | El access token y el refresh token se guardan en `localStorage` para sobrevivir a una recarga. Es lo más simple de explicar; el costo es que un script inyectado podría leerlos (no hay HTML de usuarios sin escapar: React escapa todo el texto). |
 | Renovación del token | Ante un 401, `api/cliente.ts` pide el `refresh` de su servicio (`/api/publico/auth` o `/api/admin/auth`) y repite la petición una sola vez. Como el refresh token es de un solo uso y reusarlo cierra todas las sesiones, las peticiones simultáneas comparten la misma renovación y las pestañas se coordinan con Web Locks: si otra pestaña ya renovó, se usa su sesión. |
 | Carrito de invitado | El token del carrito se guarda en `localStorage` y viaja en `X-Carrito-Token`. Al iniciar sesión se envía para que la API lo fusione y luego se borra. `/api/publico/auth/registro` no fusiona carritos, así que el registro cierra la sesión que abre y entra con `/api/publico/auth/login`, que sí lo hace. |
-| Un solo origen | El frontend llama a `/api` relativo: Vite (desarrollo) y nginx (Docker) lo reenvían a la API. No depende de CORS; aun así `CORS_ORIGIN` admite `localhost` y `127.0.0.1` en el puerto 8080. |
+| Dos aplicaciones | Un solo proyecto `web/` con un `package.json`, dos compilaciones y dos contenedores, igual que la API: comparten componentes y estilos, y `VITE_APP` decide cuál sale. `main.tsx` importa `AppTienda` o `AppPanel`, así la tienda no contiene las pantallas del panel ni al revés. Son orígenes distintos: cada una guarda su sesión, y el enlace "Ver la tienda" del panel ya no existe. |
+| Un origen por aplicación | Cada aplicación llama a `/api` relativo: Vite (desarrollo) y nginx (Docker) lo reenvían solo a su servicio, y la plantilla de nginx recibe el destino en `API_DESTINO`. Por el origen de la tienda, `/api/admin` responde 404. No depende de CORS. |
 | Rutas y permisos | `RutaProtegida` exige sesión. El login no informa los permisos del usuario y solo `roles.gestionar` puede consultarlos, así que el menú del panel muestra todas las secciones: la API decide en cada petición y una sección sin permiso muestra su mensaje. Sin nombres de rol fijos, un rol nuevo funciona sin tocar el panel. |
 | Filtros | Los filtros, el orden y la página de cada listado viven en la URL (`?estado=Pagado&pagina=2`): se pueden recargar y compartir, y el botón Atrás funciona. El filtrado, el orden y la paginación los hace la API. |
 | Formularios | Validación propia en `validacion.ts`, sin librería. Los errores de validación que devuelve la API (`detalle`) se muestran junto al campo y los demás errores, con su mensaje, encima del botón. |
@@ -370,7 +386,7 @@ Limitaciones conocidas: un cliente desactivado o con otro rol conserva su token 
 | Productos y precios | La foto ocupa casi toda la tarjeta y el precio es el texto más grueso de cada vista. `componentes/Precio.tsx` reduce la "Q" y los centavos para que el entero domine, con cifras tabulares para que los montos se alineen. |
 | Movimiento | Curvas propias (`--curva`, `--curva-rebote`) y dos duraciones (160 y 280 ms). Las vistas aparecen con opacidad y los bloques suben 10 px en cascada. Otros detalles: el botón redondo late mientras agrega y muestra una marca al terminar, el contador del carrito salta al cambiar, la sección activa del menú inferior se marca con una raya que crece y el encabezado se reduce al bajar. La vista completa solo cambia de opacidad, porque un `transform` en ella movería las barras fijas. Con `prefers-reduced-motion` se desactiva todo. |
 | Carga y vacíos | En lugar de un indicador giratorio, cada vista muestra un esqueleto con la forma del contenido real (cuadrícula, filas o ficha de producto), así la página no salta al llegar los datos. Cada estado vacío y de error tiene una ilustración propia (`componentes/Ilustraciones.tsx`), un titular y, cuando hay algo que hacer, una sola acción. |
-| Accesos de demostración | Con `VITE_MODO_DEMO=true` el login muestra tres botones con las credenciales de prueba. Sin esa variable el código no llega al paquete compilado. |
+| Accesos de demostración | Con `VITE_MODO_DEMO=true` el login muestra botones con las credenciales de prueba: el del cliente en la tienda, los del operador y el administrador en el panel. Sin esa variable el código no llega al paquete compilado. |
 
 ## Supuestos
 
@@ -564,3 +580,14 @@ Verificado sobre una base recién creada, con SQL Server 2022 en Docker, Node.js
 - Encabezado: en el inicio, bajar compacta y subir 60 px lo restaura lejos del tope; en el detalle no hay buscador, la barra se mantiene al bajar, "Volver" regresa o lleva al inicio sin historial, y no hay hueco arriba ni desborde. A 900 y 1280 px el carrito y los enlaces siguen accesibles.
 
 No probado: Safari, Firefox y teléfonos reales.
+
+### Dos servicios y dos aplicaciones web
+
+Verificado con SQL Server 2022 en Docker, sobre una base recién creada. El frontend no tiene pruebas automáticas: se comprobó con tipos, compilación y peticiones HTTP reales por el puerto de cada contenedor, sin navegador.
+
+- En `api/`: `npx tsc --noEmit` y `npm run build` sin errores, y `npm test` con 81 pruebas aprobadas.
+- `database/pruebas/ejecutar.sh` con las cinco pruebas SQL aprobadas (31 comprobaciones).
+- En `web/`: `npm run typecheck`, `npm run build` y `npm run build:admin` sin errores. Las 57 llamadas de `web/src` a rutas fijas coinciden con los dos archivos OpenAPI. El paquete de la tienda no contiene `/admin/auth` ni las pantallas del panel, y el del panel no contiene `/publico/auth` ni las de la tienda.
+- `docker compose up --build` con los seis servicios: cada origen responde `index.html` y `/api/salud` con su servicio. Por la tienda entra un Cliente y por el panel el Administrador y el Operador; cruzar un login o un token responde 401. `/api/admin` por la tienda y `/api/publico` y `/api/cliente` por el panel responden 404. El carrito de invitado se fusiona al iniciar sesión y un refresh token reusado responde 401.
+
+No probado: el recorrido en un navegador real después de la separación.

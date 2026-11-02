@@ -64,15 +64,33 @@ services:
     ports:
       - "127.0.0.1:${API_ADMIN_PORT:-3001}:3001"
 
-  web:
+  # Las dos aplicaciones usan la misma receta: cambia qué compilan y a qué servicio
+  # reenvían /api. Cada una ve solo su API.
+  web-tienda:
     build:
       context: ./web
       args:
+        VITE_APP: tienda
         VITE_MODO_DEMO: ${VITE_MODO_DEMO:-false}
+    environment:
+      API_DESTINO: http://api-tienda:3000
     depends_on:
       - api-tienda
     ports:
-      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+      - "127.0.0.1:${WEB_TIENDA_PORT:-8081}:8080"
+
+  web-admin:
+    build:
+      context: ./web
+      args:
+        VITE_APP: admin
+        VITE_MODO_DEMO: ${VITE_MODO_DEMO:-false}
+    environment:
+      API_DESTINO: http://api-admin:3001
+    depends_on:
+      - api-admin
+    ports:
+      - "127.0.0.1:${WEB_ADMIN_PORT:-8082}:8080"
 
 volumes:
   db-data:

@@ -49,6 +49,10 @@ El Operador gestiona pedidos e inventario. El Administrador gestiona además cat
 
 Dos servicios sobre la misma base: tienda (`/api/publico` y `/api/cliente`) y administración (`/api/admin`), con login, tokens, CORS y documentación propios. Rutas, servicios con la lógica de negocio y repositorios. Validación de esquemas, errores centralizados con códigos HTTP correctos, CORS, cabeceras de seguridad, variables de entorno con `.env.example`, documentación de la API y sin credenciales en el repositorio. Los listados y reportes principales responden en menos de 1 segundo.
 
+## Frontend
+
+Un proyecto `web/` con dos compilaciones y dos contenedores: la tienda consume solo el servicio de la tienda y el panel solo el de administración. Cada aplicación tiene su origen, su login y su sesión.
+
 ## Decisiones técnicas
 
 | Riesgo | Decisión |

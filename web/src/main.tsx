@@ -1,20 +1,21 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
-import { App } from './App';
 import { ProveedorSesion } from './sesion/SesionContexto';
-import { ProveedorCarrito } from './tienda/CarritoContexto';
 import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import './estilos.css';
 
-createRoot(document.getElementById('raiz')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <ProveedorSesion>
-        <ProveedorCarrito>
+// VITE_APP se fija al compilar: la aplicación que no se elige no entra al paquete.
+const aplicacion = import.meta.env.VITE_APP === 'admin' ? import('./AppPanel') : import('./AppTienda');
+
+void aplicacion.then(({ App }) => {
+  createRoot(document.getElementById('raiz')!).render(
+    <StrictMode>
+      <BrowserRouter>
+        <ProveedorSesion>
           <App />
-        </ProveedorCarrito>
-      </ProveedorSesion>
-    </BrowserRouter>
-  </StrictMode>,
-);
+        </ProveedorSesion>
+      </BrowserRouter>
+    </StrictMode>,
+  );
+});
