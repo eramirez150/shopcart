@@ -6,5 +6,5 @@ COPY . .
 RUN npm run build
 RUN npm prune --omit=dev
 USER node
-EXPOSE 3000
-CMD ["node", "dist/index.js"]
+EXPOSE 3000 3001
+CMD ["node", "dist/tienda/index.js"]

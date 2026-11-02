@@ -2,13 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
 import { fecha, paginacion } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/reportes/service.js';
 
 export const rutasDashboard = Router();
 export const rutasBitacora = Router();
 
-rutasDashboard.use(autenticar, autorizar('Administrador'));
-rutasBitacora.use(autenticar, autorizar('Administrador'));
+rutasDashboard.use(autenticar('admin'), autorizar('reportes.ver'));
+rutasBitacora.use(autenticar('admin'), autorizar('bitacora.ver'));
 
 const filtroFechas = { desde: fecha.optional(), hasta: fecha.optional() };
 const rangoDe = (q: { desde?: string | undefined; hasta?: string | undefined }) =>
@@ -39,12 +39,12 @@ rutasDashboard.get('/carritos-abandonados', async (req, res) => {
   res.json(await servicio.carritosAbandonados(idUsuario(req), q.horas, q.pagina, q.tamano));
 });
 
-// El listado filtrado de pedidos del dashboard es GET /api/pedidos (ver módulo de pedidos).
+// El listado filtrado de pedidos del dashboard es GET /api/admin/pedidos (ver rutas de pedidos).
 
 rutasBitacora.get('/', async (req, res) => {
   const q = z
     .object({
-      modulo: z.enum(['Catalogo', 'Inventario', 'Cupones', 'Pedidos']).optional(),
+      modulo: z.enum(['Catalogo', 'Inventario', 'Cupones', 'Pedidos', 'Roles']).optional(),
       orden: z.enum(['recientes', 'antiguos']).default('recientes'),
       ...filtroFechas,
       ...paginacion,

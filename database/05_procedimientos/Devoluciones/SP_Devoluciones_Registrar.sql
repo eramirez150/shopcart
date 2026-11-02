@@ -17,7 +17,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') NOT IN (N'Operador', N'Administrador')
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'pedidos.gestionar') = 0
         THROW 52403, N'No tiene permiso para registrar devoluciones.', 1;
     IF @Motivo IS NULL OR LEN(LTRIM(RTRIM(@Motivo))) = 0 THROW 52400, N'El motivo es obligatorio.', 1;
     IF ISJSON(@Lineas) <> 1 THROW 52400, N'Las líneas deben ser un arreglo JSON.', 1;

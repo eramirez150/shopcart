@@ -9,8 +9,8 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
   let operador = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
-    operador = await s.login('operador@shopcart.test', 'Operador123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
+    operador = await s.loginAdmin('operador@shopcart.test', 'Operador123!');
   });
   after(async () => {
     await s.cerrar();
@@ -19,8 +19,8 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
   const marca = () => `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
   async function crearProducto() {
-    const p = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 3, nombre: 'Reseñable ' + marca() } });
-    const v = await s.pedir('POST', `/productos/${p.datos.IDProducto}/variantes`, {
+    const p = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria: 3, nombre: 'Reseñable ' + marca() } });
+    const v = await s.pedir('POST', `/admin/productos/${p.datos.IDProducto}/variantes`, {
       token: admin,
       cuerpo: { sku: 'RES-' + marca(), precio: 50, existenciaInicial: 20 },
     });
@@ -28,17 +28,17 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
   }
 
   async function comprar(token: string, idVariante: number) {
-    await s.pedir('POST', '/carrito/items', { token, cuerpo: { idVariante, cantidad: 1 } });
-    const reserva = await s.pedir('POST', '/checkout/pagos', { token, cuerpo: direccion });
+    await s.pedir('POST', '/publico/carrito/items', { token, cuerpo: { idVariante, cantidad: 1 } });
+    const reserva = await s.pedir('POST', '/cliente/checkout/pagos', { token, cuerpo: direccion });
     assert.equal(reserva.estado, 201, JSON.stringify(reserva.datos));
-    const pedido = await s.pedir('POST', `/checkout/reservas/${reserva.datos.IDReserva}/pedido`, { token });
+    const pedido = await s.pedir('POST', `/cliente/checkout/reservas/${reserva.datos.IDReserva}/pedido`, { token });
     assert.equal(pedido.estado, 201, JSON.stringify(pedido.datos));
     return pedido.datos.IDPedido as number;
   }
 
   async function entregar(idPedido: number) {
     for (const estado of ['EnPreparacion', 'Despachado', 'Entregado']) {
-      const r = await s.pedir('PATCH', `/pedidos/${idPedido}/estado`, { token: operador, cuerpo: { estado } });
+      const r = await s.pedir('PATCH', `/admin/pedidos/${idPedido}/estado`, { token: operador, cuerpo: { estado } });
       assert.equal(r.estado, 200, JSON.stringify(r.datos));
     }
   }
@@ -53,11 +53,13 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
 
   test('crear: exige sesión de Cliente y un pedido Entregado con ese producto', async () => {
     const { idProducto, idVariante } = await crearProducto();
-    const ruta = `/productos/${idProducto}/resenas`;
+    const ruta = `/cliente/productos/${idProducto}/resenas`;
+    const publica = `/publico/productos/${idProducto}/resenas`;
     const c = await s.registrar('compra');
 
     assert.equal((await s.pedir('POST', ruta, { cuerpo: resena })).estado, 401);
-    assert.equal((await s.pedir('POST', ruta, { token: operador, cuerpo: resena })).estado, 403);
+    // El token de administración no sirve en la tienda: el personal no reseña.
+    assert.equal((await s.pedir('POST', ruta, { token: operador, cuerpo: resena })).estado, 401);
 
     const sinCompra = await s.pedir('POST', ruta, { token: c.token, cuerpo: resena });
     assert.equal(sinCompra.estado, 403);
@@ -85,17 +87,19 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
   test('crear: dos envíos simultáneos dejan una sola reseña', async () => {
     const { idProducto, idVariante } = await crearProducto();
     const c = await clienteConEntrega(idVariante, 'doble');
-    const ruta = `/productos/${idProducto}/resenas`;
+    const ruta = `/cliente/productos/${idProducto}/resenas`;
+    const publica = `/publico/productos/${idProducto}/resenas`;
 
     const r = await Promise.all([1, 2, 3].map(() => s.pedir('POST', ruta, { token: c.token, cuerpo: resena })));
     assert.deepEqual(r.map((x) => x.estado).sort(), [201, 409, 409]);
-    assert.equal((await s.pedir('GET', ruta)).datos.total, 1);
+    assert.equal((await s.pedir('GET', publica)).datos.total, 1);
   });
 
   test('crear: valida la calificación, el comentario y el producto', async () => {
     const { idProducto, idVariante } = await crearProducto();
     const c = await clienteConEntrega(idVariante, 'valida');
-    const ruta = `/productos/${idProducto}/resenas`;
+    const ruta = `/cliente/productos/${idProducto}/resenas`;
+    const publica = `/publico/productos/${idProducto}/resenas`;
 
     for (const cuerpo of [
       { calificacion: 0, comentario: 'Bajo' },
@@ -107,16 +111,17 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
     ]) {
       assert.equal((await s.pedir('POST', ruta, { token: c.token, cuerpo })).estado, 400, JSON.stringify(cuerpo).slice(0, 60));
     }
-    assert.equal((await s.pedir('POST', '/productos/2147483647/resenas', { token: c.token, cuerpo: resena })).estado, 404);
-    assert.equal((await s.pedir('POST', '/productos/abc/resenas', { token: c.token, cuerpo: resena })).estado, 400);
+    assert.equal((await s.pedir('POST', '/cliente/productos/2147483647/resenas', { token: c.token, cuerpo: resena })).estado, 404);
+    assert.equal((await s.pedir('POST', '/cliente/productos/abc/resenas', { token: c.token, cuerpo: resena })).estado, 400);
     assert.equal((await s.pedir('POST', ruta, { token: c.token, cuerpo: { calificacion: 5, comentario: 'x'.repeat(1000) } })).estado, 201);
   });
 
   test('listar: público, paginado, recientes primero, con promedio y total, sin datos del usuario', async () => {
     const { idProducto, idVariante } = await crearProducto();
-    const ruta = `/productos/${idProducto}/resenas`;
+    const ruta = `/cliente/productos/${idProducto}/resenas`;
+    const publica = `/publico/productos/${idProducto}/resenas`;
 
-    const vacia = await s.pedir('GET', ruta);
+    const vacia = await s.pedir('GET', publica);
     assert.equal(vacia.estado, 200);
     assert.deepEqual([vacia.datos.total, vacia.datos.promedio, vacia.datos.datos], [0, null, []]);
 
@@ -127,7 +132,7 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
       assert.equal(r.estado, 201);
     }
 
-    const primera = await s.pedir('GET', `${ruta}?tamano=2`);
+    const primera = await s.pedir('GET', `${publica}?tamano=2`);
     assert.equal(primera.estado, 200);
     assert.deepEqual([primera.datos.total, primera.datos.pagina, primera.datos.tamano], [3, 1, 2]);
     assert.equal(primera.datos.promedio, 4.33);
@@ -137,24 +142,25 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
     }
     assert.ok(!/@|IDUsuario|Correo/.test(JSON.stringify(primera.datos)));
 
-    const segunda = await s.pedir('GET', `${ruta}?tamano=2&pagina=2`);
+    const segunda = await s.pedir('GET', `${publica}?tamano=2&pagina=2`);
     assert.deepEqual(segunda.datos.datos.map((r: { Comentario: string }) => r.Comentario), ['Opinión 0']);
 
     // Una página sin filas conserva el resumen.
-    const lejos = await s.pedir('GET', `${ruta}?tamano=2&pagina=9`);
+    const lejos = await s.pedir('GET', `${publica}?tamano=2&pagina=9`);
     assert.deepEqual([lejos.datos.total, lejos.datos.promedio, lejos.datos.datos], [3, 4.33, []]);
 
-    assert.equal((await s.pedir('GET', `${ruta}?tamano=101`)).estado, 400);
-    assert.equal((await s.pedir('GET', '/productos/2147483647/resenas')).estado, 404);
+    assert.equal((await s.pedir('GET', `${publica}?tamano=101`)).estado, 400);
+    assert.equal((await s.pedir('GET', '/publico/productos/2147483647/resenas')).estado, 404);
   });
 
   test('listar: el nombre público es nombre e inicial del apellido', async () => {
     const { idProducto, idVariante } = await crearProducto();
-    const ruta = `/productos/${idProducto}/resenas`;
+    const ruta = `/cliente/productos/${idProducto}/resenas`;
+    const publica = `/publico/productos/${idProducto}/resenas`;
 
     async function autorDe(nombre: string) {
       const correo = `autor-${marca()}@shopcart.test`;
-      const r = await s.pedir('POST', '/auth/registro', { cuerpo: { correo, clave: 'Prueba-123456', nombre } });
+      const r = await s.pedir('POST', '/publico/auth/registro', { cuerpo: { correo, clave: 'Prueba-123456', nombre } });
       assert.equal(r.estado, 201, JSON.stringify(r.datos));
       const token = r.datos.accessToken as string;
       await entregar(await comprar(token, idVariante));
@@ -168,10 +174,10 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
 
   test('permiso: indica si el usuario actual puede reseñar y por qué no', async () => {
     const { idProducto, idVariante } = await crearProducto();
-    const ruta = `/productos/${idProducto}/resenas/permiso`;
+    const ruta = `/cliente/productos/${idProducto}/resenas/permiso`;
 
     assert.equal((await s.pedir('GET', ruta)).estado, 401);
-    assert.deepEqual((await s.pedir('GET', ruta, { token: operador })).datos, { puede: false, motivo: 'Rol' });
+    assert.equal((await s.pedir('GET', ruta, { token: operador })).estado, 401);
 
     const c = await s.registrar('permiso');
     assert.deepEqual((await s.pedir('GET', ruta, { token: c.token })).datos, { puede: false, motivo: 'SinCompra' });
@@ -179,27 +185,27 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
     await entregar(await comprar(c.token, idVariante));
     assert.deepEqual((await s.pedir('GET', ruta, { token: c.token })).datos, { puede: true, motivo: null });
 
-    await s.pedir('POST', `/productos/${idProducto}/resenas`, { token: c.token, cuerpo: resena });
+    await s.pedir('POST', `/cliente/productos/${idProducto}/resenas`, { token: c.token, cuerpo: resena });
     assert.deepEqual((await s.pedir('GET', ruta, { token: c.token })).datos, { puede: false, motivo: 'Repetida' });
 
-    assert.equal((await s.pedir('GET', '/productos/2147483647/resenas/permiso', { token: c.token })).estado, 404);
+    assert.equal((await s.pedir('GET', '/cliente/productos/2147483647/resenas/permiso', { token: c.token })).estado, 404);
   });
 
-  test('producto inactivo: sus reseñas se ocultan al público, el Administrador las ve y no admite nuevas', async () => {
+  test('producto inactivo: sus reseñas se ocultan y no admite nuevas', async () => {
     const { idProducto, idVariante } = await crearProducto();
     const c = await clienteConEntrega(idVariante, 'inactivo');
-    const ruta = `/productos/${idProducto}/resenas`;
+    const ruta = `/cliente/productos/${idProducto}/resenas`;
+    const publica = `/publico/productos/${idProducto}/resenas`;
     const nombre = 'Reseñable inactivo ' + marca();
-    await s.pedir('PUT', `/productos/${idProducto}`, { token: admin, cuerpo: { idCategoria: 3, nombre, activo: false } });
+    await s.pedir('PUT', `/admin/productos/${idProducto}`, { token: admin, cuerpo: { idCategoria: 3, nombre, activo: false } });
 
-    assert.equal((await s.pedir('GET', ruta)).estado, 404);
-    assert.equal((await s.pedir('GET', ruta, { token: admin })).estado, 200);
+    assert.equal((await s.pedir('GET', publica)).estado, 404);
     assert.equal((await s.pedir('POST', ruta, { token: c.token, cuerpo: resena })).estado, 404);
   });
 
   test('semillas: hay productos con foto y reseñas', async () => {
-    const lista = await s.pedir('GET', '/productos?texto=Audífonos');
-    const resenas = await s.pedir('GET', `/productos/${lista.datos.datos[0].IDProducto}/resenas`);
+    const lista = await s.pedir('GET', '/publico/productos?texto=Audífonos');
+    const resenas = await s.pedir('GET', `/publico/productos/${lista.datos.datos[0].IDProducto}/resenas`);
     assert.ok(resenas.datos.total >= 2 && resenas.datos.total <= 4);
     assert.ok(resenas.datos.promedio >= 1 && resenas.datos.promedio <= 5);
   });

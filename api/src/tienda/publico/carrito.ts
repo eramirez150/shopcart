@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticarOpcional, tokenInvitado } from '../../middleware/auth.js';
 import { id } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/carrito/service.js';
 
 export const rutasCarrito = Router();
-rutasCarrito.use(autenticarOpcional);
+rutasCarrito.use(autenticarOpcional('tienda'));
 
 const cantidad = z.number().int().min(1).max(1000);
 const dueno = (req: Parameters<typeof tokenInvitado>[0]) => servicio.duenoDe(req.usuario, tokenInvitado(req));

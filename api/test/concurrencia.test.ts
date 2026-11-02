@@ -9,7 +9,7 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
   let admin = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
   });
   after(async () => {
     await s.cerrar();
@@ -18,8 +18,8 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
   const marca = () => `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
   async function crearVariante(existencia: number) {
-    const p = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 1, nombre: 'Concurrencia ' + marca() } });
-    const v = await s.pedir('POST', `/productos/${p.datos.IDProducto}/variantes`, {
+    const p = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria: 1, nombre: 'Concurrencia ' + marca() } });
+    const v = await s.pedir('POST', `/admin/productos/${p.datos.IDProducto}/variantes`, {
       token: admin,
       cuerpo: { sku: 'CONC-' + marca(), precio: 100, existenciaInicial: existencia },
     });
@@ -27,12 +27,12 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
   }
 
   const existencia = async (idProducto: number) =>
-    (await s.pedir('GET', `/productos/${idProducto}`, { token: admin })).datos.variantes[0] as { Existencia: number; Disponible: number };
+    (await s.pedir('GET', `/admin/productos/${idProducto}`, { token: admin })).datos.variantes[0] as { Existencia: number; Disponible: number };
 
   async function usuariosConCarrito(n: number, idVariante: number) {
     const usuarios = await Promise.all(Array.from({ length: n }, () => s.registrar('conc')));
     const altas = await Promise.all(
-      usuarios.map((u) => s.pedir('POST', '/carrito/items', { token: u.token, cuerpo: { idVariante, cantidad: 1 } })),
+      usuarios.map((u) => s.pedir('POST', '/publico/carrito/items', { token: u.token, cuerpo: { idVariante, cantidad: 1 } })),
     );
     assert.ok(altas.every((a) => a.estado === 201));
     return usuarios;
@@ -43,7 +43,7 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
     const usuarios = await usuariosConCarrito(25, idVariante);
 
     // Reservas simultáneas: solo caben 4.
-    const reservas = await Promise.all(usuarios.map((u) => s.pedir('POST', '/checkout/pagos', { token: u.token, cuerpo: direccion })));
+    const reservas = await Promise.all(usuarios.map((u) => s.pedir('POST', '/cliente/checkout/pagos', { token: u.token, cuerpo: direccion })));
     const ok = reservas.filter((r) => r.estado === 201);
     const sinStock = reservas.filter((r) => r.estado === 409);
     assert.equal(ok.length, 4);
@@ -55,7 +55,7 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
     const pedidos = await Promise.all(
       usuarios.flatMap((u, i) =>
         reservas[i]!.estado === 201
-          ? [1, 2].map(() => s.pedir('POST', `/checkout/reservas/${reservas[i]!.datos.IDReserva}/pedido`, { token: u.token }))
+          ? [1, 2].map(() => s.pedir('POST', `/cliente/checkout/reservas/${reservas[i]!.datos.IDReserva}/pedido`, { token: u.token }))
           : [],
       ),
     );
@@ -65,7 +65,7 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
     const v = await existencia(idProducto);
     assert.deepEqual({ Existencia: v.Existencia, Disponible: v.Disponible }, { Existencia: 0, Disponible: 0 });
     // La existencia coincide con la suma del kardex.
-    const kardex = await s.pedir('GET', `/inventario/variantes/${idVariante}/kardex?tamano=100`, { token: admin });
+    const kardex = await s.pedir('GET', `/admin/inventario/variantes/${idVariante}/kardex?tamano=100`, { token: admin });
     const suma = kardex.datos.datos.reduce((a: number, k: { Cantidad: number }) => a + k.Cantidad, 0);
     assert.equal(suma, v.Existencia);
     assert.equal(kardex.datos.total, 5); // entrada inicial + 4 salidas
@@ -74,17 +74,17 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
   test('sin pedidos duplicados: 15 confirmaciones simultáneas de la misma reserva', async () => {
     const { idProducto, idVariante } = await crearVariante(10);
     const [u] = await usuariosConCarrito(1, idVariante);
-    const reserva = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion });
+    const reserva = await s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: direccion });
     assert.equal(reserva.estado, 201);
 
     const intentos = await Promise.all(
-      Array.from({ length: 15 }, () => s.pedir('POST', `/checkout/reservas/${reserva.datos.IDReserva}/pedido`, { token: u!.token })),
+      Array.from({ length: 15 }, () => s.pedir('POST', `/cliente/checkout/reservas/${reserva.datos.IDReserva}/pedido`, { token: u!.token })),
     );
     assert.ok(intentos.every((r) => r.estado === 201), JSON.stringify(intentos.map((r) => r.estado)));
     assert.equal(new Set(intentos.map((r) => r.datos.IDPedido)).size, 1);
     assert.equal(new Set(intentos.map((r) => r.datos.ReferenciaPago)).size, 1);
 
-    const mios = await s.pedir('GET', '/pedidos', { token: u!.token });
+    const mios = await s.pedir('GET', '/cliente/pedidos', { token: u!.token });
     assert.equal(mios.datos.total, 1);
     assert.equal((await existencia(idProducto)).Existencia, 9); // una sola salida
   });
@@ -92,39 +92,39 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
   test('doble clic en pagar: 10 inicios de pago simultáneos devuelven la misma reserva activa', async () => {
     const { idProducto, idVariante } = await crearVariante(10);
     const [u] = await usuariosConCarrito(1, idVariante);
-    await s.pedir('PATCH', `/carrito/items/${idVariante}`, { token: u!.token, cuerpo: { cantidad: 3 } });
+    await s.pedir('PATCH', `/publico/carrito/items/${idVariante}`, { token: u!.token, cuerpo: { cantidad: 3 } });
 
     const intentos = await Promise.all(
-      Array.from({ length: 10 }, () => s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion })),
+      Array.from({ length: 10 }, () => s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: direccion })),
     );
     assert.ok(intentos.every((r) => r.estado === 201), JSON.stringify(intentos.map((r) => r.estado)));
     const ids = new Set(intentos.map((r) => r.datos.IDReserva));
     assert.equal(ids.size, 1);
     const idReserva = intentos[0]!.datos.IDReserva as number;
-    assert.equal((await s.pedir('GET', `/checkout/reservas/${idReserva}`, { token: u!.token })).datos.Estado, 'Activa');
+    assert.equal((await s.pedir('GET', `/cliente/checkout/reservas/${idReserva}`, { token: u!.token })).datos.Estado, 'Activa');
     // Se reservó una sola vez.
     assert.equal((await existencia(idProducto)).Disponible, 7);
 
     // Repetir después, sin cambios, devuelve la misma reserva y no anula la anterior.
-    const otra = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion });
+    const otra = await s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: direccion });
     assert.equal(otra.datos.IDReserva, idReserva);
     assert.equal(otra.datos.Estado, 'Activa');
 
     // Con otra dirección ya no es un doble clic: se crea otra reserva y la anterior se anula.
-    const cambio = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, direccion: 'Otra dirección 1-1' } });
+    const cambio = await s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, direccion: 'Otra dirección 1-1' } });
     assert.notEqual(cambio.datos.IDReserva, idReserva);
-    assert.equal((await s.pedir('GET', `/checkout/reservas/${idReserva}`, { token: u!.token })).datos.Estado, 'Anulada');
+    assert.equal((await s.pedir('GET', `/cliente/checkout/reservas/${idReserva}`, { token: u!.token })).datos.Estado, 'Anulada');
     assert.equal((await existencia(idProducto)).Disponible, 7);
   });
 
   test('una salida o un ajuste manual no deja la existencia por debajo de lo reservado', async () => {
     const { idProducto, idVariante } = await crearVariante(5);
     const [u] = await usuariosConCarrito(1, idVariante);
-    await s.pedir('PATCH', `/carrito/items/${idVariante}`, { token: u!.token, cuerpo: { cantidad: 4 } });
-    assert.equal((await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: direccion })).estado, 201);
+    await s.pedir('PATCH', `/publico/carrito/items/${idVariante}`, { token: u!.token, cuerpo: { cantidad: 4 } });
+    assert.equal((await s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: direccion })).estado, 201);
 
     const mov = (tipo: string, cantidad: number) =>
-      s.pedir('POST', '/inventario/movimientos', { token: admin, cuerpo: { idVariante, tipo, cantidad, motivo: 'Prueba reservado' } });
+      s.pedir('POST', '/admin/inventario/movimientos', { token: admin, cuerpo: { idVariante, tipo, cantidad, motivo: 'Prueba reservado' } });
     const salida = await mov('Salida', 2);
     assert.equal(salida.estado, 409);
     assert.match(salida.datos.error.mensaje, /reservadas/);
@@ -148,7 +148,7 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
 
   test('cupón con límite total 5: 20 pedidos simultáneos consumen exactamente 5 usos', async () => {
     const codigo = 'LIM' + marca();
-    const cupon = await s.pedir('POST', '/cupones', {
+    const cupon = await s.pedir('POST', '/admin/cupones', {
       token: admin,
       cuerpo: { codigo, tipo: 'Monto', valor: 10, fechaInicio: '2026-01-01T00:00:00Z', fechaFin: '2030-01-01T00:00:00Z', limiteTotal: 5, limitePorCliente: 1 },
     });
@@ -158,13 +158,13 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
 
     // Todos reservan con el cupón (la validación aún no consume el uso).
     const reservas = await Promise.all(
-      usuarios.map((u) => s.pedir('POST', '/checkout/pagos', { token: u.token, cuerpo: { ...direccion, codigoCupon: codigo } })),
+      usuarios.map((u) => s.pedir('POST', '/cliente/checkout/pagos', { token: u.token, cuerpo: { ...direccion, codigoCupon: codigo } })),
     );
     assert.ok(reservas.every((r) => r.estado === 201));
 
     // Pagan todos a la vez: el límite se respeta con concurrencia.
     const pedidos = await Promise.all(
-      usuarios.map((u, i) => s.pedir('POST', `/checkout/reservas/${reservas[i]!.datos.IDReserva}/pedido`, { token: u.token })),
+      usuarios.map((u, i) => s.pedir('POST', `/cliente/checkout/reservas/${reservas[i]!.datos.IDReserva}/pedido`, { token: u.token })),
     );
     const ok = pedidos.filter((p) => p.estado === 201);
     const rechazados = pedidos.filter((p) => p.estado === 409);
@@ -175,34 +175,34 @@ describe('concurrencia', { skip: !hayBase && 'sin conexión a la base' }, () => 
 
     let usos: number | undefined;
     for (let pag = 1; usos === undefined && pag <= 10; pag++) {
-      const r = await s.pedir('GET', `/cupones?tamano=100&pagina=${pag}`, { token: admin });
+      const r = await s.pedir('GET', `/admin/cupones?tamano=100&pagina=${pag}`, { token: admin });
       usos = r.datos.datos.find((c: { Codigo: string }) => c.Codigo === codigo)?.Usos;
     }
     assert.equal(usos, 5);
 
     // Cancelar un pedido devuelve el uso, y entonces cabe uno más.
     const ganador = usuarios.findIndex((_, i) => pedidos[i]!.estado === 201);
-    await s.pedir('PATCH', `/pedidos/${pedidos[ganador]!.datos.IDPedido}/estado`, { token: usuarios[ganador]!.token, cuerpo: { estado: 'Cancelado' } });
+    await s.pedir('PATCH', `/cliente/pedidos/${pedidos[ganador]!.datos.IDPedido}/estado`, { token: usuarios[ganador]!.token, cuerpo: { estado: 'Cancelado' } });
     const perdedor = usuarios.findIndex((_, i) => pedidos[i]!.estado === 409);
-    const reintento = await s.pedir('POST', `/checkout/reservas/${reservas[perdedor]!.datos.IDReserva}/pedido`, { token: usuarios[perdedor]!.token });
+    const reintento = await s.pedir('POST', `/cliente/checkout/reservas/${reservas[perdedor]!.datos.IDReserva}/pedido`, { token: usuarios[perdedor]!.token });
     assert.equal(reintento.estado, 201);
   });
 
   test('cupón con límite por cliente: un mismo cliente no lo usa dos veces en paralelo', async () => {
     const codigo = 'CLI' + marca();
-    await s.pedir('POST', '/cupones', {
+    await s.pedir('POST', '/admin/cupones', {
       token: admin,
       cuerpo: { codigo, tipo: 'Porcentaje', valor: 10, fechaInicio: '2026-01-01T00:00:00Z', fechaFin: '2030-01-01T00:00:00Z', limitePorCliente: 1 },
     });
     const { idVariante } = await crearVariante(20);
     const [u] = await usuariosConCarrito(1, idVariante);
-    const reserva = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, codigoCupon: codigo } });
+    const reserva = await s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, codigoCupon: codigo } });
     assert.equal(reserva.estado, 201);
-    const pedido = await s.pedir('POST', `/checkout/reservas/${reserva.datos.IDReserva}/pedido`, { token: u!.token });
+    const pedido = await s.pedir('POST', `/cliente/checkout/reservas/${reserva.datos.IDReserva}/pedido`, { token: u!.token });
     assert.equal(pedido.estado, 201);
 
-    await s.pedir('POST', '/carrito/items', { token: u!.token, cuerpo: { idVariante, cantidad: 1 } });
-    const segundo = await s.pedir('POST', '/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, codigoCupon: codigo } });
+    await s.pedir('POST', '/publico/carrito/items', { token: u!.token, cuerpo: { idVariante, cantidad: 1 } });
+    const segundo = await s.pedir('POST', '/cliente/checkout/pagos', { token: u!.token, cuerpo: { ...direccion, codigoCupon: codigo } });
     assert.equal(segundo.estado, 409);
     assert.match(segundo.datos.error.mensaje, /máximo de veces/);
   });

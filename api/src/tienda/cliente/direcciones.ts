@@ -2,12 +2,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, idUsuario } from '../../middleware/auth.js';
 import { id } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/direcciones/service.js';
 
 // Direcciones de entrega del usuario autenticado. El dueño sale siempre del JWT:
 // la dirección de otro usuario responde 404.
 export const rutasDirecciones = Router();
-rutasDirecciones.use(autenticar);
+rutasDirecciones.use(autenticar('tienda'));
 
 export const datosDireccion = z.object({
   direccion: z.string().trim().min(1).max(300),

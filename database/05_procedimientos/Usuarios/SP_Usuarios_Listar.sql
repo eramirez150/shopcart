@@ -1,4 +1,4 @@
--- Usuarios paginados (Administrador), filtrables por rol.
+-- Usuarios paginados (permiso usuarios.gestionar), filtrables por rol.
 -- @Orden: id (por defecto), nombre, correo o recientes. El orden usa CASE.
 CREATE OR ALTER PROCEDURE dbo.SP_Usuarios_Listar
     @IDUsuario INT,
@@ -10,8 +10,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF dbo.FU_Auth_Rol(@IDUsuario) IS NULL OR dbo.FU_Auth_Rol(@IDUsuario) <> N'Administrador'
-        THROW 52403, N'Solo el Administrador gestiona usuarios.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'usuarios.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar usuarios.', 1;
     IF @Pagina < 1 SET @Pagina = 1;
     IF @Tamano < 1 OR @Tamano > 100 SET @Tamano = 20;
     IF @Orden NOT IN (N'id', N'nombre', N'correo', N'recientes')

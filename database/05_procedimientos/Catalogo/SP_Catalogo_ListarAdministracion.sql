@@ -1,4 +1,4 @@
--- Listado del catálogo para el Administrador: incluye productos inactivos, de
+-- Listado del catálogo para administración: incluye productos inactivos, de
 -- categorías inactivas y sin variantes (la búsqueda pública los oculta).
 -- @Activo filtra por estado (NULL = todos). @Orden: nombre (por defecto) o recientes.
 -- El orden usa CASE sobre un parámetro tipado: no hay SQL dinámico.
@@ -13,8 +13,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Catalogo_ListarAdministracion
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') <> N'Administrador'
-        THROW 52403, N'Solo el Administrador gestiona el catálogo.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'catalogo.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar el catálogo.', 1;
     IF @Pagina < 1 SET @Pagina = 1;
     IF @Tamano < 1 OR @Tamano > 100 SET @Tamano = 20;
     IF @Orden NOT IN (N'nombre', N'recientes')

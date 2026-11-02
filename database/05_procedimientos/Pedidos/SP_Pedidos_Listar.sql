@@ -1,5 +1,5 @@
 -- Listado filtrado y paginado de pedidos. El Cliente solo ve los suyos, sin
--- importar el filtro; el Operador y el Administrador ven todos.
+-- importar el filtro; el personal necesita pedidos.ver y ve todos.
 -- @Orden: recientes (por defecto), antiguos, total_desc o total_asc. El orden usa
 -- CASE sobre un parámetro tipado: no hay SQL dinámico.
 CREATE OR ALTER PROCEDURE dbo.SP_Pedidos_Listar
@@ -18,6 +18,8 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Rol NVARCHAR(20) = dbo.FU_Auth_Rol(@IDUsuario);
     IF @Rol IS NULL THROW 52403, N'Usuario no autorizado.', 1;
+    IF @Rol <> N'Cliente' AND dbo.FU_Auth_TienePermiso(@IDUsuario, N'pedidos.ver') = 0
+        THROW 52403, N'No tiene permiso para consultar pedidos.', 1;
     IF @Rol = N'Cliente' SET @IDCliente = @IDUsuario;
     IF @Pagina < 1 SET @Pagina = 1;
     IF @Tamano < 1 OR @Tamano > 100 SET @Tamano = 20;

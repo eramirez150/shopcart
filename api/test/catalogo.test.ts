@@ -7,27 +7,27 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
   let admin = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
   });
   after(async () => {
     await s.cerrar();
   });
 
   test('imágenes: las semillas traen una por producto y el Administrador agrega y quita', async () => {
-    const busqueda = await s.pedir('GET', '/productos?texto=Licuadora');
+    const busqueda = await s.pedir('GET', '/publico/productos?texto=Licuadora');
     const lic = busqueda.datos.datos[0];
     assert.match(lic.ImagenPrincipal, /^https:\/\//);
-    const detalle = await s.pedir('GET', `/productos/${lic.IDProducto}`);
+    const detalle = await s.pedir('GET', `/publico/productos/${lic.IDProducto}`);
     assert.equal(detalle.datos.imagenes.length, 1);
 
-    const nuevo = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 1, nombre: 'Producto con imágenes ' + Date.now() } });
+    const nuevo = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria: 1, nombre: 'Producto con imágenes ' + Date.now() } });
     const idProducto = nuevo.datos.IDProducto as number;
     assert.deepEqual(nuevo.datos.imagenes, []);
 
-    const ruta = `/productos/${idProducto}/imagenes`;
+    const ruta = `/admin/productos/${idProducto}/imagenes`;
     assert.equal((await s.pedir('POST', ruta, { token: admin, cuerpo: { url: 'ftp://servidor/foto.jpg' } })).estado, 400);
     const cliente = await s.registrar('img');
-    assert.equal((await s.pedir('POST', ruta, { token: cliente.token, cuerpo: { url: 'https://ejemplo.test/a.jpg' } })).estado, 403);
+    assert.equal((await s.pedir('POST', ruta, { token: cliente.token, cuerpo: { url: 'https://ejemplo.test/a.jpg' } })).estado, 401);
 
     await s.pedir('POST', ruta, { token: admin, cuerpo: { url: 'https://ejemplo.test/b.jpg', orden: 2 } });
     const conDos = await s.pedir('POST', ruta, { token: admin, cuerpo: { url: 'https://ejemplo.test/a.jpg', textoAlternativo: 'Frente', orden: 1 } });
@@ -35,28 +35,28 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
     assert.deepEqual(conDos.datos.imagenes.map((i: { Url: string }) => i.Url), ['https://ejemplo.test/a.jpg', 'https://ejemplo.test/b.jpg']);
 
     const idImagen = conDos.datos.imagenes[0].IDProductoImagen as number;
-    const sinUna = await s.pedir('DELETE', `/productos/imagenes/${idImagen}`, { token: admin });
+    const sinUna = await s.pedir('DELETE', `/admin/productos/imagenes/${idImagen}`, { token: admin });
     assert.equal(sinUna.datos.imagenes.length, 1);
-    assert.equal((await s.pedir('DELETE', `/productos/imagenes/${idImagen}`, { token: admin })).estado, 404);
+    assert.equal((await s.pedir('DELETE', `/admin/productos/imagenes/${idImagen}`, { token: admin })).estado, 404);
 
     // Un producto sin uso se elimina junto con sus imágenes.
-    assert.equal((await s.pedir('DELETE', `/productos/${idProducto}`, { token: admin })).datos.Resultado, 'Eliminado');
+    assert.equal((await s.pedir('DELETE', `/admin/productos/${idProducto}`, { token: admin })).datos.Resultado, 'Eliminado');
   });
 
   test('administración: lista productos inactivos y sin variantes que la búsqueda pública oculta', async () => {
     const marca = 'Admin lista ' + Date.now();
-    const sinVariantes = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' sin variantes' } });
-    const inactivo = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' inactivo' } });
-    await s.pedir('POST', `/productos/${inactivo.datos.IDProducto}/variantes`, {
+    const sinVariantes = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' sin variantes' } });
+    const inactivo = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' inactivo' } });
+    await s.pedir('POST', `/admin/productos/${inactivo.datos.IDProducto}/variantes`, {
       token: admin,
       cuerpo: { sku: 'ADM-' + Date.now(), precio: 10, existenciaInicial: 5 },
     });
-    await s.pedir('PUT', `/productos/${inactivo.datos.IDProducto}`, { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' inactivo', activo: false } });
+    await s.pedir('PUT', `/admin/productos/${inactivo.datos.IDProducto}`, { token: admin, cuerpo: { idCategoria: 2, nombre: marca + ' inactivo', activo: false } });
 
     // La búsqueda pública no muestra ninguno de los dos.
-    assert.equal((await s.pedir('GET', `/productos?texto=${encodeURIComponent(marca)}`)).datos.total, 0);
+    assert.equal((await s.pedir('GET', `/publico/productos?texto=${encodeURIComponent(marca)}`)).datos.total, 0);
 
-    const ruta = `/productos/administracion?texto=${encodeURIComponent(marca)}`;
+    const ruta = `/admin/productos?texto=${encodeURIComponent(marca)}`;
     const lista = await s.pedir('GET', ruta, { token: admin });
     assert.equal(lista.estado, 200);
     assert.equal(lista.datos.total, 2);
@@ -70,7 +70,7 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
     assert.deepEqual(soloInactivos.datos.datos.map((p: { IDProducto: number }) => p.IDProducto), [inactivo.datos.IDProducto]);
 
     const cliente = await s.registrar('adm');
-    assert.equal((await s.pedir('GET', ruta, { token: cliente.token })).estado, 403);
+    assert.equal((await s.pedir('GET', ruta, { token: cliente.token })).estado, 401);
     assert.equal((await s.pedir('GET', ruta)).estado, 401);
   });
 });

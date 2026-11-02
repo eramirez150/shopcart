@@ -1,5 +1,5 @@
 -- Cambio de estado por las transiciones de PedidoTransiciones.
--- El Operador y el Administrador avanzan o cancelan cualquier pedido; el Cliente
+-- El personal con pedidos.gestionar avanza o cancela cualquier pedido; el Cliente
 -- solo cancela los suyos. Los estados de devolución se alcanzan con
 -- SP_Devoluciones_Registrar. Cancelar reintegra la existencia por kardex y
 -- devuelve el uso del cupón.
@@ -15,6 +15,8 @@ BEGIN
 
     DECLARE @Rol NVARCHAR(20) = dbo.FU_Auth_Rol(@IDUsuario);
     IF @Rol IS NULL THROW 52403, N'Usuario no autorizado.', 1;
+    IF @Rol <> N'Cliente' AND dbo.FU_Auth_TienePermiso(@IDUsuario, N'pedidos.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar pedidos.', 1;
 
     IF @EstadoNuevo IN (N'DevueltoParcial', N'Devuelto')
         THROW 52400, N'Los estados de devolución se alcanzan registrando una devolución.', 1;

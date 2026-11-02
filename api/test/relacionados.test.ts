@@ -8,7 +8,7 @@ describe('productos relacionados', { skip: !hayBase && 'sin conexión a la base'
   let admin = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
   });
   after(async () => {
     await s.cerrar();
@@ -17,14 +17,14 @@ describe('productos relacionados', { skip: !hayBase && 'sin conexión a la base'
   const marca = () => `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
   async function crearCategoria() {
-    const c = await s.pedir('POST', '/categorias', { token: admin, cuerpo: { nombre: 'Rel ' + marca() } });
+    const c = await s.pedir('POST', '/admin/categorias', { token: admin, cuerpo: { nombre: 'Rel ' + marca() } });
     return c.datos.IDCategoria as number;
   }
 
   async function crearProducto(idCategoria: number) {
     const nombre = 'Relacionado ' + marca();
-    const p = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria, nombre } });
-    await s.pedir('POST', `/productos/${p.datos.IDProducto}/variantes`, {
+    const p = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria, nombre } });
+    await s.pedir('POST', `/admin/productos/${p.datos.IDProducto}/variantes`, {
       token: admin,
       cuerpo: { sku: 'REL-' + marca(), precio: 25, existenciaInicial: 5 },
     });
@@ -38,7 +38,7 @@ describe('productos relacionados', { skip: !hayBase && 'sin conexión a la base'
     const actual = await crearProducto(idCategoria);
     const hermanos = [await crearProducto(idCategoria), await crearProducto(idCategoria)];
 
-    const r = await s.pedir('GET', `/productos/${actual.id}/relacionados`);
+    const r = await s.pedir('GET', `/publico/productos/${actual.id}/relacionados`);
     assert.equal(r.estado, 200);
     assert.equal(r.datos.length, 12);
     assert.ok(!ids(r.datos).includes(actual.id));
@@ -52,8 +52,8 @@ describe('productos relacionados', { skip: !hayBase && 'sin conexión a la base'
     const actual = await crearProducto(idCategoria);
     const hermano = await crearProducto(idCategoria);
 
-    const relacionado = (await s.pedir('GET', `/productos/${actual.id}/relacionados`)).datos[0];
-    const listado = (await s.pedir('GET', `/productos?idCategoria=${idCategoria}&texto=${encodeURIComponent(hermano.nombre)}`)).datos.datos[0];
+    const relacionado = (await s.pedir('GET', `/publico/productos/${actual.id}/relacionados`)).datos[0];
+    const listado = (await s.pedir('GET', `/publico/productos?idCategoria=${idCategoria}&texto=${encodeURIComponent(hermano.nombre)}`)).datos.datos[0];
     assert.deepEqual(relacionado, listado);
   });
 
@@ -62,28 +62,27 @@ describe('productos relacionados', { skip: !hayBase && 'sin conexión a la base'
     const actual = await crearProducto(idCategoria);
 
     const inactivo = await crearProducto(idCategoria);
-    await s.pedir('PUT', `/productos/${inactivo.id}`, { token: admin, cuerpo: { idCategoria, nombre: inactivo.nombre, activo: false } });
-    const sinVariantes = await s.pedir('POST', '/productos', { token: admin, cuerpo: { idCategoria, nombre: 'Relacionado sin variantes ' + marca() } });
+    await s.pedir('PUT', `/admin/productos/${inactivo.id}`, { token: admin, cuerpo: { idCategoria, nombre: inactivo.nombre, activo: false } });
+    const sinVariantes = await s.pedir('POST', '/admin/productos', { token: admin, cuerpo: { idCategoria, nombre: 'Relacionado sin variantes ' + marca() } });
 
     const otraCategoria = await crearCategoria();
     const otro = await crearProducto(otraCategoria);
     const nombre = 'Rel inactiva ' + marca();
-    await s.pedir('PUT', `/categorias/${otraCategoria}`, { token: admin, cuerpo: { nombre, activa: false } });
+    await s.pedir('PUT', `/admin/categorias/${otraCategoria}`, { token: admin, cuerpo: { nombre, activa: false } });
 
-    const r = await s.pedir('GET', `/productos/${actual.id}/relacionados`);
+    const r = await s.pedir('GET', `/publico/productos/${actual.id}/relacionados`);
     for (const oculto of [inactivo.id, sinVariantes.datos.IDProducto as number, otro.id]) {
       assert.ok(!ids(r.datos).includes(oculto));
     }
   });
 
-  test('producto inexistente o inactivo responde 404 al público', async () => {
-    assert.equal((await s.pedir('GET', '/productos/2147483647/relacionados')).estado, 404);
-    assert.equal((await s.pedir('GET', '/productos/abc/relacionados')).estado, 400);
+  test('producto inexistente o inactivo responde 404', async () => {
+    assert.equal((await s.pedir('GET', '/publico/productos/2147483647/relacionados')).estado, 404);
+    assert.equal((await s.pedir('GET', '/publico/productos/abc/relacionados')).estado, 400);
 
     const idCategoria = await crearCategoria();
     const inactivo = await crearProducto(idCategoria);
-    await s.pedir('PUT', `/productos/${inactivo.id}`, { token: admin, cuerpo: { idCategoria, nombre: inactivo.nombre, activo: false } });
-    assert.equal((await s.pedir('GET', `/productos/${inactivo.id}/relacionados`)).estado, 404);
-    assert.equal((await s.pedir('GET', `/productos/${inactivo.id}/relacionados`, { token: admin })).estado, 200);
+    await s.pedir('PUT', `/admin/productos/${inactivo.id}`, { token: admin, cuerpo: { idCategoria, nombre: inactivo.nombre, activo: false } });
+    assert.equal((await s.pedir('GET', `/publico/productos/${inactivo.id}/relacionados`)).estado, 404);
   });
 });

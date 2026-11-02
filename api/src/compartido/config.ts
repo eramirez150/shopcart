@@ -16,8 +16,10 @@ if (secreto.length < 32) throw new Error('JWT_SECRET debe tener al menos 32 cara
 const conCadenaDePruebas = Boolean(process.env.TEST_DB_CONNECTION_STRING);
 
 export const config = {
-  puerto: Number(process.env.PORT ?? 3000),
-  corsOrigenes: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((s) => s.trim()),
+  // Cada servicio define su puerto por defecto; PORT lo reemplaza.
+  puerto: (porDefecto: number) => Number(process.env.PORT ?? porDefecto),
+  // CORS_ORIGIN: orígenes de este servicio, separados por coma. Cada contenedor recibe el suyo.
+  corsOrigenes: (porDefecto: string) => (process.env.CORS_ORIGIN ?? porDefecto).split(',').map((s) => s.trim()),
   jwt: {
     secreto,
     accesoMinutos: Number(process.env.JWT_ACCESS_MINUTES ?? 15),

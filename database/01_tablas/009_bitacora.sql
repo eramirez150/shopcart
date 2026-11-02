@@ -7,7 +7,7 @@ CREATE TABLE dbo.Bitacora (
     IDBitacora     INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Bitacora PRIMARY KEY,
     Fecha          DATETIME2(0)  NOT NULL CONSTRAINT DF_Bitacora_Fecha DEFAULT (SYSUTCDATETIME()),
     IDUsuario      INT           NULL CONSTRAINT FK_Bitacora_Usuarios REFERENCES dbo.Usuarios (IDUsuario),
-    Modulo         NVARCHAR(20)  NOT NULL CONSTRAINT CK_Bitacora_Modulo CHECK (Modulo IN (N'Catalogo', N'Inventario', N'Cupones', N'Pedidos')),
+    Modulo         NVARCHAR(20)  NOT NULL CONSTRAINT CK_Bitacora_Modulo CHECK (Modulo IN (N'Catalogo', N'Inventario', N'Cupones', N'Pedidos', N'Roles')),
     Entidad        NVARCHAR(30)  NOT NULL,
     IDEntidad      INT           NOT NULL,
     Accion         NVARCHAR(20)  NOT NULL CONSTRAINT CK_Bitacora_Accion CHECK (Accion IN (N'Creacion', N'Modificacion', N'Desactivacion', N'Eliminacion')),

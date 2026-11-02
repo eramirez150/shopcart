@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { tokenInvitado } from '../../middleware/auth.js';
-import * as servicio from './service.js';
+import { correo, refreshToken } from '../../compartido/esquemas.js';
+import * as servicio from '../../modules/auth/service.js';
 
 export const rutasAuth = Router();
 
-const correo = z.email().max(150).transform((c) => c.toLowerCase());
 // Mínimo 8 caracteres; bcrypt solo usa los primeros 72 bytes.
 const clave = z.string().min(8).max(72);
 
@@ -16,16 +16,16 @@ rutasAuth.post('/registro', async (req, res) => {
 
 rutasAuth.post('/login', async (req, res) => {
   const b = z.object({ correo, clave: z.string().min(1).max(72) }).parse(req.body);
-  res.json(await servicio.iniciarSesion(b.correo, b.clave, tokenInvitado(req)));
+  res.json(await servicio.iniciarSesion(b.correo, b.clave, 'tienda', tokenInvitado(req)));
 });
 
 rutasAuth.post('/refresh', async (req, res) => {
-  const b = z.object({ refreshToken: z.string().min(20).max(200) }).parse(req.body);
-  res.json(await servicio.renovar(b.refreshToken));
+  const b = z.object({ refreshToken }).parse(req.body);
+  res.json(await servicio.renovar(b.refreshToken, 'tienda'));
 });
 
 rutasAuth.post('/logout', async (req, res) => {
-  const b = z.object({ refreshToken: z.string().min(20).max(200) }).parse(req.body);
-  await servicio.cerrarSesion(b.refreshToken);
+  const b = z.object({ refreshToken }).parse(req.body);
+  await servicio.cerrarSesion(b.refreshToken, 'tienda');
   res.status(204).end();
 });

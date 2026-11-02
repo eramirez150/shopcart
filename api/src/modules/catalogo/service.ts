@@ -1,10 +1,7 @@
 import { AppError } from '../../compartido/errors.js';
-import type { Rol } from '../../middleware/auth.js';
 import * as repo from './repository.js';
 
-// La búsqueda es pública; los precios y el stock salen de la base. El Administrador
-// también ve lo inactivo.
-export const veInactivos = (rol?: Rol) => rol === 'Administrador';
+// La búsqueda es pública; los precios y el stock salen de la base.
 
 export const buscar = (f: repo.FiltrosBusqueda) => {
   if (f.precioMin !== undefined && f.precioMax !== undefined && f.precioMin > f.precioMax) {

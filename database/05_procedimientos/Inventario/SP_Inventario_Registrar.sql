@@ -1,4 +1,4 @@
--- Movimiento manual del Operador o del Administrador.
+-- Movimiento manual del personal con inventario.gestionar.
 -- Entrada y Salida reciben la cantidad en positivo; Ajuste lleva signo.
 -- Una salida o un ajuste negativo no puede dejar la existencia por debajo de lo
 -- reservado por pagos en curso (reservas activas y no vencidas): esa existencia
@@ -15,7 +15,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') NOT IN (N'Operador', N'Administrador')
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'inventario.gestionar') = 0
         THROW 52403, N'No tiene permiso para registrar movimientos de inventario.', 1;
     IF @Tipo NOT IN (N'Entrada', N'Salida', N'Ajuste')
         THROW 52400, N'El tipo debe ser Entrada, Salida o Ajuste.', 1;

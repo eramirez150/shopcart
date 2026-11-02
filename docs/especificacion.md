@@ -32,7 +32,7 @@ Los montos usan `DECIMAL` y las cantidades `INT`. No se permite `FLOAT` ni `REAL
 
 ## Módulos
 
-1. **Autenticación:** roles Cliente, Operador y Administrador. Registro con correo y contraseña con hash, JWT de corta duración y refresh token con rotación. Un usuario se desactiva sin borrarse. Token expirado responde 401 y recurso no permitido responde 403.
+1. **Autenticación:** roles Cliente y Administrador de sistema, Operador editable y roles creados por el Administrador. Registro con correo y contraseña con hash, JWT de corta duración y refresh token con rotación. Un usuario se desactiva sin borrarse. Token expirado responde 401 y recurso no permitido responde 403.
 2. **Catálogo:** CRUD de categorías y de productos con variantes. Cada variante tiene SKU único, atributos, precio y existencia. Búsqueda, filtros por categoría, precio y disponibilidad, ordenamiento y paginación. Un producto con ventas se desactiva, no se elimina. El detalle sugiere productos relacionados: primero los activos de la misma categoría, luego otros activos al azar, con una lista acotada.
 3. **Inventario:** kardex con usuario, fecha, motivo y cantidad para entrada, salida, ajuste y devolución. Disponible = existencia física − cantidades en reservas activas y no vencidas. Una reserva consumida (convertida en pedido) o anulada deja de contar. La existencia coincide con la suma del kardex. Un ajuste exige motivo y no deja la existencia en negativo.
 4. **Carrito:** agregar, modificar y eliminar. Soporta carrito de invitado por token. Muestra subtotal, descuentos y total, sin errores de redondeo. No permite superar el disponible.
@@ -43,11 +43,11 @@ Los montos usan `DECIMAL` y las cantidades `INT`. No se permite `FLOAT` ni `REAL
 9. **Bitácora:** registra creación, modificación o desactivación de productos, precios, existencias, cupones y estados, con usuario, fecha, entidad, acción, valor anterior y nuevo. Consultable por Administradores con filtro por módulo. No se puede modificar ni eliminar.
 10. **Reseñas de producto:** calificación de 1 a 5 y comentario. Solo un Cliente con un pedido `Entregado` que contenga una variante del producto, una por usuario y producto. El listado es público, paginado, con las más recientes primero, promedio y total. El nombre público es el nombre y la inicial del apellido; nunca el correo ni el id del usuario.
 
-El Operador gestiona pedidos e inventario. El Administrador gestiona además catálogo, precios, cupones, usuarios y reportes. El Cliente solo accede a su propia información.
+El Operador gestiona pedidos e inventario. El Administrador gestiona además catálogo, precios, cupones, usuarios, reportes, roles y permisos, y es el único que gestiona roles. Un rol creado por él accede a lo que digan sus permisos. El Cliente solo accede a su propia información.
 
 ## Backend
 
-Rutas, servicios con la lógica de negocio y repositorios. Validación de esquemas, errores centralizados con códigos HTTP correctos, CORS, cabeceras de seguridad, variables de entorno con `.env.example`, documentación de la API y sin credenciales en el repositorio. Los listados y reportes principales responden en menos de 1 segundo.
+Dos servicios sobre la misma base: tienda (`/api/publico` y `/api/cliente`) y administración (`/api/admin`), con login, tokens, CORS y documentación propios. Rutas, servicios con la lógica de negocio y repositorios. Validación de esquemas, errores centralizados con códigos HTTP correctos, CORS, cabeceras de seguridad, variables de entorno con `.env.example`, documentación de la API y sin credenciales en el repositorio. Los listados y reportes principales responden en menos de 1 segundo.
 
 ## Decisiones técnicas
 
@@ -61,7 +61,7 @@ Rutas, servicios con la lógica de negocio y repositorios. Validación de esquem
 | Precio congelado | `ReservaDetalle` guarda precio y descuento, y `PedidoDetalle` los copia. |
 | Pedido duplicado | `Pedidos.IDReserva` es `UNIQUE`. Un reintento devuelve el mismo pedido. |
 | Cupón concurrente | `UPDATE ... WHERE Usos < Limite` y revisión de `@@ROWCOUNT`, en la misma transacción que el límite por cliente. |
-| Datos de otro cliente | `@IDUsuario` sale siempre del JWT, nunca del body ni de la URL. Los SP que lo reciben verifican rol y propiedad; los de lectura de inventario y catálogo no lo reciben y dependen de la API. |
+| Datos de otro cliente | `@IDUsuario` sale siempre del JWT, nunca del body ni de la URL. Los SP que lo reciben verifican permiso y propiedad; los de lectura del catálogo no lo reciben y dependen de la ruta de cada servicio. |
 | Estados | Tabla `PedidoTransiciones`, validada en el servicio, en `SP_Pedidos_CambiarEstado` y en el trigger `TR_Pedidos_ValidarTransicion` (AFTER UPDATE sobre `Pedidos`). |
 | Bitácora | Trigger `INSTEAD OF UPDATE, DELETE`. |
 | Permisos | El usuario de la aplicación solo tiene `EXECUTE` sobre los SP. |
@@ -84,7 +84,7 @@ Estados del pedido: `Pagado`, `EnPreparacion`, `Despachado`, `Entregado`, `Devue
 
 Una nueva devolución parcial sobre un pedido `DevueltoParcial` que no completa lo vendido lo deja en el mismo estado. `Cancelado` y `Devuelto` son estados finales.
 
-Supuestos: un pedido completado es `Entregado` o `DevueltoParcial`; cancelar devuelve el uso del cupón y una devolución no; modificar el carrito anula la reserva activa; las devoluciones las registra solo un Operador o un Administrador; cupones y variantes se desactivan en vez de borrarse; los atributos de una variante se guardan como un objeto JSON.
+Supuestos: un pedido completado es `Entregado` o `DevueltoParcial`; cancelar devuelve el uso del cupón y una devolución no; modificar el carrito anula la reserva activa; las devoluciones las registra quien tenga el permiso `pedidos.gestionar`; cupones y variantes se desactivan en vez de borrarse; los atributos de una variante se guardan como un objeto JSON.
 
 ## Glosario
 

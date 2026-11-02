@@ -1,11 +1,11 @@
 import { ejecutar, primera, sql } from '../../compartido/db.js';
-import type { Rol } from '../../middleware/auth.js';
+import type { Audiencia } from '../../middleware/auth.js';
 
 export interface UsuarioFila {
   IDUsuario: number;
   Correo: string;
   Nombre: string;
-  Rol: Rol;
+  Rol: string;
   Activo?: boolean;
 }
 
@@ -23,25 +23,32 @@ export async function obtenerPorCorreo(correo: string) {
   return primera<UsuarioFila & { ClaveHash: string }>(r);
 }
 
-export async function guardarRefresh(idUsuario: number, tokenHash: string, expira: Date) {
+export async function guardarRefresh(idUsuario: number, tokenHash: string, expira: Date, audiencia: Audiencia) {
   await ejecutar('SP_Auth_GuardarRefresh', {
     IDUsuario: [sql.Int, idUsuario],
     TokenHash: [sql.Char(64), tokenHash],
     Expira: [sql.DateTime2(0), expira],
+    Audiencia: [sql.NVarChar(10), audiencia],
   });
 }
 
-export async function rotarRefresh(tokenHash: string, nuevoHash: string, nuevaExpira: Date) {
+export async function rotarRefresh(tokenHash: string, nuevoHash: string, nuevaExpira: Date, audiencia: Audiencia) {
   const r = await ejecutar('SP_Auth_RotarRefresh', {
     TokenHash: [sql.Char(64), tokenHash],
     NuevoTokenHash: [sql.Char(64), nuevoHash],
     NuevaExpira: [sql.DateTime2(0), nuevaExpira],
+    Audiencia: [sql.NVarChar(10), audiencia],
   });
   return primera<UsuarioFila>(r)!;
 }
 
-export async function revocarRefresh(tokenHash: string) {
-  await ejecutar('SP_Auth_RevocarRefresh', { TokenHash: [sql.Char(64), tokenHash] });
+export async function revocarRefresh(tokenHash: string, audiencia: Audiencia) {
+  await ejecutar('SP_Auth_RevocarRefresh', { TokenHash: [sql.Char(64), tokenHash], Audiencia: [sql.NVarChar(10), audiencia] });
+}
+
+export async function tienePermiso(idUsuario: number, codigo: string) {
+  const r = await ejecutar('SP_Auth_TienePermiso', { IDUsuario: [sql.Int, idUsuario], Codigo: [sql.NVarChar(50), codigo] });
+  return primera<{ Tiene: boolean }>(r)!.Tiene;
 }
 
 export async function fusionarCarrito(idUsuario: number, token: string) {

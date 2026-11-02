@@ -2,12 +2,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
 import { id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/inventario/service.js';
 
 export const rutasInventario = Router();
-rutasInventario.use(autenticar, autorizar('Operador', 'Administrador'));
+rutasInventario.use(autenticar('admin'));
 
-rutasInventario.get('/existencias', async (req, res) => {
+rutasInventario.get('/existencias', autorizar('inventario.ver'), async (req, res) => {
   const q = z
     .object({
       umbral: z.coerce.number().int().min(0).max(MAX_INT).optional(),
@@ -15,15 +15,15 @@ rutasInventario.get('/existencias', async (req, res) => {
       ...paginacion,
     })
     .parse(req.query);
-  res.json(await servicio.existencias(q.umbral ?? null, q.orden, q.pagina, q.tamano));
+  res.json(await servicio.existencias(idUsuario(req), q.umbral ?? null, q.orden, q.pagina, q.tamano));
 });
 
-rutasInventario.get('/variantes/:id/kardex', async (req, res) => {
+rutasInventario.get('/variantes/:id/kardex', autorizar('inventario.ver'), async (req, res) => {
   const q = z.object({ orden: z.enum(['recientes', 'antiguos']).default('recientes'), ...paginacion }).parse(req.query);
-  res.json(await servicio.kardex(id.parse(req.params.id), q.orden, q.pagina, q.tamano));
+  res.json(await servicio.kardex(idUsuario(req), id.parse(req.params.id), q.orden, q.pagina, q.tamano));
 });
 
-rutasInventario.post('/movimientos', async (req, res) => {
+rutasInventario.post('/movimientos', autorizar('inventario.gestionar'), async (req, res) => {
   const b = z
     .object({
       idVariante: id,

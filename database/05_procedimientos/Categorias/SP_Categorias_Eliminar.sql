@@ -5,8 +5,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Categorias_Eliminar
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') <> N'Administrador'
-        THROW 52403, N'Solo el Administrador gestiona el catálogo.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'catalogo.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar el catálogo.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.Categorias WHERE IDCategoria = @IDCategoria)
         THROW 52404, N'La categoría no existe.', 1;
 

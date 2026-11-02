@@ -12,8 +12,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Cupones_Crear
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') <> N'Administrador'
-        THROW 52403, N'Solo el Administrador gestiona cupones.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'cupones.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar cupones.', 1;
     IF @Tipo NOT IN (N'Porcentaje', N'Monto') THROW 52400, N'El tipo debe ser Porcentaje o Monto.', 1;
     IF @Valor <= 0 OR (@Tipo = N'Porcentaje' AND @Valor > 100) THROW 52400, N'El valor del cupón no es válido.', 1;
     IF @FechaFin <= @FechaInicio THROW 52400, N'La fecha final debe ser posterior a la inicial.', 1;

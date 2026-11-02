@@ -9,8 +9,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Catalogo_ActualizarVariante
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') <> N'Administrador'
-        THROW 52403, N'Solo el Administrador gestiona el catálogo.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'catalogo.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar el catálogo.', 1;
     DECLARE @IDProducto INT = (SELECT IDProducto FROM dbo.Variantes WHERE IDVariante = @IDVariante);
     IF @IDProducto IS NULL THROW 52404, N'La variante no existe.', 1;
     IF @Precio < 0 THROW 52400, N'El precio no puede ser negativo.', 1;
