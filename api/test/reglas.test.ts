@@ -8,7 +8,7 @@ describe('reglas de precio, propiedad y cupones', { skip: !hayBase && 'sin conex
   let admin = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
   });
   after(async () => {
     await s.cerrar();

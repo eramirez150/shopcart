@@ -16,16 +16,16 @@ rutasAuth.post('/registro', async (req, res) => {
 
 rutasAuth.post('/login', async (req, res) => {
   const b = z.object({ correo, clave: z.string().min(1).max(72) }).parse(req.body);
-  res.json(await servicio.iniciarSesion(b.correo, b.clave, tokenInvitado(req)));
+  res.json(await servicio.iniciarSesion(b.correo, b.clave, 'tienda', tokenInvitado(req)));
 });
 
 rutasAuth.post('/refresh', async (req, res) => {
   const b = z.object({ refreshToken }).parse(req.body);
-  res.json(await servicio.renovar(b.refreshToken));
+  res.json(await servicio.renovar(b.refreshToken, 'tienda'));
 });
 
 rutasAuth.post('/logout', async (req, res) => {
   const b = z.object({ refreshToken }).parse(req.body);
-  await servicio.cerrarSesion(b.refreshToken);
+  await servicio.cerrarSesion(b.refreshToken, 'tienda');
   res.status(204).end();
 });

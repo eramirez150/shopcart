@@ -5,7 +5,7 @@ import { estadosManuales, filtrosPedidos, id, MAX_INT } from '../../compartido/e
 import * as servicio from '../../modules/pedidos/service.js';
 
 export const rutasPedidos = Router();
-rutasPedidos.use(autenticar, autorizar('Operador', 'Administrador'));
+rutasPedidos.use(autenticar('admin'), autorizar('Operador', 'Administrador'));
 
 rutasPedidos.get('/', async (req, res) => {
   res.json(await servicio.listar(idUsuario(req), filtrosPedidos.extend({ idCliente: id.optional() }).parse(req.query)));

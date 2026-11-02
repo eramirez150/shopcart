@@ -26,13 +26,13 @@ describe('seguridad y errores (sin base de datos)', () => {
   });
 
   test('token con firma ajena responde 401', async () => {
-    const falso = jwt.sign({ rol: 'Administrador' }, 'otro-secreto-otro-secreto-otro-secreto', { subject: '1' });
+    const falso = jwt.sign({ rol: 'Administrador' }, 'otro-secreto-otro-secreto-otro-secreto', { subject: '1', audience: 'admin' });
     assert.equal((await s.pedir('GET', '/admin/usuarios', { token: falso })).estado, 401);
   });
 
   test('rol sin permiso responde 403', async () => {
-    const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', expiresIn: 60 });
-    const operador = jwt.sign({ rol: 'Operador' }, SECRETO, { subject: '2', expiresIn: 60 });
+    const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', audience: 'admin', expiresIn: 60 });
+    const operador = jwt.sign({ rol: 'Operador' }, SECRETO, { subject: '2', audience: 'admin', expiresIn: 60 });
     assert.equal((await s.pedir('GET', '/admin/usuarios', { token: cliente })).estado, 403);
     assert.equal((await s.pedir('GET', '/admin/dashboard/ventas', { token: operador })).estado, 403);
     assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: cliente, cuerpo: {} })).estado, 403);
@@ -40,7 +40,7 @@ describe('seguridad y errores (sin base de datos)', () => {
   });
 
   test('un cliente no puede avanzar un pedido', async () => {
-    const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', expiresIn: 60 });
+    const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', audience: 'tienda', expiresIn: 60 });
     const r = await s.pedir('PATCH', '/cliente/pedidos/1/estado', { token: cliente, cuerpo: { estado: 'Despachado' } });
     assert.equal(r.estado, 403);
     // La respuesta sale del manejador central de errores, con su forma de siempre.
@@ -55,7 +55,7 @@ describe('seguridad y errores (sin base de datos)', () => {
   });
 
   test('números fuera del rango de SQL Server responden 400', async () => {
-    const admin = jwt.sign({ rol: 'Administrador' }, SECRETO, { subject: '1', expiresIn: 60 });
+    const admin = jwt.sign({ rol: 'Administrador' }, SECRETO, { subject: '1', audience: 'admin', expiresIn: 60 });
     assert.equal((await s.pedir('GET', '/publico/productos/2147483648')).estado, 400);
     assert.equal((await s.pedir('GET', '/publico/productos?pagina=2147483647')).estado, 400);
     assert.equal((await s.pedir('GET', '/publico/productos?idCategoria=2147483648')).estado, 400);

@@ -8,7 +8,7 @@ describe('orden en el servidor', { skip: !hayBase && 'sin conexión a la base' }
   let admin = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
   });
   after(async () => {
     await s.cerrar();

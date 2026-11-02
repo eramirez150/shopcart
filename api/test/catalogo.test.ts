@@ -7,7 +7,7 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
   let admin = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
   });
   after(async () => {
     await s.cerrar();
@@ -27,7 +27,7 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
     const ruta = `/admin/productos/${idProducto}/imagenes`;
     assert.equal((await s.pedir('POST', ruta, { token: admin, cuerpo: { url: 'ftp://servidor/foto.jpg' } })).estado, 400);
     const cliente = await s.registrar('img');
-    assert.equal((await s.pedir('POST', ruta, { token: cliente.token, cuerpo: { url: 'https://ejemplo.test/a.jpg' } })).estado, 403);
+    assert.equal((await s.pedir('POST', ruta, { token: cliente.token, cuerpo: { url: 'https://ejemplo.test/a.jpg' } })).estado, 401);
 
     await s.pedir('POST', ruta, { token: admin, cuerpo: { url: 'https://ejemplo.test/b.jpg', orden: 2 } });
     const conDos = await s.pedir('POST', ruta, { token: admin, cuerpo: { url: 'https://ejemplo.test/a.jpg', textoAlternativo: 'Frente', orden: 1 } });
@@ -70,7 +70,7 @@ describe('catálogo: imágenes y administración', { skip: !hayBase && 'sin cone
     assert.deepEqual(soloInactivos.datos.datos.map((p: { IDProducto: number }) => p.IDProducto), [inactivo.datos.IDProducto]);
 
     const cliente = await s.registrar('adm');
-    assert.equal((await s.pedir('GET', ruta, { token: cliente.token })).estado, 403);
+    assert.equal((await s.pedir('GET', ruta, { token: cliente.token })).estado, 401);
     assert.equal((await s.pedir('GET', ruta)).estado, 401);
   });
 });

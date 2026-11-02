@@ -7,7 +7,7 @@ import * as servicio from '../../modules/pedidos/service.js';
 
 // Pedidos del cliente autenticado: el SP solo devuelve los suyos.
 export const rutasPedidos = Router();
-rutasPedidos.use(autenticar);
+rutasPedidos.use(autenticar('tienda'));
 
 rutasPedidos.get('/', async (req, res) => {
   res.json(await servicio.listar(idUsuario(req), filtrosPedidos.parse(req.query)));

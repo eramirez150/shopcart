@@ -8,8 +8,8 @@ describe('flujo completo de compra, pedidos y reportes', { skip: !hayBase && 'si
   let admin = '', operador = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
-    operador = await s.login('operador@shopcart.test', 'Operador123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
+    operador = await s.loginAdmin('operador@shopcart.test', 'Operador123!');
   });
   after(async () => {
     await s.cerrar();
@@ -143,7 +143,7 @@ describe('flujo completo de compra, pedidos y reportes', { skip: !hayBase && 'si
     const dev = (cantidad: number, linea = lMouse) =>
       s.pedir('POST', `/admin/pedidos/${idPedido}/devoluciones`, { token: operador, cuerpo: { motivo: 'Defectuoso', lineas: [{ idPedidoDetalle: linea.IDPedidoDetalle, cantidad }] } });
     assert.equal((await dev(5)).estado, 409);
-    assert.equal((await s.pedir('POST', `/admin/pedidos/${idPedido}/devoluciones`, { token: cliente, cuerpo: { motivo: 'x', lineas: [{ idPedidoDetalle: 1, cantidad: 1 }] } })).estado, 403);
+    assert.equal((await s.pedir('POST', `/admin/pedidos/${idPedido}/devoluciones`, { token: cliente, cuerpo: { motivo: 'x', lineas: [{ idPedidoDetalle: 1, cantidad: 1 }] } })).estado, 401);
     assert.equal((await dev(1)).estado, 201);
     assert.equal((await s.pedir('GET', `/cliente/pedidos/${idPedido}`, { token: cliente })).datos.Estado, 'DevueltoParcial');
     const dashboardParcial = await s.pedir('GET', '/admin/dashboard/indicadores', { token: admin });

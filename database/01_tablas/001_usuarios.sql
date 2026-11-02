@@ -15,11 +15,13 @@ CREATE TABLE dbo.Usuarios (
 );
 GO
 
--- Solo se guarda el SHA-256 del refresh token, nunca el token.
+-- Solo se guarda el SHA-256 del refresh token, nunca el token. Audiencia indica el
+-- servicio que lo emitió: un refresh token no sirve en el otro.
 CREATE TABLE dbo.RefreshTokens (
     IDRefreshToken  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_RefreshTokens PRIMARY KEY,
     IDUsuario       INT          NOT NULL CONSTRAINT FK_RefreshTokens_Usuarios REFERENCES dbo.Usuarios (IDUsuario),
     TokenHash       CHAR(64)     NOT NULL CONSTRAINT UQ_RefreshTokens_TokenHash UNIQUE,
+    Audiencia       NVARCHAR(10) NOT NULL CONSTRAINT CK_RefreshTokens_Audiencia CHECK (Audiencia IN (N'tienda', N'admin')),
     Expira          DATETIME2(0) NOT NULL,
     FechaCreacion   DATETIME2(0) NOT NULL CONSTRAINT DF_RefreshTokens_FechaCreacion DEFAULT (SYSUTCDATETIME()),
     FechaRevocado   DATETIME2(0) NULL

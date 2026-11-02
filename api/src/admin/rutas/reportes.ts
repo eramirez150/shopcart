@@ -7,8 +7,8 @@ import * as servicio from '../../modules/reportes/service.js';
 export const rutasDashboard = Router();
 export const rutasBitacora = Router();
 
-rutasDashboard.use(autenticar, autorizar('Administrador'));
-rutasBitacora.use(autenticar, autorizar('Administrador'));
+rutasDashboard.use(autenticar('admin'), autorizar('Administrador'));
+rutasBitacora.use(autenticar('admin'), autorizar('Administrador'));
 
 const filtroFechas = { desde: fecha.optional(), hasta: fecha.optional() };
 const rangoDe = (q: { desde?: string | undefined; hasta?: string | undefined }) =>

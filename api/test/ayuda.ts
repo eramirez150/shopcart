@@ -64,6 +64,12 @@ export async function iniciarServidor() {
     return r.datos.accessToken as string;
   }
 
+  async function loginAdmin(correo: string, clave: string): Promise<string> {
+    const r = await pedir('POST', '/admin/auth/login', { cuerpo: { correo, clave } });
+    if (r.estado !== 200) throw new Error(`login admin ${correo}: ${r.estado}`);
+    return r.datos.accessToken as string;
+  }
+
   // Cliente nuevo con sesión, para pruebas que necesitan muchos usuarios.
   async function registrar(prefijo: string): Promise<{ token: string; id: number }> {
     const correo = `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@shopcart.test`;
@@ -80,9 +86,9 @@ export async function iniciarServidor() {
     await cerrarPool();
   }
 
-  const expirado = (id: number, rol: string) => jwt.sign({ rol }, SECRETO, { subject: String(id), expiresIn: -10 });
+  const expirado = (id: number, rol: string) => jwt.sign({ rol }, SECRETO, { subject: String(id), audience: 'tienda', expiresIn: -10 });
 
-  return { base, baseAdmin, pedir, tienda, admin, login, registrar, cerrar, expirado };
+  return { base, baseAdmin, pedir, tienda, admin, login, loginAdmin, registrar, cerrar, expirado };
 }
 
 export const direccion = { direccion: '6a avenida 12-34 zona 1', ciudad: 'Guatemala', telefono: '55551234' };

@@ -7,7 +7,7 @@ import * as servicio from '../../modules/direcciones/service.js';
 // Direcciones de entrega del usuario autenticado. El dueño sale siempre del JWT:
 // la dirección de otro usuario responde 404.
 export const rutasDirecciones = Router();
-rutasDirecciones.use(autenticar);
+rutasDirecciones.use(autenticar('tienda'));
 
 export const datosDireccion = z.object({
   direccion: z.string().trim().min(1).max(300),

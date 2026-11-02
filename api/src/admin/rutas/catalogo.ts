@@ -7,8 +7,8 @@ import * as servicio from '../../modules/catalogo/service.js';
 export const rutasCategorias = Router();
 export const rutasProductos = Router();
 
-rutasCategorias.use(autenticar, autorizar('Administrador'));
-rutasProductos.use(autenticar, autorizar('Administrador'));
+rutasCategorias.use(autenticar('admin'), autorizar('Administrador'));
+rutasProductos.use(autenticar('admin'), autorizar('Administrador'));
 
 // ---- Categorías
 rutasCategorias.get('/', async (req, res) => {

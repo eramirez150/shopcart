@@ -5,7 +5,7 @@ import { id, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from '../../modules/usuarios/service.js';
 
 export const rutasUsuarios = Router();
-rutasUsuarios.use(autenticar, autorizar('Administrador'));
+rutasUsuarios.use(autenticar('admin'), autorizar('Administrador'));
 
 const roles = z.enum(['Cliente', 'Operador', 'Administrador']);
 

@@ -8,7 +8,7 @@ describe('direcciones de entrega', { skip: !hayBase && 'sin conexión a la base'
   let operador = '';
   before(async () => {
     s = await iniciarServidor();
-    operador = await s.login('operador@shopcart.test', 'Operador123!');
+    operador = await s.loginAdmin('operador@shopcart.test', 'Operador123!');
   });
   after(async () => {
     await s.cerrar();

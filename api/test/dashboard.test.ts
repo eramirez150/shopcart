@@ -9,8 +9,8 @@ describe('dashboard: ventas netas y ticket promedio', { skip: !hayBase && 'sin c
   let admin = '', operador = '';
   before(async () => {
     s = await iniciarServidor();
-    admin = await s.login('admin@shopcart.test', 'Admin123!');
-    operador = await s.login('operador@shopcart.test', 'Operador123!');
+    admin = await s.loginAdmin('admin@shopcart.test', 'Admin123!');
+    operador = await s.loginAdmin('operador@shopcart.test', 'Operador123!');
   });
   after(async () => {
     await s.cerrar();

@@ -5,7 +5,7 @@ import { id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from '../../modules/inventario/service.js';
 
 export const rutasInventario = Router();
-rutasInventario.use(autenticar, autorizar('Operador', 'Administrador'));
+rutasInventario.use(autenticar('admin'), autorizar('Operador', 'Administrador'));
 
 rutasInventario.get('/existencias', async (req, res) => {
   const q = z
