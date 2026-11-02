@@ -85,6 +85,7 @@ En Git Bash para Windows, anteponer `MSYS_NO_PATHCONV=1` para que no reescriba `
 | --- | --- |
 | `permisos.sql` | `shopcart_app` solo puede ejecutar SP: no lee ni modifica tablas, incluidas las de roles. `FU_Auth_TienePermiso` da todo al Administrador, nada de personal al Cliente y al Operador solo pedidos e inventario; ningún rol tiene `roles.gestionar` en `RolPermisos`. |
 | `bitacora.sql` | Ni siquiera `sa` puede modificar o borrar la bitácora (error 51403). |
+| `despacho.sql` | `SP_Pedidos_CambiarEstado` exige los datos de despacho y entrega, los guarda en `PedidoEnvios` en la misma transacción que el estado y deja pasar las demás transiciones sin ellos. Los CHECK rechazan peso cero y costo negativo. |
 | `transiciones.sql` | El trigger rechaza un `UPDATE` directo con una transición que no está en `PedidoTransiciones`, y las devoluciones siguen funcionando. |
 | `reserva_vencida.sql` | Una reserva vencida deja de restar del disponible, otro cliente puede reservar esa existencia, ya no se convierte en pedido y un pago nuevo la anula. Adelanta `Expira` con un `UPDATE` para no esperar 15 minutos. |
 
@@ -188,7 +189,7 @@ Solo para desarrollo, creadas por los scripts de `database/02_semillas`. Cámbie
 
 Cupones de ejemplo: `BIENVENIDA10` (10 %, una vez por cliente), `Q50` (Q50 con compra mínima de Q300), `ELECTRO15` (15 % solo en Electrónica), `LIMITADO5` (5 usos en total), `VENCIDO` e `INACTIVO` (para ver los rechazos).
 
-Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer. Cada producto tiene una imagen de muestra de `picsum.photos`.
+Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación, y con su fila de `PedidoEnvios` desde `Despachado`) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer. Cada producto tiene una imagen de muestra de `picsum.photos`.
 
 ## Scripts de base de datos
 
@@ -217,7 +218,7 @@ database/
 
 - Cada archivo se ejecuta en su propia transacción (en `01` y `02`, junto con su registro). Si algo falla, no queda nada a medias y el contenedor `db-init` termina con error.
 - Un archivo no abre ni confirma transacciones propias.
-- Las tablas no se pueden reaplicar: un cambio en una tabla ya creada exige un archivo nuevo en `01_tablas` (por ejemplo `010_cambio.sql` con `ALTER TABLE`), nunca editar el existente. Excepción de esta entrega: como todavía no hay ninguna base entregada, las correcciones de la Fase 1 editaron `01_tablas` y `02_semillas` directamente, incluidos el rol de `Usuarios`, la audiencia de `RefreshTokens` y el módulo `Roles` de la bitácora; una base creada antes de estas correcciones se debe recrear (`docker compose down -v`).
+- Las tablas no se pueden reaplicar: un cambio en una tabla ya creada exige un archivo nuevo en `01_tablas` (por ejemplo `010_cambio.sql` con `ALTER TABLE`), nunca editar el existente. Excepción de esta entrega: como todavía no hay ninguna base entregada, las correcciones de la Fase 1 editaron `01_tablas` y `02_semillas` directamente, incluidos el rol de `Usuarios`, la audiencia de `RefreshTokens` y el módulo `Roles` de la bitácora; una base creada antes de estas correcciones se debe recrear (`docker compose down -v`). La tabla `PedidoEnvios` llegó en un archivo nuevo, `011_pedido_envios.sql`, pero sus filas de demostración están en `002_demostracion.sql`, que no se vuelve a aplicar: una base de demostración ya creada también se debe recrear, porque sus pedidos despachados no tendrían envío y no se podrían entregar (409).
 - Para crear la base sin Docker: ejecutar `00_base/001_crear_base.sql` en `master` (`sqlcmd -v DB_NAME=ShopCart`; en SSMS, modo SQLCMD con `:setvar DB_NAME ShopCart`) y luego los demás archivos en el orden descrito.
 - Si una vista o función depende de otra, se les pone un prefijo numérico para que se creen en orden. Hoy ninguna lo necesita.
 
@@ -278,6 +279,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 | Roles y permisos | `Usuarios.Rol` guarda el nombre del rol, con llave foránea a `Roles`. `FU_Auth_TienePermiso` decide; el middleware la consulta en cada petición por `SP_Auth_TienePermiso` y los SP la repiten, así quitar un permiso tiene efecto inmediato. El Cliente se sigue tratando por nombre para la propiedad de pedidos y devoluciones. |
 | Escalar privilegios | `roles.gestionar` no se puede asignar a ningún rol. Con `usuarios.gestionar` no se asignan ni se cambian roles de empleado, porque quien crea un usuario elige su clave, ni se modifica a un administrador. Nadie cambia su propio rol ni se desactiva. Cambiar un rol cierra las sesiones del usuario. |
 | Estados | Tabla `PedidoTransiciones`, validada en el servicio, en `SP_Pedidos_CambiarEstado` y en el trigger `TR_Pedidos_ValidarTransicion` (AFTER UPDATE), que rechaza con 52409 cualquier cambio de estado fuera de la tabla aunque no pase por los SP. |
+| Despacho y entrega | `SP_Pedidos_CambiarEstado` exige mensajería, guía, peso y costo de recogida para pasar a `Despachado`, y quién recibió para pasar a `Entregado` (52400). Escribe `PedidoEnvios`, con una fila por pedido, en la misma transacción que el estado. La API valida lo mismo con zod, pero el SP es la barrera definitiva. Son datos del pedido, no estados nuevos, y el costo de recogida no llega a reportes. |
 | Existencia | Solo `SP_Inventario_RegistrarMovimiento` la cambia, junto con su fila de kardex en la misma transacción. |
 | Bitácora | Triggers sobre productos, variantes, cupones, estado de pedidos, roles, permisos de cada rol y rol de cada usuario, más un trigger `INSTEAD OF UPDATE, DELETE` que la hace inmutable. El SP guarda el usuario con `sp_set_session_context`. |
 | Permisos | Rol `RolShopCartApp` con `EXECUTE` y nada más. Se verifica en `database/pruebas/permisos.sql`. |
@@ -357,6 +359,7 @@ erDiagram
     Pedidos ||--o{ PedidoDetalle : "lineas"
     Variantes ||--o{ PedidoDetalle : ""
     Pedidos ||--o{ PedidoHistorial : "cambios"
+    Pedidos ||--o| PedidoEnvios : "envio"
     Pedidos ||--o| CuponUsos : "uso"
     Cupones ||--o{ CuponUsos : "usos"
     Usuarios ||--o{ CuponUsos : "usa"

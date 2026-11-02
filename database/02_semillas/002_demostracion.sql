@@ -6,6 +6,7 @@
 -- actual. Se siguen las mismas reglas que los SP:
 --   * cada pedido tiene su carrito Convertido, su reserva Consumida y sus líneas;
 --   * el historial recorre las transiciones de PedidoTransiciones;
+--   * todo pedido despachado tiene su fila de PedidoEnvios, con las fechas del historial;
 --   * toda salida, cancelación o devolución cambia Variantes.Existencia y escribe su
 --     fila de kardex, así la existencia sigue igual a la suma del kardex (se comprueba al final).
 -- Ningún pedido es de hoy ni de ayer, para no mezclarse con las pruebas del dashboard.
@@ -142,6 +143,19 @@ BEGIN
             VALUES (@IDPedido, N'Entregado', @Estado, @Operador, N'Producto defectuoso', @FechaFinal);
     END;
 
+    -- Envío: desde Despachado en adelante, con las fechas del historial (@Pasos).
+    IF @Estado IN (N'Despachado', N'Entregado', N'DevueltoParcial', N'Devuelto')
+        INSERT INTO dbo.PedidoEnvios (IDPedido, Mensajeria, Guia, PesoKg, CostoRecogida, RecibidoPor, FechaDespacho, FechaEntrega)
+        SELECT @IDPedido,
+               CASE @Num % 3 WHEN 0 THEN N'Mensajería Central' WHEN 1 THEN N'Reparto Rápido' ELSE N'Entrega Segura' END,
+               N'GUIA-' + RIGHT(N'0000' + CAST(@Num AS NVARCHAR(4)), 4),
+               0.50 + 0.25 * @Num,
+               20 + 5 * (@Num % 3),
+               CASE WHEN @Estado <> N'Despachado' THEN u.Nombre END,
+               DATEADD(DAY, 2, @Fecha),
+               CASE WHEN @Estado <> N'Despachado' THEN DATEADD(DAY, 3, @Fecha) END
+        FROM dbo.Usuarios u WHERE u.IDUsuario = @IDUsuario;
+
     -- Salida de kardex por la venta. Las variantes de un pedido no se repiten, así que
     -- se actualizan todas juntas y el kardex lee la existencia ya actualizada.
     UPDATE v SET Existencia = v.Existencia - l.Cantidad
@@ -233,4 +247,17 @@ IF EXISTS (
     SELECT 1 FROM dbo.Variantes v
     WHERE v.Existencia <> ISNULL((SELECT SUM(k.Cantidad) FROM dbo.Kardex k WHERE k.IDVariante = v.IDVariante), 0))
     THROW 50000, N'Las semillas de demostración dejaron una existencia distinta de la suma del kardex.', 1;
+GO
+
+------------------------------------------------------------
+-- Comprobación: todo pedido desde Despachado tiene envío, y solo los entregados tienen receptor
+------------------------------------------------------------
+IF EXISTS (
+    SELECT 1 FROM dbo.Pedidos p
+    LEFT JOIN dbo.PedidoEnvios e ON e.IDPedido = p.IDPedido
+    WHERE (p.Estado IN (N'Despachado', N'Entregado', N'DevueltoParcial', N'Devuelto') AND e.IDPedido IS NULL)
+       OR (p.Estado NOT IN (N'Despachado', N'Entregado', N'DevueltoParcial', N'Devuelto') AND e.IDPedido IS NOT NULL)
+       OR (p.Estado = N'Despachado' AND e.RecibidoPor IS NOT NULL)
+       OR (p.Estado IN (N'Entregado', N'DevueltoParcial', N'Devuelto') AND (e.RecibidoPor IS NULL OR e.FechaEntrega IS NULL)))
+    THROW 50000, N'Las semillas de demostración dejaron un pedido sin envío coherente.', 1;
 GO

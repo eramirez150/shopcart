@@ -1,5 +1,6 @@
--- Pedido con sus líneas e historial. El Cliente solo ve los suyos; el personal
+-- Pedido con sus líneas, historial y envío. El Cliente solo ve los suyos; el personal
 -- necesita pedidos.ver y ve todos. Un pedido ajeno responde como inexistente.
+-- El costo de recogida no se devuelve al Cliente.
 CREATE OR ALTER PROCEDURE dbo.SP_Pedidos_Obtener
     @IDUsuario INT,
     @IDPedido  INT
@@ -37,5 +38,12 @@ BEGIN
     JOIN dbo.Usuarios us ON us.IDUsuario = h.IDUsuario
     WHERE h.IDPedido = @IDPedido
     ORDER BY h.IDPedidoHistorial;
+
+    IF @Rol = N'Cliente'
+        SELECT Mensajeria, Guia, PesoKg, RecibidoPor, FechaDespacho, FechaEntrega
+        FROM dbo.PedidoEnvios WHERE IDPedido = @IDPedido;
+    ELSE
+        SELECT Mensajeria, Guia, PesoKg, CostoRecogida, RecibidoPor, FechaDespacho, FechaEntrega
+        FROM dbo.PedidoEnvios WHERE IDPedido = @IDPedido;
 END;
 GO
