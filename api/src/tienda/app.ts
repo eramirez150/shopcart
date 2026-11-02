@@ -12,6 +12,7 @@ export function crearAppTienda() {
     nombre: 'tienda',
     origenPorDefecto: 'http://localhost:5173',
     cabeceras: ['Content-Type', 'Authorization', 'X-Carrito-Token'],
+    openapi: 'openapi-tienda.yaml',
     rutas: {
       '/api/publico/auth': rutasAuth,
       '/api/publico/categorias': rutasCategorias,

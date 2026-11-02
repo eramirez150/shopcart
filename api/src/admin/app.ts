@@ -14,6 +14,7 @@ export function crearAppAdmin() {
     nombre: 'admin',
     origenPorDefecto: 'http://localhost:5174',
     cabeceras: ['Content-Type', 'Authorization'],
+    openapi: 'openapi-admin.yaml',
     rutas: {
       '/api/admin/auth': rutasAuth,
       '/api/admin/usuarios': rutasUsuarios,

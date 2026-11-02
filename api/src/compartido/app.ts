@@ -11,13 +11,14 @@ export interface Servicio {
   nombre: 'tienda' | 'admin';
   origenPorDefecto: string;
   cabeceras: string[];
+  openapi: string;
   rutas: Record<string, Router>;
 }
 
 const METODOS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
 // Lo que comparten los dos servicios: seguridad, documentación, salud y errores.
-export function crearApp({ nombre, origenPorDefecto, cabeceras, rutas }: Servicio) {
+export function crearApp({ nombre, origenPorDefecto, cabeceras, openapi, rutas }: Servicio) {
   const origenes = config.corsOrigenes(origenPorDefecto);
   const app = express();
   app.disable('x-powered-by');
@@ -32,9 +33,10 @@ export function crearApp({ nombre, origenPorDefecto, cabeceras, rutas }: Servici
   );
   app.use(express.json({ limit: '100kb' }));
 
-  // Documentación: openapi.yaml escrito a mano, con botón Authorize para el JWT.
-  const openapi = parse(readFileSync(new URL('../../openapi.yaml', import.meta.url), 'utf8')) as object;
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi, { swaggerOptions: { persistAuthorization: true } }));
+  // Documentación: un OpenAPI escrito a mano por servicio, con botón Authorize para el JWT.
+  const documento = parse(readFileSync(new URL('../../' + openapi, import.meta.url), 'utf8')) as object;
+  const docs = { swaggerOptions: { persistAuthorization: true } };
+  app.use('/api/docs', swaggerUi.serveFiles(documento, docs), swaggerUi.setup(documento, docs));
 
   app.get('/api/salud', (_req, res) => {
     res.json({ estado: 'ok', servicio: nombre });

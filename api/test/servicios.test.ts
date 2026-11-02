@@ -86,6 +86,19 @@ describe('separación de servicios', () => {
     }
   });
 
+  test('cada servicio documenta solo sus rutas en /api/docs', async () => {
+    const documento = async (base: string) => (await fetch(base + '/docs/swagger-ui-init.js')).text();
+    const tienda = await documento(s.base);
+    const admin = await documento(s.baseAdmin);
+
+    assert.match(tienda, /"\/publico\/productos"/);
+    assert.match(tienda, /"\/cliente\/pedidos"/);
+    assert.doesNotMatch(tienda, /"\/admin\//);
+    assert.match(admin, /"\/admin\/roles"/);
+    assert.match(admin, /"\/admin\/auth\/login"/);
+    assert.doesNotMatch(admin, /"\/(publico|cliente)\//);
+  });
+
   test('/api/salud identifica al servicio que respondió', async () => {
     assert.deepEqual((await s.tienda('GET', '/salud')).datos, { estado: 'ok', servicio: 'tienda' });
     assert.deepEqual((await s.admin('GET', '/salud')).datos, { estado: 'ok', servicio: 'admin' });

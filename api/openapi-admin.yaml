@@ -1,36 +1,33 @@
 openapi: 3.0.3
 info:
-  title: ShopCart API
+  title: ShopCart API de administración
   version: 1.0.0
   description: |
-    API de la plataforma de ventas ShopCart (Fase 1).
+    Servicio de administración: todo es privado salvo `/admin/auth`. La tienda es otro servicio, con su propia documentación en el puerto 3000.
 
-    **Autenticación.** Inicie sesión en `POST /auth/login`, copie el `accessToken` y péguelo en el botón *Authorize*.
-    El token dura 15 minutos: vencido responde 401 y se renueva con `POST /auth/refresh`
-    (cada refresh token sirve una sola vez). Un rol sin permiso recibe 403.
+    **Autenticación.** Inicie sesión en `POST /admin/auth/login` (cualquier rol activo que no sea Cliente), copie el `accessToken` y péguelo en el botón *Authorize*.
+    El token dura 15 minutos: vencido responde 401 y se renueva con `POST /admin/auth/refresh`. Un token de la tienda responde 401.
 
-    **Carrito de invitado.** Sin sesión, envíe la cabecera `X-Carrito-Token`. El primer `POST /carrito/items`
-    sin token crea el carrito y devuelve su `TokenInvitado`. Al iniciar sesión con esa cabecera el carrito se fusiona con la cuenta.
+    **Permisos.** Cada ruta exige un permiso, consultado en la base en cada petición: quitarlo tiene efecto inmediato y sin él se responde 403.
+    Tener `modulo.gestionar` incluye `modulo.ver`. El Administrador tiene todos.
 
-    **Direcciones.** Cada usuario gestiona las suyas en `/direcciones`; la de otro usuario responde 404.
-    `POST /checkout/pagos` recibe `idDireccion` o el texto de una dirección nueva, que queda registrada.
+    **Roles.** Solo el Administrador los gestiona. `Administrador` y `Cliente` son de sistema y no se editan.
+    `roles.gestionar` no se puede asignar a ningún rol.
 
     **Orden.** Los listados aceptan `orden` y se ordenan en el servidor.
 
     **Montos** en quetzales con IVA incluido. **Errores** con la forma `{ "error": { "codigo", "mensaje", "detalle" } }`.
 servers:
-  - url: http://localhost:3000/api
+  - url: http://localhost:3001/api
 security:
   - bearerAuth: []
 tags:
   - { name: Auth }
   - { name: Usuarios }
+  - { name: Roles }
   - { name: Catálogo }
   - { name: Inventario }
-  - { name: Carrito }
   - { name: Cupones }
-  - { name: Direcciones }
-  - { name: Checkout }
   - { name: Pedidos }
   - { name: Dashboard }
   - { name: Bitácora }
@@ -42,39 +39,24 @@ paths:
       responses:
         '200':
           description: El servicio responde
-          content: { application/json: { example: { estado: ok } } }
+          content: { application/json: { example: { estado: ok, servicio: admin } } }
 
-  /auth/registro:
+  /admin/auth/login:
     post:
       tags: [Auth]
-      summary: Registra un cliente y abre sesión
+      summary: Inicia sesión del personal (cualquier rol activo que no sea Cliente)
+      description: Un Cliente responde 401 igual que una clave incorrecta.
       security: []
       requestBody:
         required: true
         content:
           application/json:
-            example: { correo: nuevo@shopcart.test, clave: Clave-segura-1, nombre: Nora Nueva }
-      responses:
-        '201': { $ref: '#/components/responses/Sesion' }
-        '400': { $ref: '#/components/responses/Validacion' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-  /auth/login:
-    post:
-      tags: [Auth]
-      summary: Inicia sesión (con X-Carrito-Token fusiona el carrito de invitado)
-      security: []
-      parameters:
-        - { $ref: '#/components/parameters/CarritoToken' }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            example: { correo: cliente@shopcart.test, clave: Cliente123! }
+            example: { correo: admin@shopcart.test, clave: 'Admin123!' }
       responses:
         '200': { $ref: '#/components/responses/Sesion' }
         '400': { $ref: '#/components/responses/Validacion' }
         '401': { $ref: '#/components/responses/NoAutenticado' }
-  /auth/refresh:
+  /admin/auth/refresh:
     post:
       tags: [Auth]
       summary: Renueva la sesión; el refresh token enviado deja de servir
@@ -87,7 +69,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Sesion' }
         '401': { $ref: '#/components/responses/NoAutenticado' }
-  /auth/logout:
+  /admin/auth/logout:
     post:
       tags: [Auth]
       summary: Revoca el refresh token
@@ -100,12 +82,12 @@ paths:
       responses:
         '204': { description: Sesión cerrada }
 
-  /usuarios:
+  /admin/usuarios:
     get:
       tags: [Usuarios]
-      summary: Lista usuarios (Administrador)
+      summary: Lista usuarios (permiso usuarios.gestionar)
       parameters:
-        - { name: rol, in: query, schema: { $ref: '#/components/schemas/Rol' }, example: Operador }
+        - { name: rol, in: query, description: Nombre del rol, schema: { type: string }, example: Operador }
         - { name: orden, in: query, schema: { type: string, enum: [id, nombre, correo, recientes], default: id }, example: nombre }
         - { $ref: '#/components/parameters/Pagina' }
         - { $ref: '#/components/parameters/Tamano' }
@@ -123,7 +105,8 @@ paths:
         '403': { $ref: '#/components/responses/Prohibido' }
     post:
       tags: [Usuarios]
-      summary: Crea un usuario con rol (Administrador)
+      summary: Crea un usuario con un rol activo (permiso usuarios.gestionar)
+      description: Solo el Administrador asigna el rol Administrador. Un rol inexistente o inactivo responde 400.
       requestBody:
         required: true
         content:
@@ -135,10 +118,13 @@ paths:
           content: { application/json: { example: { IDUsuario: 5, Correo: operador2@shopcart.test, Nombre: Olga Operadora, Rol: Operador, Activo: true } } }
         '409': { $ref: '#/components/responses/Conflicto' }
         '403': { $ref: '#/components/responses/Prohibido' }
-  /usuarios/{id}:
+  /admin/usuarios/{id}:
     patch:
       tags: [Usuarios]
-      summary: Cambia el rol o desactiva un usuario (nunca se borra)
+      summary: Cambia el rol o desactiva un usuario, nunca se borra (permiso usuarios.gestionar)
+      description: |
+        Cambiar el rol o desactivar cierra las sesiones del usuario. Nadie cambia su propio rol ni se desactiva (409).
+        Solo el Administrador asigna ese rol o modifica a un administrador (403).
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -152,20 +138,91 @@ paths:
         '404': { $ref: '#/components/responses/NoEncontrado' }
         '403': { $ref: '#/components/responses/Prohibido' }
 
-  /categorias:
+  /admin/permisos:
+    get:
+      tags: [Roles]
+      summary: Catálogo de permisos (permiso roles.gestionar)
+      description: Si Asignable es falso, ningún rol puede recibir ese permiso; hoy es el caso de roles.gestionar.
+      responses:
+        '200':
+          description: Permisos
+          content:
+            application/json:
+              example: [{ IDPermiso: 1, Codigo: pedidos.ver, Modulo: Pedidos, Descripcion: Consultar pedidos y devoluciones, Asignable: true }]
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /admin/roles:
+    get:
+      tags: [Roles]
+      summary: Lista los roles con sus permisos (permiso roles.gestionar)
+      responses:
+        '200':
+          description: Roles
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Rol' } }
+        '403': { $ref: '#/components/responses/Prohibido' }
+    post:
+      tags: [Roles]
+      summary: Crea un rol con sus permisos (permiso roles.gestionar)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RolEntrada' }
+            example: { nombre: Marketing, descripcion: Cupones y reportes, permisos: [cupones.gestionar, reportes.ver] }
+      responses:
+        '201':
+          description: Rol creado
+          content: { application/json: { schema: { $ref: '#/components/schemas/Rol' } } }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+  /admin/roles/{id}:
+    get:
+      tags: [Roles]
+      summary: Consulta un rol (permiso roles.gestionar)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Rol
+          content: { application/json: { schema: { $ref: '#/components/schemas/Rol' } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    put:
+      tags: [Roles]
+      summary: Reemplaza un rol o lo desactiva con activo en falso (permiso roles.gestionar)
+      description: |
+        No hay ruta para borrar. Responde 409 si es un rol de sistema o si se desactiva con usuarios activos,
+        y 400 si los permisos incluyen `roles.gestionar` o un código inexistente. El cambio tiene efecto inmediato.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RolActualizacion' }
+            example: { nombre: Marketing, descripcion: Solo cupones, activo: true, permisos: [cupones.gestionar] }
+      responses:
+        '200':
+          description: Rol actualizado
+          content: { application/json: { schema: { $ref: '#/components/schemas/Rol' } } }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/Conflicto' }
+
+  /admin/categorias:
     get:
       tags: [Catálogo]
-      summary: Lista categorías activas (público)
-      security: []
+      summary: Lista categorías (permiso catalogo.gestionar)
       parameters:
-        - { name: incluirInactivas, in: query, description: Solo lo respeta el Administrador, schema: { type: boolean }, example: false }
+        - { name: incluirInactivas, in: query, schema: { type: boolean, default: false }, example: true }
       responses:
         '200':
           description: Categorías
           content: { application/json: { example: [{ IDCategoria: 1, Nombre: Electrónica, Descripcion: 'Audio, video y accesorios', Activa: true }] } }
+        '403': { $ref: '#/components/responses/Prohibido' }
     post:
       tags: [Catálogo]
-      summary: Crea una categoría (Administrador)
+      summary: Crea una categoría (permiso catalogo.gestionar)
       requestBody:
         required: true
         content: { application/json: { example: { nombre: Mascotas, descripcion: Alimento y accesorios } } }
@@ -175,10 +232,10 @@ paths:
           content: { application/json: { example: { IDCategoria: 9, Nombre: Mascotas, Descripcion: Alimento y accesorios, Activa: true } } }
         '409': { $ref: '#/components/responses/Conflicto' }
         '403': { $ref: '#/components/responses/Prohibido' }
-  /categorias/{id}:
+  /admin/categorias/{id}:
     put:
       tags: [Catálogo]
-      summary: Modifica una categoría (Administrador)
+      summary: Modifica una categoría (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -190,7 +247,7 @@ paths:
         '404': { $ref: '#/components/responses/NoEncontrado' }
     delete:
       tags: [Catálogo]
-      summary: Elimina la categoría o, si tiene productos, la desactiva (Administrador)
+      summary: Elimina la categoría o, si tiene productos, la desactiva (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200':
@@ -198,44 +255,10 @@ paths:
           content: { application/json: { example: { Resultado: Desactivada } } }
         '404': { $ref: '#/components/responses/NoEncontrado' }
 
-  /productos:
+  /admin/productos:
     get:
       tags: [Catálogo]
-      summary: Busca productos con filtros, orden y paginación (público)
-      security: []
-      parameters:
-        - { name: texto, in: query, schema: { type: string }, example: inalámbrico }
-        - { name: idCategoria, in: query, schema: { type: integer }, example: 1 }
-        - { name: precioMin, in: query, schema: { type: number }, example: 50 }
-        - { name: precioMax, in: query, schema: { type: number }, example: 500 }
-        - { name: soloDisponibles, in: query, schema: { type: boolean }, example: true }
-        - { name: orden, in: query, schema: { type: string, enum: [nombre, precio_asc, precio_desc, recientes] }, example: precio_asc }
-        - { $ref: '#/components/parameters/Pagina' }
-        - { $ref: '#/components/parameters/Tamano' }
-      responses:
-        '200':
-          description: Página de productos
-          content:
-            application/json:
-              example:
-                total: 1
-                pagina: 1
-                tamano: 20
-                datos: [{ IDProducto: 9, Nombre: Mouse inalámbrico, IDCategoria: 2, Categoria: Computación, PrecioDesde: 89.9, PrecioHasta: 89.9, Disponible: 80, Variantes: 1, ImagenPrincipal: 'https://picsum.photos/seed/shopcart-9/600/600' }]
-        '400': { $ref: '#/components/responses/Validacion' }
-    post:
-      tags: [Catálogo]
-      summary: Crea un producto (Administrador)
-      requestBody:
-        required: true
-        content: { application/json: { example: { idCategoria: 2, nombre: Hub USB-C, descripcion: Hub de 4 puertos } } }
-      responses:
-        '201': { $ref: '#/components/responses/Producto' }
-        '403': { $ref: '#/components/responses/Prohibido' }
-  /productos/administracion:
-    get:
-      tags: [Catálogo]
-      summary: Catálogo de administración con productos inactivos y sin variantes (Administrador)
+      summary: Catálogo de administración con productos inactivos y sin variantes (permiso catalogo.gestionar)
       parameters:
         - { name: texto, in: query, schema: { type: string, maxLength: 100 }, example: Hub }
         - { name: idCategoria, in: query, schema: { type: integer }, example: 2 }
@@ -256,18 +279,26 @@ paths:
                       datos: { type: array, items: { $ref: '#/components/schemas/ProductoAdministracion' } }
         '401': { $ref: '#/components/responses/NoAutenticado' }
         '403': { $ref: '#/components/responses/Prohibido' }
-  /productos/{id}:
+    post:
+      tags: [Catálogo]
+      summary: Crea un producto (permiso catalogo.gestionar)
+      requestBody:
+        required: true
+        content: { application/json: { example: { idCategoria: 2, nombre: Hub USB-C, descripcion: Hub de 4 puertos } } }
+      responses:
+        '201': { $ref: '#/components/responses/Producto' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+  /admin/productos/{id}:
     get:
       tags: [Catálogo]
-      summary: Producto con sus variantes y disponible (público; el Administrador ve inactivos)
-      security: []
+      summary: Producto con variantes, incluidos los inactivos (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/Producto' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
     put:
       tags: [Catálogo]
-      summary: Modifica o desactiva un producto (Administrador)
+      summary: Modifica o desactiva un producto (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -277,17 +308,17 @@ paths:
         '404': { $ref: '#/components/responses/NoEncontrado' }
     delete:
       tags: [Catálogo]
-      summary: Elimina el producto; si tiene ventas, reservas, carritos o movimientos lo desactiva (Administrador)
+      summary: Elimina el producto; si tiene ventas, reservas, carritos o movimientos lo desactiva (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200':
           description: Resultado
           content: { application/json: { example: { Resultado: Desactivado } } }
         '404': { $ref: '#/components/responses/NoEncontrado' }
-  /productos/{id}/variantes:
+  /admin/productos/{id}/variantes:
     post:
       tags: [Catálogo]
-      summary: Agrega una variante con SKU único, atributos, precio y existencia inicial (Administrador)
+      summary: Agrega una variante con SKU único, atributos, precio y existencia inicial (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -295,10 +326,10 @@ paths:
       responses:
         '201': { $ref: '#/components/responses/Producto' }
         '409': { $ref: '#/components/responses/Conflicto' }
-  /productos/{id}/imagenes:
+  /admin/productos/{id}/imagenes:
     post:
       tags: [Catálogo]
-      summary: Agrega una imagen al producto; la de menor orden es la principal (Administrador)
+      summary: Agrega una imagen al producto; la de menor orden es la principal (permiso catalogo.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -311,20 +342,20 @@ paths:
         '400': { $ref: '#/components/responses/Validacion' }
         '403': { $ref: '#/components/responses/Prohibido' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
-  /productos/imagenes/{idImagen}:
+  /admin/productos/imagenes/{idImagen}:
     delete:
       tags: [Catálogo]
-      summary: Quita una imagen del producto (Administrador)
+      summary: Quita una imagen del producto (permiso catalogo.gestionar)
       parameters:
         - { name: idImagen, in: path, required: true, schema: { type: integer, minimum: 1 }, example: 1 }
       responses:
         '200': { $ref: '#/components/responses/Producto' }
         '403': { $ref: '#/components/responses/Prohibido' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
-  /productos/variantes/{idVariante}:
+  /admin/productos/variantes/{idVariante}:
     put:
       tags: [Catálogo]
-      summary: Modifica SKU, atributos, precio o estado de una variante (Administrador)
+      summary: Modifica SKU, atributos, precio o estado de una variante (permiso catalogo.gestionar)
       parameters:
         - { name: idVariante, in: path, required: true, schema: { type: integer }, example: 1 }
       requestBody:
@@ -334,10 +365,10 @@ paths:
         '200': { $ref: '#/components/responses/Producto' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
 
-  /inventario/existencias:
+  /admin/inventario/existencias:
     get:
       tags: [Inventario]
-      summary: Existencia, reservado y disponible por variante (Operador, Administrador)
+      summary: Existencia, reservado y disponible por variante (permiso inventario.ver)
       parameters:
         - { name: umbral, in: query, description: Solo variantes con disponible igual o menor, schema: { type: integer }, example: 5 }
         - { name: orden, in: query, schema: { type: string, enum: [disponible, disponible_desc, sku, producto], default: disponible }, example: sku }
@@ -354,10 +385,10 @@ paths:
                 tamano: 20
                 datos: [{ IDVariante: 61, SKU: JUG-PEL-001, Producto: Pelota saltarina, Atributos: '{}', Existencia: 0, Reservado: 0, Disponible: 0 }]
         '403': { $ref: '#/components/responses/Prohibido' }
-  /inventario/variantes/{id}/kardex:
+  /admin/inventario/variantes/{id}/kardex:
     get:
       tags: [Inventario]
-      summary: Kardex de una variante (Operador, Administrador)
+      summary: Kardex de una variante (permiso inventario.ver)
       parameters:
         - { $ref: '#/components/parameters/Id' }
         - { name: orden, in: query, description: Por orden de registro, schema: { type: string, enum: [recientes, antiguos], default: recientes }, example: antiguos }
@@ -373,10 +404,10 @@ paths:
                 pagina: 1
                 tamano: 20
                 datos: [{ IDKardex: 1, IDVariante: 1, Tipo: Entrada, Cantidad: 40, ExistenciaResultante: 40, Motivo: Inventario inicial, IDUsuario: 1, Usuario: Ana Administradora, IDPedido: null, Fecha: '2026-11-01T10:00:00.000Z' }]
-  /inventario/movimientos:
+  /admin/inventario/movimientos:
     post:
       tags: [Inventario]
-      summary: Registra entrada, salida o ajuste con motivo; no deja la existencia en negativo ni por debajo de lo reservado (Operador, Administrador)
+      summary: Registra entrada, salida o ajuste con motivo; no deja la existencia en negativo ni por debajo de lo reservado (permiso inventario.gestionar)
       requestBody:
         required: true
         content: { application/json: { example: { idVariante: 1, tipo: Ajuste, cantidad: -2, motivo: Conteo físico } } }
@@ -387,72 +418,10 @@ paths:
         '409': { $ref: '#/components/responses/Conflicto' }
         '403': { $ref: '#/components/responses/Prohibido' }
 
-  /carrito:
-    get:
-      tags: [Carrito]
-      summary: Carrito con subtotal, descuento y total (sesión o X-Carrito-Token)
-      security: [{}, { bearerAuth: [] }]
-      parameters: [{ $ref: '#/components/parameters/CarritoToken' }]
-      responses:
-        '200': { $ref: '#/components/responses/Carrito' }
-  /carrito/items:
-    post:
-      tags: [Carrito]
-      summary: Agrega una variante sin superar el disponible
-      security: [{}, { bearerAuth: [] }]
-      parameters: [{ $ref: '#/components/parameters/CarritoToken' }]
-      requestBody:
-        required: true
-        content: { application/json: { example: { idVariante: 1, cantidad: 2 } } }
-      responses:
-        '201': { $ref: '#/components/responses/Carrito' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-  /carrito/items/{idVariante}:
-    patch:
-      tags: [Carrito]
-      summary: Cambia la cantidad de una línea
-      security: [{}, { bearerAuth: [] }]
-      parameters:
-        - { $ref: '#/components/parameters/CarritoToken' }
-        - { name: idVariante, in: path, required: true, schema: { type: integer }, example: 1 }
-      requestBody:
-        required: true
-        content: { application/json: { example: { cantidad: 3 } } }
-      responses:
-        '200': { $ref: '#/components/responses/Carrito' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-    delete:
-      tags: [Carrito]
-      summary: Quita una línea
-      security: [{}, { bearerAuth: [] }]
-      parameters:
-        - { $ref: '#/components/parameters/CarritoToken' }
-        - { name: idVariante, in: path, required: true, schema: { type: integer }, example: 1 }
-      responses:
-        '200': { $ref: '#/components/responses/Carrito' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-  /carrito/cupon:
-    put:
-      tags: [Carrito]
-      summary: Aplica un cupón (uno por pedido); el rechazo indica la causa
-      requestBody:
-        required: true
-        content: { application/json: { example: { codigo: BIENVENIDA10 } } }
-      responses:
-        '200': { $ref: '#/components/responses/Carrito' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-    delete:
-      tags: [Carrito]
-      summary: Quita el cupón
-      responses:
-        '200': { $ref: '#/components/responses/Carrito' }
-
-  /cupones:
+  /admin/cupones:
     get:
       tags: [Cupones]
-      summary: Lista cupones (Administrador)
+      summary: Lista cupones (permiso cupones.gestionar)
       parameters:
         - { name: orden, in: query, description: vence = fecha final más próxima primero; usos = más usados primero, schema: { type: string, enum: [id, codigo, vence, usos], default: id }, example: vence }
         - { $ref: '#/components/parameters/Pagina' }
@@ -470,7 +439,7 @@ paths:
         '403': { $ref: '#/components/responses/Prohibido' }
     post:
       tags: [Cupones]
-      summary: Crea un cupón (Administrador)
+      summary: Crea un cupón (permiso cupones.gestionar)
       requestBody:
         required: true
         content:
@@ -481,10 +450,10 @@ paths:
           description: Cupón creado
           content: { application/json: { example: { IDCupon: 7, Codigo: NOVIEMBRE5, Tipo: Monto, Valor: 5, Usos: 0, Activo: true } } }
         '409': { $ref: '#/components/responses/Conflicto' }
-  /cupones/{id}:
+  /admin/cupones/{id}:
     put:
       tags: [Cupones]
-      summary: Modifica o desactiva un cupón (Administrador)
+      summary: Modifica o desactiva un cupón (permiso cupones.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -497,115 +466,15 @@ paths:
           content: { application/json: { example: { IDCupon: 7, Codigo: NOVIEMBRE5, Activo: false } } }
         '404': { $ref: '#/components/responses/NoEncontrado' }
 
-  /direcciones:
-    get:
-      tags: [Direcciones]
-      summary: Direcciones activas del usuario autenticado
-      responses:
-        '200':
-          description: Direcciones, la más reciente primero
-          content:
-            application/json:
-              schema: { type: array, items: { $ref: '#/components/schemas/Direccion' } }
-        '401': { $ref: '#/components/responses/NoAutenticado' }
-    post:
-      tags: [Direcciones]
-      summary: Registra una dirección de entrega
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/DireccionEntrada' }
-            example: { direccion: 6a avenida 12-34 zona 1, ciudad: Guatemala, telefono: '55551234' }
-      responses:
-        '201':
-          description: Dirección creada
-          content: { application/json: { schema: { $ref: '#/components/schemas/Direccion' } } }
-        '400': { $ref: '#/components/responses/Validacion' }
-        '401': { $ref: '#/components/responses/NoAutenticado' }
-  /direcciones/{id}:
-    put:
-      tags: [Direcciones]
-      summary: Modifica una dirección propia y activa (la de otro usuario responde 404)
-      description: Las reservas y los pedidos ya creados conservan el texto que copiaron.
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/DireccionEntrada' }
-            example: { direccion: 7a avenida 1-23 zona 4, ciudad: Guatemala, telefono: '55551234' }
-      responses:
-        '200':
-          description: Dirección actualizada
-          content: { application/json: { schema: { $ref: '#/components/schemas/Direccion' } } }
-        '400': { $ref: '#/components/responses/Validacion' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-    delete:
-      tags: [Direcciones]
-      summary: Desactiva una dirección propia; no se borra porque puede estar en pedidos (la de otro usuario responde 404)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '200':
-          description: Dirección desactivada
-          content: { application/json: { schema: { $ref: '#/components/schemas/Direccion' } } }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-
-  /checkout/pagos:
-    post:
-      tags: [Checkout]
-      summary: Inicia el pago; reserva la existencia 15 minutos con precio y descuento congelados
-      description: |
-        Envíe `idDireccion` (una dirección propia y activa) o `direccion`, `ciudad` y `telefono` para registrar una nueva
-        (si ya existe una idéntica se reutiliza). El texto queda copiado en la reserva y en el pedido.
-        Repetir la llamada con el carrito sin cambios, la misma dirección y el mismo cupón devuelve la misma reserva activa (doble clic).
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/PagoEntrada' }
-            examples:
-              conDireccionGuardada: { value: { idDireccion: 1, codigoCupon: Q50 } }
-              conDireccionNueva: { value: { direccion: 6a avenida 12-34 zona 1, ciudad: Guatemala, telefono: '55551234' } }
-      responses:
-        '201': { $ref: '#/components/responses/Reserva' }
-        '400': { $ref: '#/components/responses/Validacion' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-  /checkout/reservas/{id}:
-    get:
-      tags: [Checkout]
-      summary: Consulta una reserva propia
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '200': { $ref: '#/components/responses/Reserva' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-    delete:
-      tags: [Checkout]
-      summary: Cancela el pago; anula la reserva y libera la existencia
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '200': { $ref: '#/components/responses/Reserva' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-  /checkout/reservas/{id}/pedido:
-    post:
-      tags: [Checkout]
-      summary: Confirma el pago simulado y crea el pedido; repetir la llamada devuelve el mismo pedido
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '201': { $ref: '#/components/responses/Pedido' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
-        '409': { $ref: '#/components/responses/Conflicto' }
-
-  /pedidos:
+  /admin/pedidos:
     get:
       tags: [Pedidos, Dashboard]
-      summary: Pedidos filtrados y paginados (el Cliente solo ve los suyos)
+      summary: Pedidos filtrados y paginados (permiso pedidos.ver)
       parameters:
         - { name: estado, in: query, schema: { $ref: '#/components/schemas/EstadoPedido' }, example: Pagado }
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
         - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
-        - { name: idCliente, in: query, description: Ignorado para el Cliente, schema: { type: integer }, example: 3 }
+        - { name: idCliente, in: query, schema: { type: integer }, example: 3 }
         - { name: totalMin, in: query, schema: { type: number }, example: 100 }
         - { name: totalMax, in: query, schema: { type: number }, example: 2000 }
         - { name: orden, in: query, schema: { type: string, enum: [recientes, antiguos, total_desc, total_asc], default: recientes }, example: total_desc }
@@ -621,18 +490,18 @@ paths:
                 pagina: 1
                 tamano: 20
                 datos: [{ IDPedido: 1, IDUsuario: 3, Cliente: Carla Cliente, Estado: Pagado, Subtotal: 1036.8, Descuento: 50, Total: 986.8, FechaCreacion: '2026-11-01T15:34:19.000Z' }]
-  /pedidos/{id}:
+  /admin/pedidos/{id}:
     get:
       tags: [Pedidos]
-      summary: Pedido con líneas e historial (un pedido ajeno responde 404 al Cliente)
+      summary: Pedido con líneas e historial (permiso pedidos.ver)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/Pedido' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
-  /pedidos/{id}/estado:
+  /admin/pedidos/{id}/estado:
     patch:
       tags: [Pedidos]
-      summary: Cambia el estado. El Operador avanza o cancela; el Cliente solo cancela el suyo
+      summary: Avanza o cancela un pedido (permiso pedidos.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -642,17 +511,17 @@ paths:
         '403': { $ref: '#/components/responses/Prohibido' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
         '409': { $ref: '#/components/responses/Conflicto' }
-  /pedidos/{id}/devoluciones:
+  /admin/pedidos/{id}/devoluciones:
     get:
       tags: [Pedidos]
-      summary: Devoluciones de un pedido
+      summary: Devoluciones de un pedido (permiso pedidos.ver)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/Devoluciones' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
     post:
       tags: [Pedidos]
-      summary: Registra una devolución total o parcial por línea (Operador, Administrador)
+      summary: Registra una devolución total o parcial por línea (permiso pedidos.gestionar)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -664,10 +533,10 @@ paths:
         '409': { $ref: '#/components/responses/Conflicto' }
         '403': { $ref: '#/components/responses/Prohibido' }
 
-  /dashboard/ventas:
+  /admin/dashboard/ventas:
     get:
       tags: [Dashboard]
-      summary: Ventas netas y pedidos por día, semana o mes (Administrador)
+      summary: Ventas netas y pedidos por día, semana o mes (permiso reportes.ver)
       parameters:
         - { name: agrupacion, in: query, schema: { type: string, enum: [Dia, Semana, Mes] }, example: Semana }
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
@@ -677,10 +546,10 @@ paths:
           description: Serie de ventas
           content: { application/json: { example: [{ Periodo: '2026-10-26T00:00:00.000Z', Pedidos: 3, Ventas: 2450.5 }] } }
         '403': { $ref: '#/components/responses/Prohibido' }
-  /dashboard/categorias:
+  /admin/dashboard/categorias:
     get:
       tags: [Dashboard]
-      summary: Ventas netas por categoría (Administrador)
+      summary: Ventas netas por categoría (permiso reportes.ver)
       parameters:
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
         - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
@@ -688,10 +557,10 @@ paths:
         '200':
           description: Ventas por categoría
           content: { application/json: { example: [{ IDCategoria: 1, Categoria: Electrónica, Unidades: 12, Ventas: 3890.2 }] } }
-  /dashboard/top-productos:
+  /admin/dashboard/top-productos:
     get:
       tags: [Dashboard]
-      summary: Productos más vendidos (Administrador)
+      summary: Productos más vendidos (permiso reportes.ver)
       parameters:
         - { name: cantidad, in: query, schema: { type: integer, default: 10 }, example: 10 }
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
@@ -700,10 +569,10 @@ paths:
         '200':
           description: Top por unidades netas
           content: { application/json: { example: [{ IDProducto: 1, Producto: Audífonos inalámbricos, Unidades: 8, Ventas: 2540 }] } }
-  /dashboard/indicadores:
+  /admin/dashboard/indicadores:
     get:
       tags: [Dashboard]
-      summary: Pedidos, ventas, ticket promedio y carritos abandonados (Administrador)
+      summary: Pedidos, ventas, ticket promedio y carritos abandonados (permiso reportes.ver)
       description: |
         `Pedidos` y `Ventas` cuentan los pedidos completados (Entregado o DevueltoParcial) con su venta neta de devoluciones.
         `TicketPromedio` = `MontoVendido` / `PedidosPagados`: total cobrado entre el número de pedidos pagados (todos menos los cancelados) del periodo.
@@ -718,10 +587,10 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Indicadores' }
               example: { Pedidos: 9, Ventas: 9707.8, PedidosPagados: 13, MontoVendido: 11509.8, TicketPromedio: 885.37, CarritosAbandonados: 3 }
-  /dashboard/carritos-abandonados:
+  /admin/dashboard/carritos-abandonados:
     get:
       tags: [Dashboard]
-      summary: Carritos abiertos con productos y sin cambios recientes (Administrador)
+      summary: Carritos abiertos con productos y sin cambios recientes (permiso reportes.ver)
       parameters:
         - { name: horas, in: query, schema: { type: integer, default: 24 }, example: 24 }
         - { $ref: '#/components/parameters/Pagina' }
@@ -737,12 +606,12 @@ paths:
                 tamano: 20
                 datos: [{ IDCarrito: 4, IDUsuario: 3, Correo: cliente@shopcart.test, FechaActualizacion: '2026-10-30T09:00:00.000Z', Lineas: 2, Valor: 478.9 }]
 
-  /bitacora:
+  /admin/bitacora:
     get:
       tags: [Bitácora]
-      summary: Consulta la bitácora, filtrable por módulo (Administrador). Es de solo lectura
+      summary: Consulta la bitácora, filtrable por módulo (permiso bitacora.ver). Es de solo lectura
       parameters:
-        - { name: modulo, in: query, schema: { type: string, enum: [Catalogo, Inventario, Cupones, Pedidos] }, example: Pedidos }
+        - { name: modulo, in: query, schema: { type: string, enum: [Catalogo, Inventario, Cupones, Pedidos, Roles] }, example: Pedidos }
         - { name: orden, in: query, schema: { type: string, enum: [recientes, antiguos], default: recientes }, example: antiguos }
         - { name: desde, in: query, schema: { type: string, format: date }, example: '2026-11-01' }
         - { name: hasta, in: query, schema: { type: string, format: date }, example: '2026-11-30' }
@@ -783,14 +652,19 @@ components:
       in: query
       schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
       example: 20
-    CarritoToken:
-      name: X-Carrito-Token
-      in: header
-      description: Token del carrito de invitado (GUID)
-      schema: { type: string, format: uuid }
-      example: e458443c-0117-4ea6-a9f9-54a6c6bb7bd7
   schemas:
-    Rol: { type: string, enum: [Cliente, Operador, Administrador] }
+    Rol:
+      type: object
+      properties:
+        IDRol: { type: integer }
+        Nombre: { type: string }
+        Descripcion: { type: string, nullable: true }
+        EsSistema: { type: boolean, description: Los roles de sistema no se editan ni se desactivan }
+        Activo: { type: boolean }
+        FechaCreacion: { type: string, format: date-time }
+        UsuariosActivos: { type: integer }
+        permisos: { type: array, items: { type: string } }
+      example: { IDRol: 2, Nombre: Operador, Descripcion: Gestiona pedidos e inventario., EsSistema: false, Activo: true, FechaCreacion: '2026-11-01T15:00:00.000Z', UsuariosActivos: 1, permisos: [inventario.gestionar, inventario.ver, pedidos.gestionar, pedidos.ver] }
     EstadoPedido:
       type: string
       enum: [Pagado, EnPreparacion, Despachado, Entregado, DevueltoParcial, Devuelto, Cancelado]
@@ -800,35 +674,6 @@ components:
         total: { type: integer, description: Filas que cumplen el filtro }
         pagina: { type: integer }
         tamano: { type: integer }
-    DireccionEntrada:
-      type: object
-      required: [direccion, ciudad, telefono]
-      properties:
-        direccion: { type: string, minLength: 1, maxLength: 300 }
-        ciudad: { type: string, minLength: 1, maxLength: 100 }
-        telefono: { type: string, minLength: 1, maxLength: 20 }
-    Direccion:
-      type: object
-      properties:
-        IDDireccion: { type: integer }
-        Direccion: { type: string }
-        Ciudad: { type: string }
-        Telefono: { type: string }
-        Activa: { type: boolean }
-        FechaCreacion: { type: string, format: date-time }
-      example: { IDDireccion: 1, Direccion: 6a avenida 12-34 zona 1, Ciudad: Guatemala, Telefono: '55551234', Activa: true, FechaCreacion: '2026-11-01T15:00:00.000Z' }
-    PagoEntrada:
-      type: object
-      description: Requiere idDireccion, o bien direccion, ciudad y telefono.
-      properties:
-        idDireccion: { type: integer, minimum: 1, description: Dirección propia y activa }
-        direccion: { type: string, minLength: 1, maxLength: 300 }
-        ciudad: { type: string, minLength: 1, maxLength: 100 }
-        telefono: { type: string, minLength: 1, maxLength: 20 }
-        codigoCupon: { type: string, minLength: 1, maxLength: 30, description: Reemplaza al cupón del carrito }
-      anyOf:
-        - required: [idDireccion]
-        - required: [direccion, ciudad, telefono]
     ImagenEntrada:
       type: object
       required: [url]
@@ -872,6 +717,19 @@ components:
             codigo: { type: string }
             mensaje: { type: string }
             detalle: {}
+    RolEntrada:
+      type: object
+      required: [nombre, permisos]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 20 }
+        descripcion: { type: string, maxLength: 200, nullable: true }
+        permisos: { type: array, items: { type: string }, description: Códigos de GET /admin/permisos }
+    RolActualizacion:
+      allOf:
+        - { $ref: '#/components/schemas/RolEntrada' }
+        - type: object
+          properties:
+            activo: { type: boolean, default: true }
   responses:
     Validacion:
       description: Datos inválidos (400)
@@ -886,7 +744,7 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
           example: { error: { codigo: TOKEN_EXPIRADO, mensaje: El token expiró } }
     Prohibido:
-      description: El rol no tiene permiso (403)
+      description: Falta el permiso (403)
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -911,7 +769,7 @@ components:
             accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
             refreshToken: q3b1vH0...token-de-un-solo-uso
             expiresIn: 900
-            usuario: { id: 3, correo: cliente@shopcart.test, nombre: Carla Cliente, rol: Cliente }
+            usuario: { id: 1, correo: admin@shopcart.test, nombre: Ana Administradora, rol: Administrador }
     Producto:
       description: Producto con variantes
       content:
@@ -925,36 +783,6 @@ components:
             Activo: true
             variantes: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Atributos: { Color: Negro }, Precio: 349, Activa: true, Existencia: 40, Reservado: 0, Disponible: 40 }]
             imagenes: [{ IDProductoImagen: 1, Url: 'https://picsum.photos/seed/shopcart-1/600/600', TextoAlternativo: Audífonos inalámbricos, Orden: 0 }]
-    Carrito:
-      description: Carrito con totales
-      content:
-        application/json:
-          example:
-            IDCarrito: 3
-            TokenInvitado: null
-            Cupon: BIENVENIDA10
-            Subtotal: 1047
-            Descuento: 104.7
-            Total: 942.3
-            lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Atributos: { Color: Negro }, Cantidad: 3, PrecioUnitario: 349, Subtotal: 1047, Descuento: 104.7, Total: 942.3, Disponible: 40 }]
-    Reserva:
-      description: Reserva de existencia
-      content:
-        application/json:
-          example:
-            IDReserva: 1
-            Estado: Activa
-            Expira: '2026-11-01T15:52:57.000Z'
-            Vencida: false
-            Cupon: Q50
-            Subtotal: 1036.8
-            Descuento: 50
-            Total: 986.8
-            IDDireccion: 1
-            Direccion: 6a avenida 12-34 zona 1
-            Ciudad: Guatemala
-            Telefono: '55551234'
-            lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Cantidad: 2, PrecioUnitario: 349, Descuento: 33.66 }]
     Pedido:
       description: Pedido con líneas e historial
       content:
