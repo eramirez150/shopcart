@@ -1,5 +1,5 @@
 // Detalle de producto: foto grande con miniaturas, precio, variantes, descripción,
-// cantidad y barra fija para agregar al carrito.
+// cantidad, barra fija para agregar al carrito, reseñas y productos relacionados.
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
@@ -11,6 +11,8 @@ import { Precio } from '../componentes/Precio';
 import { textoAtributos } from '../formato';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
+import { Relacionados } from './Relacionados';
+import { Resenas } from './Resenas';
 
 const nombreVariante = (v: Variante) => textoAtributos(v.Atributos) || v.SKU;
 
@@ -133,6 +135,11 @@ function Contenido({ producto }: { producto: Producto }) {
         <button type="button" className="boton boton-principal" disabled={!variante || disponible === 0 || enviando} onClick={() => void agregarAlCarrito()}>
           {enviando ? 'Agregando…' : 'Agregar al carrito'}
         </button>
+      </div>
+
+      <div className="detalle-extra">
+        <Resenas idProducto={producto.IDProducto} />
+        <Relacionados idProducto={producto.IDProducto} />
       </div>
     </main>
   );

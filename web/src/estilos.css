@@ -1752,6 +1752,137 @@ svg {
   min-height: 52px;
 }
 
+/* ---------- Reseñas y relacionados del detalle */
+.detalle-extra {
+  min-width: 0;
+  padding: 0 16px;
+}
+
+.resenas-resumen {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.resenas-resumen p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+
+.resenas-promedio {
+  font-size: 3.2rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.resenas-aviso {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--tinta-suave);
+}
+
+.resenas-lista {
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resena {
+  padding: 16px 0;
+  border-top: 1px solid var(--linea);
+}
+
+.resena-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+  margin-bottom: 4px;
+}
+
+.resena-cabeza time {
+  font-size: 0.8rem;
+}
+
+.resena-comentario {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.estrellas {
+  display: inline-block;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--plata);
+}
+
+.estrellas-llenas {
+  color: var(--acento);
+}
+
+.resena-formulario {
+  margin-top: 24px;
+  padding: 20px 16px;
+  border-radius: var(--radio);
+  background: var(--blanco);
+}
+
+.resena-formulario h3 {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+}
+
+.calificar {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+}
+
+.calificar legend {
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 620;
+}
+
+/* El margen negativo alinea la primera estrella con el texto: cada una ocupa 44 px para el dedo. */
+.calificar-estrellas {
+  display: flex;
+  margin-left: -8px;
+}
+
+.calificar label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radio-chico);
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--plata);
+  cursor: pointer;
+  transition: color var(--rapido) var(--curva);
+}
+
+.calificar label.llena {
+  color: var(--acento);
+}
+
+.calificar label:focus-within {
+  outline: 2px solid var(--acento);
+  outline-offset: -2px;
+}
+
+.resenas > .aviso {
+  margin-top: 16px;
+}
+
 /* ---------- Carrito */
 .carrito-vacio {
   display: flex;
@@ -2396,6 +2527,11 @@ svg {
 
   .detalle-info {
     padding: 12px 0 0;
+  }
+
+  .detalle-extra {
+    grid-column: 1 / -1;
+    padding: 24px 0 0;
   }
 
   /* En computadora la barra de agregar se queda en la columna del producto. */

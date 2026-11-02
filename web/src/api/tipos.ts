@@ -45,10 +45,27 @@ export interface ProductoResumen {
   Disponible: number;
   Variantes: number;
   ImagenPrincipal: string | null;
-  // La API actual no envía estos campos. La tarjeta los muestra solo si llegan.
+  // La API no envía estos campos en el listado. La tarjeta los muestra solo si llegan.
   PrecioAnterior?: number | null;
   Calificacion?: number | null;
   Ventas?: number | null;
+}
+
+export interface Resena {
+  IDResena: number;
+  Autor: string;
+  Calificacion: number;
+  Comentario: string;
+  Fecha: string;
+}
+
+export interface ResenasProducto extends Pagina<Resena> {
+  promedio: number | null;
+}
+
+export interface PermisoResena {
+  puede: boolean;
+  motivo: 'Rol' | 'Repetida' | 'SinCompra' | null;
 }
 
 export type Atributos = Record<string, string>;
