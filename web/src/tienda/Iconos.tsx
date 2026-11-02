@@ -1,7 +1,6 @@
 // Íconos de línea dibujados para ShopCart (trazos de 24 × 24). El color sale de currentColor.
 
 const trazos = {
-  menu: 'M4 7h16M4 12h16M4 17h16',
   buscar: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',
   carrito: 'M3 4h2.5l2.3 11h10.4l2-8H7M10 20.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zM17 20.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z',
   inicio: 'M4 11l8-7 8 7M6 9.5V20h12V9.5M10 20v-5h4v5',

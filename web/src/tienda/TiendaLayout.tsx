@@ -1,26 +1,21 @@
-// Estructura de la tienda: encabezado con buscador, menú lateral, contenido y menú inferior en celular.
-// Al bajar se esconde el buscador y queda la barra compacta; al subir vuelve.
+// Estructura de la tienda: encabezado con buscador, contenido y menú inferior en celular.
+// Al bajar se va el nombre y queda el buscador sobre blanco; arriba de todo vuelve el encabezado completo.
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { api } from '../api/cliente';
 import type { Categoria } from '../api/tipos';
-import { useApi } from '../api/useApi';
 import { esPersonal, useSesion } from '../sesion/SesionContexto';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
 
 export const cargarCategorias = () => api<Categoria[]>('/categorias');
 
+// Depende de la posición y no de la dirección: así el color no cambia con cada gesto.
 function useCompacto(): boolean {
   const [compacto, setCompacto] = useState(false);
   useEffect(() => {
-    let ultimo = window.scrollY;
-    function alDesplazar() {
-      const y = window.scrollY;
-      if (Math.abs(y - ultimo) < 8) return; // Ignora movimientos mínimos para que no parpadee.
-      setCompacto(y > 60 && y > ultimo);
-      ultimo = y;
-    }
+    const alDesplazar = () => setCompacto(window.scrollY > 60);
+    alDesplazar();
     window.addEventListener('scroll', alDesplazar, { passive: true });
     return () => window.removeEventListener('scroll', alDesplazar);
   }, []);
@@ -49,47 +44,10 @@ function Buscador() {
   );
 }
 
-function MenuLateral({ cerrar }: { cerrar: () => void }) {
-  const { usuario, cerrarSesion } = useSesion();
-  const categorias = useApi(cargarCategorias, 'categorias');
-  return (
-    <div className="cortina" onClick={cerrar}>
-      <nav className="menu-lateral" aria-label="Menú principal" onClick={(e) => e.stopPropagation()}>
-        <div className="menu-lateral-cabeza">
-          <span className="marca">ShopCart</span>
-          <button type="button" className="boton-icono" aria-label="Cerrar menú" onClick={cerrar}>
-            <Icono nombre="cerrar" />
-          </button>
-        </div>
-        <div onClick={cerrar}>
-          <p className="menu-lateral-titulo">{usuario ? `Hola, ${usuario.nombre}` : 'Te damos la bienvenida'}</p>
-          <Link to="/">Inicio</Link>
-          {usuario ? <Link to="/cuenta">Mi cuenta</Link> : <Link to="/login">Iniciar sesión</Link>}
-          {!usuario && <Link to="/registro">Crear cuenta</Link>}
-          {esPersonal(usuario?.rol) && <Link to="/panel">Panel de {usuario?.rol === 'Administrador' ? 'administración' : 'operación'}</Link>}
-          <p className="menu-lateral-titulo">Categorías</p>
-          {categorias.datos?.map((c) => (
-            <Link key={c.IDCategoria} to={`/buscar?idCategoria=${c.IDCategoria}`}>
-              {c.Nombre}
-            </Link>
-          ))}
-          {categorias.error && <p className="texto-suave">No se pudieron cargar las categorías.</p>}
-          {usuario && (
-            <button type="button" className="boton-enlace menu-lateral-salir" onClick={() => void cerrarSesion()}>
-              Cerrar sesión
-            </button>
-          )}
-        </div>
-      </nav>
-    </div>
-  );
-}
-
 export function TiendaLayout() {
   const compacto = useCompacto();
   const { unidades } = useCarrito();
   const { usuario } = useSesion();
-  const [menuAbierto, setMenuAbierto] = useState(false);
   const { pathname } = useLocation();
   const [params] = useSearchParams();
   const pagina = params.get('pagina');
@@ -105,9 +63,6 @@ export function TiendaLayout() {
     <div className={`tienda ${compacto ? 'compacto' : ''}`}>
       <header className="encabezado">
         <div className="encabezado-barra">
-          <button type="button" className="boton-icono" aria-label="Abrir menú" onClick={() => setMenuAbierto(true)}>
-            <Icono nombre="menu" />
-          </button>
           <Link to="/" className="marca">
             ShopCart
           </Link>
@@ -124,12 +79,10 @@ export function TiendaLayout() {
             )}
           </Link>
         </div>
-        <div className="encabezado-buscador" aria-hidden={compacto || undefined}>
+        <div className="encabezado-buscador">
           <Buscador />
         </div>
       </header>
-
-      {menuAbierto && <MenuLateral cerrar={() => setMenuAbierto(false)} />}
 
       {/* La clave reinicia la animación de entrada en cada página. */}
       <div className="tienda-contenido vista" key={pathname}>
