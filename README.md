@@ -101,7 +101,7 @@ npm run typecheck
 npm test
 ```
 
-`seguridad.test.ts` no necesita base de datos. Los demás archivos (`flujo`, `concurrencia`, `direcciones`, `dashboard`, `catalogo`, `orden` y `reglas`) exigen una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas. Con Docker Compose, la base se recrea con `docker compose down -v` y `docker compose up -d db db-init`, y las pruebas se ejecutan desde `api/` con `DB_USER=shopcart_app` y `DB_PASSWORD` igual a `APP_DB_PASSWORD`.
+`seguridad.test.ts` no necesita base de datos. Los demás archivos (`flujo`, `concurrencia`, `direcciones`, `dashboard`, `catalogo`, `orden`, `reglas` y `resenas`) exigen una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas. Con Docker Compose, la base se recrea con `docker compose down -v` y `docker compose up -d db db-init`, y las pruebas se ejecutan desde `api/` con `DB_USER=shopcart_app` y `DB_PASSWORD` igual a `APP_DB_PASSWORD`.
 
 Las pruebas que necesitan tocar la base directamente están en `database/pruebas/` (`aplicar.sh` no ejecuta esa carpeta) y se ejecutan con `sa`:
 
@@ -113,6 +113,7 @@ docker compose run --rm --entrypoint /bin/sh db-init /scripts/pruebas/ejecutar.s
 | --- | --- |
 | `permisos.sql` | `shopcart_app` solo puede ejecutar SP: no lee ni modifica tablas. |
 | `bitacora.sql` | Ni siquiera `sa` puede modificar o borrar la bitácora (error 51403). |
+| `resenas.sql` | `SP_Resenas_Crear` rechaza a quien no tiene un pedido `Entregado` con el producto, a otro rol y una segunda reseña, y la tabla rechaza una calificación fuera de 1 a 5. |
 | `transiciones.sql` | El trigger rechaza un `UPDATE` directo con una transición que no está en `PedidoTransiciones`, y las devoluciones siguen funcionando. |
 | `reserva_vencida.sql` | Una reserva vencida deja de restar del disponible, otro cliente puede reservar esa existencia, ya no se convierte en pedido y un pago nuevo la anula. Adelanta `Expira` con un `UPDATE` para no esperar 15 minutos. |
 
@@ -132,6 +133,8 @@ Solo para desarrollo, creadas por los scripts de `database/02_semillas`. Cámbie
 Cupones de ejemplo: `BIENVENIDA10` (10 %, una vez por cliente), `Q50` (Q50 con compra mínima de Q300), `ELECTRO15` (15 % solo en Electrónica), `LIMITADO5` (5 usos en total), `VENCIDO` e `INACTIVO` (para ver los rechazos).
 
 Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer.
+
+Reseñas de prueba (`02_semillas/003_resenas.sql`): 34 reseñas inventadas en 12 productos con foto. **Son datos de prueba**: sus autores son 6 clientes desactivados (`resena1@shopcart.test` a `resena6@shopcart.test`), sin contraseña válida y sin pedidos, así que esas reseñas se escribieron directamente y no provienen de una compra real. Las reseñas creadas desde la tienda sí exigen un pedido `Entregado`.
 
 ## Datos de muestra
 
@@ -159,6 +162,7 @@ database/
   02_semillas/        001: usuarios por rol, categorías, 50 productos con imagen, kardex y cupones
                       002_demostracion: direcciones, pedidos, devoluciones y carritos abandonados de demostración
                       002_fotos_reales: fotos de referencia de 30 productos, generado desde scraper/fotos.json
+                      003_resenas: reseñas de prueba de 12 productos y sus autores
   03_funciones/       FU_Modulo_Proceso.sql
   04_vistas/          VW_Modulo_Proceso.sql
   05_procedimientos/  Una subcarpeta por módulo, con SP_Modulo_Proceso.sql
@@ -210,6 +214,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 - Direcciones: cada usuario registra, lista, modifica y desactiva las suyas en `/api/direcciones`; la de otro usuario responde 404 en la API y en los SP. Al pagar se elige una con `idDireccion` o se envía el texto de una nueva, que queda registrada (si ya existe una idéntica se reutiliza). Reservas y pedidos guardan `IDDireccion` y copian el texto, así modificar o desactivar la dirección después no altera un pedido.
 - Las devoluciones solo las registra un Operador o un Administrador (`POST /api/pedidos/{id}/devoluciones`); el Cliente consulta las de sus pedidos.
 - Las escrituras del catálogo exigen rol Administrador y nada con ventas o movimientos se elimina: se desactiva. Las variantes y los cupones no tienen ruta para borrar: se desactivan con `activa: false` (`PUT /api/productos/variantes/{id}`) y `activo: false` (`PUT /api/cupones/{id}`), porque los referencian carritos, reservas, pedidos y usos.
+- Reseñas: solo un Cliente con un pedido `Entregado` que contenga una variante del producto, una por usuario y producto (`UQ_Resenas_Producto_Usuario`). Sin compra responde 403 con `RESENA_SIN_COMPRA` y repetida 409 con `RESENA_DUPLICADA`; `GET /api/productos/{id}/resenas/permiso` lo indica antes de mostrar el formulario. El listado es público y muestra el nombre y la inicial del apellido (`FU_Resenas_Publicas`), nunca el correo ni el id del usuario. Si el nombre registrado es un correo, se muestra "Cliente". Una reseña no se edita ni se borra, y se conserva aunque el pedido se devuelva después.
 - Los atributos de una variante se guardan como un objeto JSON en texto (`{"Talla":"M","Color":"Azul"}`), validado con `ISJSON`; la API los recibe y devuelve como objeto. Así cada categoría define sus propios atributos sin tablas adicionales.
 - Imágenes: cada producto tiene cero o más imágenes (`ProductoImagenes`) con URL http(s), texto alternativo y orden; la de menor orden es la principal y aparece en la búsqueda. Se guardan solo las URL: el archivo vive fuera de la base. Quitar una imagen la elimina, porque no tiene ventas ni movimientos.
 - Catálogo de administración: `GET /api/productos/administracion` lista también productos inactivos, de categorías inactivas y sin variantes. La búsqueda pública solo muestra productos activos con variantes activas.
@@ -230,7 +235,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 | Pedido duplicado | `Pedidos.IDReserva` es `UNIQUE` y la fila de la reserva se bloquea: un reintento espera y devuelve el mismo pedido. |
 | Cupón concurrente | `UPDATE Cupones SET Usos = Usos + 1 WHERE Usos < LimiteTotal` y revisión de `@@ROWCOUNT`; la misma transacción revisa el límite por cliente. |
 | Descuento exacto | El descuento total se calcula una vez y se reparte por líneas con diferencias de sumas acumuladas redondeadas: las líneas suman exactamente el total y nunca superan su valor. |
-| Datos de otro cliente | `@IDUsuario` sale del JWT. Los SP que reciben `@IDUsuario` (carrito, direcciones, checkout, pedidos, devoluciones, cupones, usuarios, reportes, bitácora y escrituras del catálogo y del inventario) vuelven a verificar el rol y la propiedad. Los SP de lectura de inventario (`SP_Inventario_ListarExistencias`, `SP_Inventario_ConsultarKardex`) y de catálogo (`SP_Catalogo_BuscarProductos`, `SP_Catalogo_ObtenerProducto`, `SP_Categorias_Listar`) no reciben usuario: el catálogo es público y el inventario depende de que la API exija rol Operador o Administrador. |
+| Datos de otro cliente | `@IDUsuario` sale del JWT. Los SP que reciben `@IDUsuario` (carrito, direcciones, checkout, pedidos, devoluciones, cupones, usuarios, reportes, bitácora, escrituras de reseñas y escrituras del catálogo y del inventario) vuelven a verificar el rol y la propiedad. Los SP de lectura de inventario (`SP_Inventario_ListarExistencias`, `SP_Inventario_ConsultarKardex`) y de catálogo (`SP_Catalogo_BuscarProductos`, `SP_Catalogo_ObtenerProducto`, `SP_Categorias_Listar`) no reciben usuario: el catálogo es público y el inventario depende de que la API exija rol Operador o Administrador. |
 | Estados | Tabla `PedidoTransiciones`, validada en el servicio, en `SP_Pedidos_CambiarEstado` y en el trigger `TR_Pedidos_ValidarTransicion` (AFTER UPDATE), que rechaza con 52409 cualquier cambio de estado fuera de la tabla aunque no pase por los SP. |
 | Existencia | Solo `SP_Inventario_RegistrarMovimiento` la cambia, junto con su fila de kardex en la misma transacción. |
 | Bitácora | Triggers sobre productos, variantes, cupones y estado de pedidos, más un trigger `INSTEAD OF UPDATE, DELETE` que la hace inmutable. El SP guarda el usuario con `sp_set_session_context`. |
@@ -276,6 +281,7 @@ El enunciado no define estos puntos, así que se decidieron de esta forma:
 - Modificar el carrito anula la reserva activa.
 - Se puede armar el carrito como invitado, pero pagar exige iniciar sesión.
 - Un pedido usa como máximo un cupón.
+- Para reseñar cuenta solo un pedido `Entregado`: uno `DevueltoParcial` o `Devuelto` ya no habilita una reseña nueva.
 - Un pedido pagado es cualquier pedido que no esté `Cancelado` (el pago simulado ocurre al crearlo); el ticket promedio usa su total cobrado.
 - Se puede pagar con una dirección nueva sin registrarla antes: queda guardada en las direcciones del cliente.
 - Las imágenes son URL externas; subir archivos queda fuera de la Fase 1.
@@ -330,6 +336,8 @@ erDiagram
     Categorias |o--o{ Cupones : "alcance"
     Productos ||--o{ Variantes : "tiene"
     Productos ||--o{ ProductoImagenes : "imagenes"
+    Productos ||--o{ Resenas : "reseñas"
+    Usuarios ||--o{ Resenas : "escribe"
     Variantes ||--o{ Kardex : "movimientos"
     Carritos ||--o{ CarritoDetalle : "lineas"
     Variantes ||--o{ CarritoDetalle : ""

@@ -26,6 +26,7 @@ tags:
   - { name: Auth }
   - { name: Usuarios }
   - { name: Catálogo }
+  - { name: Reseñas }
   - { name: Inventario }
   - { name: Carrito }
   - { name: Cupones }
@@ -283,6 +284,80 @@ paths:
         '200':
           description: Resultado
           content: { application/json: { example: { Resultado: Desactivado } } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+  /productos/{id}/resenas:
+    get:
+      tags: [Reseñas]
+      summary: Reseñas del producto, las más recientes primero, con promedio y total (público)
+      description: Autor es el nombre y la inicial del apellido. Nunca se entrega el correo ni el id del usuario.
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { $ref: '#/components/parameters/Pagina' }
+        - { $ref: '#/components/parameters/Tamano' }
+      responses:
+        '200':
+          description: Página de reseñas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Pagina' }
+                  - type: object
+                    properties:
+                      promedio: { type: number, nullable: true, description: Calificación promedio con dos decimales; null sin reseñas }
+                      datos: { type: array, items: { $ref: '#/components/schemas/Resena' } }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    post:
+      tags: [Reseñas]
+      summary: Crea la reseña del cliente (Cliente con un pedido Entregado que contenga el producto)
+      description: Una por usuario y producto. Los pedidos `DevueltoParcial` y `Devuelto` no cuentan como compra para reseñar.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResenaEntrada' }
+            example: { calificacion: 5, comentario: Muy buen producto. }
+      responses:
+        '201':
+          description: Reseña creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Resena' }
+        '400': { $ref: '#/components/responses/Validacion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: El rol no es Cliente (`PROHIBIDO`) o no compró el producto (`RESENA_SIN_COMPRA`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: { codigo: RESENA_SIN_COMPRA, mensaje: Solo se puede reseñar un producto comprado y entregado. } }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409':
+          description: Ya existe una reseña de este usuario para el producto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: { codigo: RESENA_DUPLICADA, mensaje: Este producto ya tiene una reseña de esta cuenta. } }
+  /productos/{id}/resenas/permiso:
+    get:
+      tags: [Reseñas]
+      summary: Indica si el usuario actual puede reseñar el producto
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: Permiso del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  puede: { type: boolean }
+                  motivo: { type: string, nullable: true, enum: [Rol, Repetida, SinCompra, null], description: null si puede reseñar }
+              example: { puede: false, motivo: SinCompra }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
   /productos/{id}/variantes:
     post:
@@ -836,6 +911,21 @@ components:
         url: { type: string, format: uri, maxLength: 500, description: Dirección http o https }
         textoAlternativo: { type: string, maxLength: 150, nullable: true }
         orden: { type: integer, minimum: 0, default: 0 }
+    ResenaEntrada:
+      type: object
+      required: [calificacion, comentario]
+      properties:
+        calificacion: { type: integer, minimum: 1, maximum: 5 }
+        comentario: { type: string, minLength: 1, maxLength: 1000 }
+    Resena:
+      type: object
+      properties:
+        IDResena: { type: integer }
+        Autor: { type: string, description: Nombre e inicial del apellido }
+        Calificacion: { type: integer, minimum: 1, maximum: 5 }
+        Comentario: { type: string }
+        Fecha: { type: string, format: date-time }
+      example: { IDResena: 1, Autor: Lucía M., Calificacion: 5, Comentario: Muy buen producto., Fecha: '2026-11-01T15:00:00.000Z' }
     ProductoAdministracion:
       type: object
       properties:

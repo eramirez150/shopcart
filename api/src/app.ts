@@ -15,6 +15,7 @@ import { rutasDirecciones } from './modules/direcciones/routes.js';
 import { rutasInventario } from './modules/inventario/routes.js';
 import { rutasPedidos } from './modules/pedidos/routes.js';
 import { rutasBitacora, rutasDashboard } from './modules/reportes/routes.js';
+import { rutasResenas } from './modules/resenas/routes.js';
 import { rutasUsuarios } from './modules/usuarios/routes.js';
 
 export function crearApp() {
@@ -35,6 +36,7 @@ export function crearApp() {
   app.use('/api/auth', rutasAuth);
   app.use('/api/usuarios', rutasUsuarios);
   app.use('/api/categorias', rutasCategorias);
+  app.use('/api/productos', rutasResenas);
   app.use('/api/productos', rutasProductos);
   app.use('/api/inventario', rutasInventario);
   app.use('/api/carrito', rutasCarrito);

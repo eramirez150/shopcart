@@ -41,6 +41,7 @@ Los montos usan `DECIMAL` y las cantidades `INT`. No se permite `FLOAT` ni `REAL
 7. **Pedidos y devoluciones:** el Operador avanza los estados y el Cliente consulta solo los suyos. Se cancela antes del despacho. Devoluciones totales o parciales por línea, sin superar lo vendido. Cancelar o devolver reintegra por kardex y se refleja en reportes. Cada cambio registra usuario, fecha, estado anterior y nuevo.
 8. **Dashboard:** ventas por día, semana y mes, en quetzales y número de pedidos; ventas por categoría; 10 productos más vendidos; listado filtrado de pedidos; carritos abandonados y ticket promedio. Paginación y filtros en el servidor. Solo cuenta pedidos completados y descuenta devoluciones.
 9. **Bitácora:** registra creación, modificación o desactivación de productos, precios, existencias, cupones y estados, con usuario, fecha, entidad, acción, valor anterior y nuevo. Consultable por Administradores con filtro por módulo. No se puede modificar ni eliminar.
+10. **Reseñas de producto:** calificación de 1 a 5 y comentario. Solo un Cliente con un pedido `Entregado` que contenga una variante del producto, una por usuario y producto. El listado es público, paginado, con las más recientes primero, promedio y total. El nombre público es el nombre y la inicial del apellido; nunca el correo ni el id del usuario.
 
 El Operador gestiona pedidos e inventario. El Administrador gestiona además catálogo, precios, cupones, usuarios y reportes. El Cliente solo accede a su propia información.
 
@@ -94,6 +95,7 @@ Supuestos: un pedido completado es `Entregado` o `DevueltoParcial`; cancelar dev
 | Ventas netas | Total de los pedidos completados menos sus devoluciones. Lo usan las ventas por periodo, por categoría y los productos más vendidos. |
 | Ticket promedio | Monto total vendido (suma del total de los pedidos pagados) entre el número de pedidos pagados en un periodo. |
 | Carrito abandonado | Carrito abierto con productos y sin cambios en las últimas 24 horas (valor por defecto, configurable en el reporte). |
+| Compra verificada | Pedido `Entregado` del usuario con una variante del producto. Es lo que habilita una reseña. |
 | Disponible | Existencia física menos lo reservado por reservas activas y no vencidas. |
 
 ## Orden de trabajo de la Fase 1
