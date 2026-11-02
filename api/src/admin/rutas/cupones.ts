@@ -5,7 +5,7 @@ import { dinero, id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from '../../modules/cupones/service.js';
 
 export const rutasCupones = Router();
-rutasCupones.use(autenticar('admin'), autorizar('Administrador'));
+rutasCupones.use(autenticar('admin'), autorizar('cupones.gestionar'));
 
 const cupon = z.object({
   tipo: z.enum(['Porcentaje', 'Monto']),

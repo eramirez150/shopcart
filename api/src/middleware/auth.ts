@@ -3,13 +3,26 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { config } from '../compartido/config.js';
 import { AppError } from '../compartido/errors.js';
+import { tienePermiso } from '../modules/auth/service.js';
 
-export type Rol = 'Cliente' | 'Operador' | 'Administrador';
 // Cada servicio firma y acepta solo los tokens de su audiencia.
 export type Audiencia = 'tienda' | 'admin';
+// Mismos códigos que dbo.Permisos. Tener modulo.gestionar incluye modulo.ver.
+export type Permiso =
+  | 'pedidos.ver'
+  | 'pedidos.gestionar'
+  | 'inventario.ver'
+  | 'inventario.gestionar'
+  | 'catalogo.gestionar'
+  | 'cupones.gestionar'
+  | 'usuarios.gestionar'
+  | 'reportes.ver'
+  | 'bitacora.ver'
+  | 'roles.gestionar';
+
 export interface UsuarioToken {
   id: number;
-  rol: Rol;
+  rol: string;
 }
 
 declare global {
@@ -20,15 +33,6 @@ declare global {
   }
 }
 
-export function firmarAcceso(u: UsuarioToken, audiencia: Audiencia): string {
-  return jwt.sign({ rol: u.rol }, config.jwt.secreto, {
-    algorithm: 'HS256',
-    subject: String(u.id),
-    audience: audiencia,
-    expiresIn: config.jwt.accesoMinutos * 60,
-  });
-}
-
 function leerToken(req: Request, audiencia: Audiencia): UsuarioToken | undefined {
   const cabecera = req.header('authorization');
   if (!cabecera) return undefined;
@@ -37,7 +41,7 @@ function leerToken(req: Request, audiencia: Audiencia): UsuarioToken | undefined
   try {
     const p = jwt.verify(token, config.jwt.secreto, { algorithms: ['HS256'], audience: audiencia });
     if (typeof p === 'string' || !p.sub) throw new Error('payload');
-    return { id: Number(p.sub), rol: p['rol'] as Rol };
+    return { id: Number(p.sub), rol: p['rol'] as string };
   } catch (e) {
     if (e instanceof jwt.TokenExpiredError) throw new AppError(401, 'El token expiró', 'TOKEN_EXPIRADO');
     throw new AppError(401, 'Token inválido', 'TOKEN_INVALIDO');
@@ -62,10 +66,11 @@ export function autenticarOpcional(audiencia: Audiencia) {
   };
 }
 
-export function autorizar(...roles: Rol[]) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+// Consulta la base en cada petición: quitar un permiso tiene efecto inmediato.
+export function autorizar(permiso: Permiso) {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     if (!req.usuario) throw new AppError(401, 'Falta el token de acceso', 'NO_AUTENTICADO');
-    if (!roles.includes(req.usuario.rol)) throw new AppError(403, 'No tiene permiso para este recurso', 'PROHIBIDO');
+    if (!(await tienePermiso(req.usuario.id, permiso))) throw new AppError(403, 'No tiene permiso para este recurso', 'PROHIBIDO');
     next();
   };
 }

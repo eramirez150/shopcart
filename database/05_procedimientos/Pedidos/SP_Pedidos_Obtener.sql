@@ -1,5 +1,5 @@
--- Pedido con sus líneas e historial. El Cliente solo ve los suyos; el Operador
--- y el Administrador ven todos. Un pedido ajeno responde como inexistente.
+-- Pedido con sus líneas e historial. El Cliente solo ve los suyos; el personal
+-- necesita pedidos.ver y ve todos. Un pedido ajeno responde como inexistente.
 CREATE OR ALTER PROCEDURE dbo.SP_Pedidos_Obtener
     @IDUsuario INT,
     @IDPedido  INT
@@ -9,6 +9,8 @@ BEGIN
 
     DECLARE @Rol NVARCHAR(20) = dbo.FU_Auth_Rol(@IDUsuario);
     IF @Rol IS NULL THROW 52403, N'Usuario no autorizado.', 1;
+    IF @Rol <> N'Cliente' AND dbo.FU_Auth_TienePermiso(@IDUsuario, N'pedidos.ver') = 0
+        THROW 52403, N'No tiene permiso para consultar pedidos.', 1;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Pedidos
                    WHERE IDPedido = @IDPedido AND (@Rol <> N'Cliente' OR IDUsuario = @IDUsuario))

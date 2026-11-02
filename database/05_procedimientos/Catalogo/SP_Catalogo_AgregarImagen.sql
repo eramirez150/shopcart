@@ -1,4 +1,4 @@
--- Agrega una imagen a un producto (Administrador). Devuelve el producto completo.
+-- Agrega una imagen a un producto (permiso catalogo.gestionar). Devuelve el producto completo.
 CREATE OR ALTER PROCEDURE dbo.SP_Catalogo_AgregarImagen
     @IDUsuario        INT,
     @IDProducto       INT,
@@ -8,8 +8,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Catalogo_AgregarImagen
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') <> N'Administrador'
-        THROW 52403, N'Solo el Administrador gestiona el catálogo.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'catalogo.gestionar') = 0
+        THROW 52403, N'No tiene permiso para gestionar el catálogo.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.Productos WHERE IDProducto = @IDProducto)
         THROW 52404, N'El producto no existe.', 1;
     IF @Url IS NULL OR (LTRIM(@Url) NOT LIKE N'https://%' AND LTRIM(@Url) NOT LIKE N'http://%')

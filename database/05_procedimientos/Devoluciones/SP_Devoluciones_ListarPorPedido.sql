@@ -1,4 +1,5 @@
--- Devoluciones de un pedido. El Cliente solo consulta las de sus pedidos.
+-- Devoluciones de un pedido. El Cliente solo consulta las de sus pedidos; el personal
+-- necesita pedidos.ver.
 CREATE OR ALTER PROCEDURE dbo.SP_Devoluciones_ListarPorPedido
     @IDUsuario INT,
     @IDPedido  INT
@@ -8,6 +9,8 @@ BEGIN
 
     DECLARE @Rol NVARCHAR(20) = dbo.FU_Auth_Rol(@IDUsuario);
     IF @Rol IS NULL THROW 52403, N'Usuario no autorizado.', 1;
+    IF @Rol <> N'Cliente' AND dbo.FU_Auth_TienePermiso(@IDUsuario, N'pedidos.ver') = 0
+        THROW 52403, N'No tiene permiso para consultar pedidos.', 1;
     IF NOT EXISTS (SELECT 1 FROM dbo.Pedidos WHERE IDPedido = @IDPedido AND (@Rol <> N'Cliente' OR IDUsuario = @IDUsuario))
         THROW 52404, N'El pedido no existe.', 1;
 

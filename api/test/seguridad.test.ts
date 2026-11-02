@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import jwt from 'jsonwebtoken';
-import { iniciarServidor, SECRETO } from './ayuda.js';
+import { hayBase, iniciarServidor, SECRETO } from './ayuda.js';
 
 // Estas pruebas no tocan la base: fallan antes de llegar a un stored procedure.
 describe('seguridad y errores (sin base de datos)', () => {
@@ -30,15 +30,6 @@ describe('seguridad y errores (sin base de datos)', () => {
     assert.equal((await s.pedir('GET', '/admin/usuarios', { token: falso })).estado, 401);
   });
 
-  test('rol sin permiso responde 403', async () => {
-    const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', audience: 'admin', expiresIn: 60 });
-    const operador = jwt.sign({ rol: 'Operador' }, SECRETO, { subject: '2', audience: 'admin', expiresIn: 60 });
-    assert.equal((await s.pedir('GET', '/admin/usuarios', { token: cliente })).estado, 403);
-    assert.equal((await s.pedir('GET', '/admin/dashboard/ventas', { token: operador })).estado, 403);
-    assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: cliente, cuerpo: {} })).estado, 403);
-    assert.equal((await s.pedir('GET', '/admin/bitacora', { token: operador })).estado, 403);
-  });
-
   test('un cliente no puede avanzar un pedido', async () => {
     const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', audience: 'tienda', expiresIn: 60 });
     const r = await s.pedir('PATCH', '/cliente/pedidos/1/estado', { token: cliente, cuerpo: { estado: 'Despachado' } });
@@ -55,17 +46,9 @@ describe('seguridad y errores (sin base de datos)', () => {
   });
 
   test('números fuera del rango de SQL Server responden 400', async () => {
-    const admin = jwt.sign({ rol: 'Administrador' }, SECRETO, { subject: '1', audience: 'admin', expiresIn: 60 });
     assert.equal((await s.pedir('GET', '/publico/productos/2147483648')).estado, 400);
     assert.equal((await s.pedir('GET', '/publico/productos?pagina=2147483647')).estado, 400);
     assert.equal((await s.pedir('GET', '/publico/productos?idCategoria=2147483648')).estado, 400);
-
-    const movimiento = { idVariante: 1, tipo: 'Entrada', cantidad: 2147483648, motivo: 'Prueba' };
-    assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: admin, cuerpo: movimiento })).estado, 400);
-
-    const variante = await s.pedir('POST', '/admin/productos/1/variantes', { token: admin, cuerpo: { sku: 'X', precio: 10000000000 } });
-    assert.equal(variante.estado, 400);
-    assert.ok(variante.datos.error.detalle.some((d: { campo: string }) => d.campo === 'precio'));
   });
 
   test('ruta inexistente responde 404 y JSON mal formado 400', async () => {
@@ -85,5 +68,38 @@ describe('seguridad y errores (sin base de datos)', () => {
     const docs = await fetch(s.base + '/docs/');
     assert.equal(docs.status, 200);
     assert.match(await docs.text(), /swagger-ui/);
+  });
+});
+
+// autorizar() consulta el permiso en la base, así que estas pruebas necesitan conexión.
+describe('seguridad y errores (con base de datos)', { skip: !hayBase && 'sin conexión a la base' }, () => {
+  let s: Awaited<ReturnType<typeof iniciarServidor>>;
+  before(async () => {
+    s = await iniciarServidor();
+  });
+  after(async () => {
+    await s.cerrar();
+  });
+
+  // Tokens de administración de los usuarios de las semillas: 1 Administrador, 2 Operador, 3 Cliente.
+  const token = (rol: string, id: number) => jwt.sign({ rol }, SECRETO, { subject: String(id), audience: 'admin', expiresIn: 60 });
+
+  test('rol sin permiso responde 403', async () => {
+    const cliente = token('Cliente', 3);
+    const operador = token('Operador', 2);
+    assert.equal((await s.pedir('GET', '/admin/usuarios', { token: cliente })).estado, 403);
+    assert.equal((await s.pedir('GET', '/admin/dashboard/ventas', { token: operador })).estado, 403);
+    assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: cliente, cuerpo: {} })).estado, 403);
+    assert.equal((await s.pedir('GET', '/admin/bitacora', { token: operador })).estado, 403);
+  });
+
+  test('números fuera del rango de SQL Server responden 400', async () => {
+    const admin = token('Administrador', 1);
+    const movimiento = { idVariante: 1, tipo: 'Entrada', cantidad: 2147483648, motivo: 'Prueba' };
+    assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: admin, cuerpo: movimiento })).estado, 400);
+
+    const variante = await s.pedir('POST', '/admin/productos/1/variantes', { token: admin, cuerpo: { sku: 'X', precio: 10000000000 } });
+    assert.equal(variante.estado, 400);
+    assert.ok(variante.datos.error.detalle.some((d: { campo: string }) => d.campo === 'precio'));
   });
 });

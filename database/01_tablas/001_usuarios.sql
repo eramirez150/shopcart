@@ -9,7 +9,7 @@ CREATE TABLE dbo.Usuarios (
     Correo          NVARCHAR(150) NOT NULL CONSTRAINT UQ_Usuarios_Correo UNIQUE,
     ClaveHash       NVARCHAR(100) NOT NULL,
     Nombre          NVARCHAR(100) NOT NULL,
-    Rol             NVARCHAR(20)  NOT NULL CONSTRAINT CK_Usuarios_Rol CHECK (Rol IN (N'Cliente', N'Operador', N'Administrador')),
+    Rol             NVARCHAR(20)  NOT NULL, -- Nombre del rol: la llave foránea está en 010_roles_permisos.sql
     Activo          BIT           NOT NULL CONSTRAINT DF_Usuarios_Activo DEFAULT (1),
     FechaCreacion   DATETIME2(0)  NOT NULL CONSTRAINT DF_Usuarios_FechaCreacion DEFAULT (SYSUTCDATETIME())
 );

@@ -7,8 +7,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Dashboard_VentasPorPeriodo
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF ISNULL(dbo.FU_Auth_Rol(@IDUsuario), N'') <> N'Administrador'
-        THROW 52403, N'Solo el Administrador consulta reportes.', 1;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'reportes.ver') = 0
+        THROW 52403, N'No tiene permiso para consultar reportes.', 1;
     IF @Agrupacion NOT IN (N'Dia', N'Semana', N'Mes') THROW 52400, N'La agrupación debe ser Dia, Semana o Mes.', 1;
 
     WITH Pedidos AS (

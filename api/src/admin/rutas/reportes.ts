@@ -7,8 +7,8 @@ import * as servicio from '../../modules/reportes/service.js';
 export const rutasDashboard = Router();
 export const rutasBitacora = Router();
 
-rutasDashboard.use(autenticar('admin'), autorizar('Administrador'));
-rutasBitacora.use(autenticar('admin'), autorizar('Administrador'));
+rutasDashboard.use(autenticar('admin'), autorizar('reportes.ver'));
+rutasBitacora.use(autenticar('admin'), autorizar('bitacora.ver'));
 
 const filtroFechas = { desde: fecha.optional(), hasta: fecha.optional() };
 const rangoDe = (q: { desde?: string | undefined; hasta?: string | undefined }) =>
@@ -44,7 +44,7 @@ rutasDashboard.get('/carritos-abandonados', async (req, res) => {
 rutasBitacora.get('/', async (req, res) => {
   const q = z
     .object({
-      modulo: z.enum(['Catalogo', 'Inventario', 'Cupones', 'Pedidos']).optional(),
+      modulo: z.enum(['Catalogo', 'Inventario', 'Cupones', 'Pedidos', 'Roles']).optional(),
       orden: z.enum(['recientes', 'antiguos']).default('recientes'),
       ...filtroFechas,
       ...paginacion,

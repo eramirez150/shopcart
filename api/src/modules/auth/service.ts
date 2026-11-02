@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { config } from '../../compartido/config.js';
 import { AppError } from '../../compartido/errors.js';
-import { firmarAcceso, type Audiencia, type Rol } from '../../middleware/auth.js';
+import type { Audiencia, UsuarioToken } from '../../middleware/auth.js';
 import * as repo from './repository.js';
 
 const COSTO_BCRYPT = 10;
@@ -12,7 +13,16 @@ const HASH_RELLENO = bcrypt.hashSync('relleno-sin-uso', COSTO_BCRYPT);
 const sha256 = (texto: string) => createHash('sha256').update(texto).digest('hex');
 
 // El Cliente entra por la tienda; cualquier otro rol, por administración.
-const audienciaDe = (rol: Rol): Audiencia => (rol === 'Cliente' ? 'tienda' : 'admin');
+const audienciaDe = (rol: string): Audiencia => (rol === 'Cliente' ? 'tienda' : 'admin');
+
+function firmarAcceso(u: UsuarioToken, audiencia: Audiencia): string {
+  return jwt.sign({ rol: u.rol }, config.jwt.secreto, {
+    algorithm: 'HS256',
+    subject: String(u.id),
+    audience: audiencia,
+    expiresIn: config.jwt.accesoMinutos * 60,
+  });
+}
 
 function respuesta(u: repo.UsuarioFila, refreshToken: string, audiencia: Audiencia) {
   return {
@@ -50,6 +60,8 @@ export async function iniciarSesion(correo: string, clave: string, audiencia: Au
   if (tokenInvitado) await repo.fusionarCarrito(u.IDUsuario, tokenInvitado);
   return emitirSesion(u, audiencia);
 }
+
+export const { tienePermiso } = repo;
 
 // Rotación: cada refresh token sirve una sola vez.
 export async function renovar(refreshToken: string, audiencia: Audiencia) {

@@ -11,8 +11,9 @@ export async function registrar(idUsuario: number, idVariante: number, tipo: str
   return primera(r);
 }
 
-export async function kardex(idVariante: number, orden: string, numero: number, tamano: number) {
+export async function kardex(idUsuario: number, idVariante: number, orden: string, numero: number, tamano: number) {
   const r = await ejecutar('SP_Inventario_ConsultarKardex', {
+    IDUsuario: [sql.Int, idUsuario],
     IDVariante: [sql.Int, idVariante],
     Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],
@@ -21,8 +22,9 @@ export async function kardex(idVariante: number, orden: string, numero: number, 
   return pagina(r, numero, tamano);
 }
 
-export async function existencias(umbral: number | null, orden: string, numero: number, tamano: number) {
+export async function existencias(idUsuario: number, umbral: number | null, orden: string, numero: number, tamano: number) {
   const r = await ejecutar('SP_Inventario_ListarExistencias', {
+    IDUsuario: [sql.Int, idUsuario],
     Umbral: [sql.Int, umbral],
     Orden: [sql.NVarChar(20), orden],
     Pagina: [sql.Int, numero],

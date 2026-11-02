@@ -1,6 +1,7 @@
 -- Kardex de una variante. @Orden: recientes (por defecto) o antiguos, por orden de registro.
--- El orden usa CASE. Sin control de rol: la API solo deja entrar al Operador y al Administrador.
+-- El orden usa CASE. Exige el permiso inventario.ver.
 CREATE OR ALTER PROCEDURE dbo.SP_Inventario_ConsultarKardex
+    @IDUsuario  INT,
     @IDVariante INT,
     @Orden      NVARCHAR(20) = N'recientes',
     @Pagina     INT = 1,
@@ -8,6 +9,8 @@ CREATE OR ALTER PROCEDURE dbo.SP_Inventario_ConsultarKardex
 AS
 BEGIN
     SET NOCOUNT ON;
+    IF dbo.FU_Auth_TienePermiso(@IDUsuario, N'inventario.ver') = 0
+        THROW 52403, N'No tiene permiso para consultar el inventario.', 1;
     IF @Pagina < 1 SET @Pagina = 1;
     IF @Tamano < 1 OR @Tamano > 100 SET @Tamano = 20;
     IF @Orden NOT IN (N'recientes', N'antiguos')

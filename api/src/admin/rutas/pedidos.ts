@@ -5,26 +5,26 @@ import { estadosManuales, filtrosPedidos, id, MAX_INT } from '../../compartido/e
 import * as servicio from '../../modules/pedidos/service.js';
 
 export const rutasPedidos = Router();
-rutasPedidos.use(autenticar('admin'), autorizar('Operador', 'Administrador'));
+rutasPedidos.use(autenticar('admin'));
 
-rutasPedidos.get('/', async (req, res) => {
+rutasPedidos.get('/', autorizar('pedidos.ver'), async (req, res) => {
   res.json(await servicio.listar(idUsuario(req), filtrosPedidos.extend({ idCliente: id.optional() }).parse(req.query)));
 });
 
-rutasPedidos.get('/:id', async (req, res) => {
+rutasPedidos.get('/:id', autorizar('pedidos.ver'), async (req, res) => {
   res.json(await servicio.obtener(idUsuario(req), id.parse(req.params.id)));
 });
 
-rutasPedidos.patch('/:id/estado', async (req, res) => {
+rutasPedidos.patch('/:id/estado', autorizar('pedidos.gestionar'), async (req, res) => {
   const b = z.object({ estado: estadosManuales, comentario: z.string().trim().max(300).nullish() }).parse(req.body);
   res.json(await servicio.cambiarEstado(req.usuario!, id.parse(req.params.id), b.estado, b.comentario ?? null));
 });
 
-rutasPedidos.get('/:id/devoluciones', async (req, res) => {
+rutasPedidos.get('/:id/devoluciones', autorizar('pedidos.ver'), async (req, res) => {
   res.json(await servicio.listarDevoluciones(idUsuario(req), id.parse(req.params.id)));
 });
 
-rutasPedidos.post('/:id/devoluciones', async (req, res) => {
+rutasPedidos.post('/:id/devoluciones', autorizar('pedidos.gestionar'), async (req, res) => {
   const b = z
     .object({
       motivo: z.string().trim().min(1).max(300),

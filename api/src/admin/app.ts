@@ -5,6 +5,7 @@ import { rutasCupones } from './rutas/cupones.js';
 import { rutasInventario } from './rutas/inventario.js';
 import { rutasPedidos } from './rutas/pedidos.js';
 import { rutasBitacora, rutasDashboard } from './rutas/reportes.js';
+import { rutasPermisos, rutasRoles } from './rutas/roles.js';
 import { rutasUsuarios } from './rutas/usuarios.js';
 
 // Servicio de administración: todo es privado salvo /api/admin/auth.
@@ -16,6 +17,8 @@ export function crearAppAdmin() {
     rutas: {
       '/api/admin/auth': rutasAuth,
       '/api/admin/usuarios': rutasUsuarios,
+      '/api/admin/roles': rutasRoles,
+      '/api/admin/permisos': rutasPermisos,
       '/api/admin/categorias': rutasCategorias,
       '/api/admin/productos': rutasProductos,
       '/api/admin/inventario': rutasInventario,
