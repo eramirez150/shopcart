@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autenticarOpcional, autorizar, idUsuario } from '../../middleware/auth.js';
-import { dinero, id, paginacion } from '../../compartido/esquemas.js';
+import { dinero, id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
 
 export const rutasCategorias = Router();
@@ -100,7 +100,7 @@ const variante = z.object({
 });
 
 rutasProductos.post('/:id/variantes', ...admin, async (req, res) => {
-  const b = variante.extend({ existenciaInicial: z.number().int().min(0).default(0) }).parse(req.body);
+  const b = variante.extend({ existenciaInicial: z.number().int().min(0).max(MAX_INT).default(0) }).parse(req.body);
   res
     .status(201)
     .json(await servicio.crearVariante(idUsuario(req), id.parse(req.params.id), b.sku, b.atributos, b.precio, b.existenciaInicial));
@@ -117,7 +117,7 @@ rutasProductos.post('/:id/imagenes', ...admin, async (req, res) => {
     .object({
       url: z.url({ protocol: /^https?$/ }).max(500),
       textoAlternativo: z.string().trim().max(150).nullish(),
-      orden: z.number().int().min(0).default(0),
+      orden: z.number().int().min(0).max(MAX_INT).default(0),
     })
     .parse(req.body);
   res

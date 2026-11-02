@@ -54,6 +54,20 @@ describe('seguridad y errores (sin base de datos)', () => {
     assert.ok(r.datos.error.detalle.length >= 3);
   });
 
+  test('números fuera del rango de SQL Server responden 400', async () => {
+    const admin = jwt.sign({ rol: 'Administrador' }, SECRETO, { subject: '1', expiresIn: 60 });
+    assert.equal((await s.pedir('GET', '/productos/2147483648')).estado, 400);
+    assert.equal((await s.pedir('GET', '/productos?pagina=2147483647')).estado, 400);
+    assert.equal((await s.pedir('GET', '/productos?idCategoria=2147483648')).estado, 400);
+
+    const movimiento = { idVariante: 1, tipo: 'Entrada', cantidad: 2147483648, motivo: 'Prueba' };
+    assert.equal((await s.pedir('POST', '/inventario/movimientos', { token: admin, cuerpo: movimiento })).estado, 400);
+
+    const variante = await s.pedir('POST', '/productos/1/variantes', { token: admin, cuerpo: { sku: 'X', precio: 10000000000 } });
+    assert.equal(variante.estado, 400);
+    assert.ok(variante.datos.error.detalle.some((d: { campo: string }) => d.campo === 'precio'));
+  });
+
   test('ruta inexistente responde 404 y JSON mal formado 400', async () => {
     assert.equal((await s.pedir('GET', '/no-existe')).estado, 404);
     const r = await fetch(s.base + '/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{roto' });

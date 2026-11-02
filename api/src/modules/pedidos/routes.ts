@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { AppError } from '../../compartido/errors.js';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
-import { fecha, id, paginacion } from '../../compartido/esquemas.js';
+import { fecha, id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
 import * as servicio from './service.js';
 
 export const rutasPedidos = Router();
@@ -50,7 +50,7 @@ rutasPedidos.post('/:id/devoluciones', autorizar('Operador', 'Administrador'), a
   const b = z
     .object({
       motivo: z.string().trim().min(1).max(300),
-      lineas: z.array(z.object({ idPedidoDetalle: id, cantidad: z.number().int().positive() })).min(1).max(100),
+      lineas: z.array(z.object({ idPedidoDetalle: id, cantidad: z.number().int().positive().max(MAX_INT) })).min(1).max(100),
     })
     .parse(req.body);
   res.status(201).json(await servicio.registrarDevolucion(idUsuario(req), id.parse(req.params.id), b.motivo, b.lineas));
