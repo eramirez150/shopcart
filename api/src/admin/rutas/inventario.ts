@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
 import { id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/inventario/service.js';
 
 export const rutasInventario = Router();
 rutasInventario.use(autenticar, autorizar('Operador', 'Administrador'));

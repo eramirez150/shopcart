@@ -1,4 +1,5 @@
 import { once } from 'node:events';
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import jwt from 'jsonwebtoken';
 
@@ -17,19 +18,28 @@ export interface Respuesta {
   datos: any;
 }
 
-export async function iniciarServidor() {
-  const { crearApp } = await import('../src/app.js');
-  const { cerrarPool } = await import('../src/compartido/db.js');
-  const servidor = crearApp().listen(0, '127.0.0.1');
-  await once(servidor, 'listening');
-  const base = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}/api`;
+interface Opciones {
+  cuerpo?: unknown;
+  token?: string;
+  cabeceras?: Record<string, string>;
+}
 
-  async function pedir(
-    metodo: string,
-    ruta: string,
-    opciones: { cuerpo?: unknown; token?: string; cabeceras?: Record<string, string> } = {},
-  ): Promise<Respuesta> {
-    const r = await fetch(base + ruta, {
+async function escuchar(servidor: Server): Promise<string> {
+  await once(servidor, 'listening');
+  return `http://127.0.0.1:${(servidor.address() as AddressInfo).port}/api`;
+}
+
+// Levanta los dos servicios en puertos libres, sobre la misma base.
+export async function iniciarServidor() {
+  const { crearAppTienda } = await import('../src/tienda/app.js');
+  const { crearAppAdmin } = await import('../src/admin/app.js');
+  const { cerrarPool } = await import('../src/compartido/db.js');
+  const servidorTienda = crearAppTienda().listen(0, '127.0.0.1');
+  const servidorAdmin = crearAppAdmin().listen(0, '127.0.0.1');
+  const [base, baseAdmin] = await Promise.all([escuchar(servidorTienda), escuchar(servidorAdmin)]);
+
+  const pedirEn = (raiz: string) => async (metodo: string, ruta: string, opciones: Opciones = {}): Promise<Respuesta> => {
+    const r = await fetch(raiz + ruta, {
       method: metodo,
       headers: {
         ...(opciones.cuerpo !== undefined && { 'content-type': 'application/json' }),
@@ -40,10 +50,16 @@ export async function iniciarServidor() {
     });
     const texto = await r.text();
     return { estado: r.status, datos: texto ? JSON.parse(texto) : null };
-  }
+  };
+
+  const tienda = pedirEn(base);
+  const admin = pedirEn(baseAdmin);
+  // El prefijo de la ruta decide el servicio; tienda() y admin() fuerzan uno para probar los cruces.
+  const pedir = (metodo: string, ruta: string, opciones: Opciones = {}) =>
+    (ruta.startsWith('/admin') ? admin : tienda)(metodo, ruta, opciones);
 
   async function login(correo: string, clave: string): Promise<string> {
-    const r = await pedir('POST', '/auth/login', { cuerpo: { correo, clave } });
+    const r = await pedir('POST', '/publico/auth/login', { cuerpo: { correo, clave } });
     if (r.estado !== 200) throw new Error(`login ${correo}: ${r.estado}`);
     return r.datos.accessToken as string;
   }
@@ -51,20 +67,22 @@ export async function iniciarServidor() {
   // Cliente nuevo con sesión, para pruebas que necesitan muchos usuarios.
   async function registrar(prefijo: string): Promise<{ token: string; id: number }> {
     const correo = `${prefijo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@shopcart.test`;
-    const r = await pedir('POST', '/auth/registro', { cuerpo: { correo, clave: 'Prueba-123456', nombre: 'Prueba ' + prefijo } });
+    const r = await pedir('POST', '/publico/auth/registro', { cuerpo: { correo, clave: 'Prueba-123456', nombre: 'Prueba ' + prefijo } });
     if (r.estado !== 201) throw new Error(`registro: ${r.estado} ${JSON.stringify(r.datos)}`);
     return { token: r.datos.accessToken as string, id: r.datos.usuario.id as number };
   }
 
   async function cerrar() {
-    servidor.close();
-    servidor.closeAllConnections();
+    for (const servidor of [servidorTienda, servidorAdmin]) {
+      servidor.close();
+      servidor.closeAllConnections();
+    }
     await cerrarPool();
   }
 
   const expirado = (id: number, rol: string) => jwt.sign({ rol }, SECRETO, { subject: String(id), expiresIn: -10 });
 
-  return { base, pedir, login, registrar, cerrar, expirado };
+  return { base, baseAdmin, pedir, tienda, admin, login, registrar, cerrar, expirado };
 }
 
 export const direccion = { direccion: '6a avenida 12-34 zona 1', ciudad: 'Guatemala', telefono: '55551234' };

@@ -14,41 +14,41 @@ describe('seguridad y errores (sin base de datos)', () => {
   });
 
   test('sin token responde 401', async () => {
-    const r = await s.pedir('GET', '/pedidos');
+    const r = await s.pedir('GET', '/cliente/pedidos');
     assert.equal(r.estado, 401);
     assert.equal(r.datos.error.codigo, 'NO_AUTENTICADO');
   });
 
   test('token expirado responde 401 TOKEN_EXPIRADO', async () => {
-    const r = await s.pedir('GET', '/pedidos', { token: s.expirado(3, 'Cliente') });
+    const r = await s.pedir('GET', '/cliente/pedidos', { token: s.expirado(3, 'Cliente') });
     assert.equal(r.estado, 401);
     assert.equal(r.datos.error.codigo, 'TOKEN_EXPIRADO');
   });
 
   test('token con firma ajena responde 401', async () => {
     const falso = jwt.sign({ rol: 'Administrador' }, 'otro-secreto-otro-secreto-otro-secreto', { subject: '1' });
-    assert.equal((await s.pedir('GET', '/usuarios', { token: falso })).estado, 401);
+    assert.equal((await s.pedir('GET', '/admin/usuarios', { token: falso })).estado, 401);
   });
 
   test('rol sin permiso responde 403', async () => {
     const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', expiresIn: 60 });
     const operador = jwt.sign({ rol: 'Operador' }, SECRETO, { subject: '2', expiresIn: 60 });
-    assert.equal((await s.pedir('GET', '/usuarios', { token: cliente })).estado, 403);
-    assert.equal((await s.pedir('GET', '/dashboard/ventas', { token: operador })).estado, 403);
-    assert.equal((await s.pedir('POST', '/inventario/movimientos', { token: cliente, cuerpo: {} })).estado, 403);
-    assert.equal((await s.pedir('GET', '/bitacora', { token: operador })).estado, 403);
+    assert.equal((await s.pedir('GET', '/admin/usuarios', { token: cliente })).estado, 403);
+    assert.equal((await s.pedir('GET', '/admin/dashboard/ventas', { token: operador })).estado, 403);
+    assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: cliente, cuerpo: {} })).estado, 403);
+    assert.equal((await s.pedir('GET', '/admin/bitacora', { token: operador })).estado, 403);
   });
 
   test('un cliente no puede avanzar un pedido', async () => {
     const cliente = jwt.sign({ rol: 'Cliente' }, SECRETO, { subject: '3', expiresIn: 60 });
-    const r = await s.pedir('PATCH', '/pedidos/1/estado', { token: cliente, cuerpo: { estado: 'Despachado' } });
+    const r = await s.pedir('PATCH', '/cliente/pedidos/1/estado', { token: cliente, cuerpo: { estado: 'Despachado' } });
     assert.equal(r.estado, 403);
     // La respuesta sale del manejador central de errores, con su forma de siempre.
     assert.deepEqual(r.datos, { error: { codigo: 'PROHIBIDO', mensaje: 'El cliente solo puede cancelar su pedido' } });
   });
 
   test('datos inválidos responden 400 con el detalle', async () => {
-    const r = await s.pedir('POST', '/auth/registro', { cuerpo: { correo: 'no-es-correo', clave: '123', nombre: '' } });
+    const r = await s.pedir('POST', '/publico/auth/registro', { cuerpo: { correo: 'no-es-correo', clave: '123', nombre: '' } });
     assert.equal(r.estado, 400);
     assert.equal(r.datos.error.codigo, 'VALIDACION');
     assert.ok(r.datos.error.detalle.length >= 3);
@@ -56,21 +56,21 @@ describe('seguridad y errores (sin base de datos)', () => {
 
   test('números fuera del rango de SQL Server responden 400', async () => {
     const admin = jwt.sign({ rol: 'Administrador' }, SECRETO, { subject: '1', expiresIn: 60 });
-    assert.equal((await s.pedir('GET', '/productos/2147483648')).estado, 400);
-    assert.equal((await s.pedir('GET', '/productos?pagina=2147483647')).estado, 400);
-    assert.equal((await s.pedir('GET', '/productos?idCategoria=2147483648')).estado, 400);
+    assert.equal((await s.pedir('GET', '/publico/productos/2147483648')).estado, 400);
+    assert.equal((await s.pedir('GET', '/publico/productos?pagina=2147483647')).estado, 400);
+    assert.equal((await s.pedir('GET', '/publico/productos?idCategoria=2147483648')).estado, 400);
 
     const movimiento = { idVariante: 1, tipo: 'Entrada', cantidad: 2147483648, motivo: 'Prueba' };
-    assert.equal((await s.pedir('POST', '/inventario/movimientos', { token: admin, cuerpo: movimiento })).estado, 400);
+    assert.equal((await s.pedir('POST', '/admin/inventario/movimientos', { token: admin, cuerpo: movimiento })).estado, 400);
 
-    const variante = await s.pedir('POST', '/productos/1/variantes', { token: admin, cuerpo: { sku: 'X', precio: 10000000000 } });
+    const variante = await s.pedir('POST', '/admin/productos/1/variantes', { token: admin, cuerpo: { sku: 'X', precio: 10000000000 } });
     assert.equal(variante.estado, 400);
     assert.ok(variante.datos.error.detalle.some((d: { campo: string }) => d.campo === 'precio'));
   });
 
   test('ruta inexistente responde 404 y JSON mal formado 400', async () => {
     assert.equal((await s.pedir('GET', '/no-existe')).estado, 404);
-    const r = await fetch(s.base + '/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{roto' });
+    const r = await fetch(s.base + '/publico/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{roto' });
     assert.equal(r.status, 400);
   });
 

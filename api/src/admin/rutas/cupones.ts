@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
 import { dinero, id, MAX_INT, paginacion } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/cupones/service.js';
 
 export const rutasCupones = Router();
 rutasCupones.use(autenticar, autorizar('Administrador'));

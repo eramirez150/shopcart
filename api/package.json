@@ -7,9 +7,11 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/tienda/index.ts",
+    "dev:admin": "tsx watch src/admin/index.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/index.js",
+    "start": "node dist/tienda/index.js",
+    "start:admin": "node dist/admin/index.js",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts"
   },

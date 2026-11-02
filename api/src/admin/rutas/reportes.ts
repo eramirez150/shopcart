@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
 import { fecha, paginacion } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/reportes/service.js';
 
 export const rutasDashboard = Router();
 export const rutasBitacora = Router();
@@ -39,7 +39,7 @@ rutasDashboard.get('/carritos-abandonados', async (req, res) => {
   res.json(await servicio.carritosAbandonados(idUsuario(req), q.horas, q.pagina, q.tamano));
 });
 
-// El listado filtrado de pedidos del dashboard es GET /api/pedidos (ver módulo de pedidos).
+// El listado filtrado de pedidos del dashboard es GET /api/admin/pedidos (ver rutas de pedidos).
 
 rutasBitacora.get('/', async (req, res) => {
   const q = z

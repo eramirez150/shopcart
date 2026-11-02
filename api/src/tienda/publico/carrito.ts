@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticarOpcional, tokenInvitado } from '../../middleware/auth.js';
 import { id } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/carrito/service.js';
 
 export const rutasCarrito = Router();
 rutasCarrito.use(autenticarOpcional);

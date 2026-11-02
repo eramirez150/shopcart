@@ -2,13 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, idUsuario } from '../../middleware/auth.js';
 import { id } from '../../compartido/esquemas.js';
-import * as servicio from './service.js';
+import * as servicio from '../../modules/checkout/service.js';
 
 export const rutasCheckout = Router();
 rutasCheckout.use(autenticar);
 
 // 1. Inicia el pago: reserva la existencia por 15 minutos con precios y descuento congelados.
-// La dirección se elige con idDireccion (una de /api/direcciones) o se registra enviando
+// La dirección se elige con idDireccion (una de /api/cliente/direcciones) o se registra enviando
 // direccion, ciudad y telefono.
 rutasCheckout.post('/pagos', async (req, res) => {
   const b = z
