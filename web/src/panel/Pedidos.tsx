@@ -16,7 +16,7 @@ const TAMANO = 20;
 export function Pedidos() {
   const f = useFiltros({ estado: '', desde: '', hasta: '', idCliente: '', totalMin: '', totalMax: '', orden: 'recientes' });
   const v = f.valores;
-  const r = useApi(() => api<Pagina<PedidoResumen>>('/pedidos', { consulta: { ...v, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const r = useApi(() => api<Pagina<PedidoResumen>>('/admin/pedidos', { consulta: { ...v, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   const [montos, setMontos] = useState({ idCliente: v.idCliente, totalMin: v.totalMin, totalMax: v.totalMax });
   const [error, setError] = useState('');
 

@@ -146,7 +146,7 @@ function Contenido({ producto }: { producto: Producto }) {
 }
 
 function CargaProducto({ id }: { id: string }) {
-  const r = useApi(() => api<Producto>(`/productos/${id}`), id);
+  const r = useApi(() => api<Producto>(`/publico/productos/${id}`), id);
   if (r.cargando) return <EsqueletoDetalle />;
   if (r.error || !r.datos)
     return (

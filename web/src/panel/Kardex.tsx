@@ -34,7 +34,7 @@ function Movimiento({ idVariante, listo }: { idVariante: string; listo: () => vo
     setEnviando(true);
     setAviso(null);
     try {
-      await api('/inventario/movimientos', {
+      await api('/admin/inventario/movimientos', {
         metodo: 'POST',
         // Entrada y salida van en positivo (la API aplica el signo); el ajuste lleva signo.
         cuerpo: { idVariante: Number(idVariante), tipo: datos.tipo, cantidad: Number(datos.cantidad), motivo: datos.motivo.trim() },
@@ -86,7 +86,7 @@ export function Kardex() {
   const { id = '' } = useParams();
   const [params] = useSearchParams();
   const f = useFiltros({ orden: 'recientes' });
-  const r = useApi(() => api<Pagina<MovimientoKardex>>(`/inventario/variantes/${id}/kardex`, { consulta: { orden: f.valores.orden, pagina: f.pagina, tamano: TAMANO } }), `${id}?${f.clave}`);
+  const r = useApi(() => api<Pagina<MovimientoKardex>>(`/admin/inventario/variantes/${id}/kardex`, { consulta: { orden: f.valores.orden, pagina: f.pagina, tamano: TAMANO } }), `${id}?${f.clave}`);
 
   return (
     <section>

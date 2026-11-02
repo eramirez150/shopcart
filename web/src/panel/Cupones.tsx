@@ -1,4 +1,4 @@
-// Cupones (Administrador): listado con orden y paginación, alta, modificación y desactivación.
+// Cupones: listado con orden y paginación, alta, modificación y desactivación.
 // Los cupones no se borran porque los referencian carritos, reservas y pedidos.
 import { useState, type FormEvent } from 'react';
 import { api, ErrorApi, mensajeDe } from '../api/cliente';
@@ -69,8 +69,8 @@ function Formulario({ cupon, terminar }: { cupon: Cupon | null; terminar: (texto
       idCategoria: d.idCategoria ? Number(d.idCategoria) : null,
     };
     try {
-      if (cupon) await api(`/cupones/${cupon.IDCupon}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activo: d.activo } });
-      else await api('/cupones', { metodo: 'POST', cuerpo: { ...cuerpo, codigo: d.codigo.trim().toUpperCase() } });
+      if (cupon) await api(`/admin/cupones/${cupon.IDCupon}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activo: d.activo } });
+      else await api('/admin/cupones', { metodo: 'POST', cuerpo: { ...cuerpo, codigo: d.codigo.trim().toUpperCase() } });
       terminar('Cupón guardado.');
     } catch (err) {
       if (err instanceof ErrorApi) setErrores(err.campos());
@@ -108,6 +108,8 @@ function Formulario({ cupon, terminar }: { cupon: Cupon | null; terminar: (texto
           <label htmlFor="alcance">Alcance</label>
           <select id="alcance" value={d.idCategoria} onChange={(e) => setD({ ...d, idCategoria: e.target.value })}>
             <option value="">Todo el carrito</option>
+            {/* Sin catalogo.gestionar no se listan las categorías: se conserva la del cupón. */}
+            {!categorias.datos && d.idCategoria && <option value={d.idCategoria}>Categoría {d.idCategoria}</option>}
             {categorias.datos?.map((c) => (
               <option key={c.IDCategoria} value={c.IDCategoria}>
                 Solo {c.Nombre}
@@ -137,7 +139,7 @@ function Formulario({ cupon, terminar }: { cupon: Cupon | null; terminar: (texto
 
 export function Cupones() {
   const f = useFiltros({ orden: 'id' });
-  const r = useApi(() => api<Pagina<Cupon>>('/cupones', { consulta: { orden: f.valores.orden, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const r = useApi(() => api<Pagina<Cupon>>('/admin/cupones', { consulta: { orden: f.valores.orden, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   const categorias = useApi(cargarTodasLasCategorias, 'categorias-admin');
   const [editando, setEditando] = useState<Cupon | 'nuevo' | null>(null);
   const [aviso, setAviso] = useState('');

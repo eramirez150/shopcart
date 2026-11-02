@@ -1,6 +1,7 @@
 // Tipos de las respuestas de la API, tomados de api/openapi.yaml.
 
-export type Rol = 'Cliente' | 'Operador' | 'Administrador';
+// Los roles se administran: además de los de sistema puede haber otros.
+export type Rol = string;
 
 export type EstadoPedido = 'Pagado' | 'EnPreparacion' | 'Despachado' | 'Entregado' | 'DevueltoParcial' | 'Devuelto' | 'Cancelado';
 
@@ -243,6 +244,11 @@ export interface Cupon {
   LimitePorCliente: number | null;
   Usos: number;
   IDCategoria: number | null;
+  Activo: boolean;
+}
+
+export interface RolAdmin {
+  Nombre: Rol;
   Activo: boolean;
 }
 

@@ -1,4 +1,4 @@
-// Dashboard (Administrador): indicadores, ventas por periodo, por categoría, productos más
+// Dashboard: indicadores, ventas por periodo, por categoría, productos más
 // vendidos y carritos abandonados. Todo se calcula en la API con los filtros elegidos.
 // Ventas netas = pedidos completados menos devoluciones; el ticket promedio usa los pedidos pagados.
 import { useMemo, type ReactNode } from 'react';
@@ -92,7 +92,7 @@ function Bloque({ titulo, vacio, tabla, children }: { titulo: string; vacio: boo
 function CarritosAbandonados({ horas }: { horas: string }) {
   const f = useFiltros({ pc: '1' }); // Página propia en la URL para no chocar con los filtros del dashboard.
   const pagina = Number(f.valores.pc) || 1;
-  const r = useApi(() => api<Pagina<CarritoAbandonado>>('/dashboard/carritos-abandonados', { consulta: { horas, pagina, tamano: 10 } }), `${horas}-${pagina}`);
+  const r = useApi(() => api<Pagina<CarritoAbandonado>>('/admin/dashboard/carritos-abandonados', { consulta: { horas, pagina, tamano: 10 } }), `${horas}-${pagina}`);
   return (
     <section className="bloque-grafica">
       <h2>Carritos abandonados</h2>
@@ -143,10 +143,10 @@ export function Dashboard() {
   const r = useApi(async () => {
     if (rangoInvalido) throw new Error('La fecha inicial no puede ser posterior a la final.');
     const [indicadores, ventas, categorias, top] = await Promise.all([
-      api<Indicadores>('/dashboard/indicadores', { consulta: { ...rango, horas: v.horas } }),
-      api<VentaPeriodo[]>('/dashboard/ventas', { consulta: { ...rango, agrupacion: v.agrupacion } }),
-      api<VentaCategoria[]>('/dashboard/categorias', { consulta: rango }),
-      api<TopProducto[]>('/dashboard/top-productos', { consulta: { ...rango, cantidad: 10 } }),
+      api<Indicadores>('/admin/dashboard/indicadores', { consulta: { ...rango, horas: v.horas } }),
+      api<VentaPeriodo[]>('/admin/dashboard/ventas', { consulta: { ...rango, agrupacion: v.agrupacion } }),
+      api<VentaCategoria[]>('/admin/dashboard/categorias', { consulta: rango }),
+      api<TopProducto[]>('/admin/dashboard/top-productos', { consulta: { ...rango, cantidad: 10 } }),
     ]);
     return { indicadores, ventas, categorias, top };
   }, clave);

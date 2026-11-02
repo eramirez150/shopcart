@@ -3,6 +3,9 @@
 import type { Sesion } from './tipos';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
+// La compilación decide la aplicación: la tienda habla con su servicio y el panel con el suyo.
+export const ES_PANEL = import.meta.env.VITE_APP === 'admin';
+export const RUTA_AUTH = ES_PANEL ? '/admin/auth' : '/publico/auth';
 const CLAVE_SESION = 'shopcart.sesion';
 const CLAVE_CARRITO = 'shopcart.carritoInvitado';
 
@@ -76,7 +79,7 @@ function renovar(refreshUsado: string): Promise<boolean> {
     if (!actual) return false;
     // Otra pestaña ya lo renovó mientras esperábamos: basta con usar la sesión nueva.
     if (actual.refreshToken !== refreshUsado) return true;
-    const r = await fetch(`${BASE}/auth/refresh`, {
+    const r = await fetch(`${BASE}${RUTA_AUTH}/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: actual.refreshToken }),

@@ -1,4 +1,4 @@
-// Categorías (Administrador): crear, modificar, activar o desactivar y eliminar.
+// Categorías: crear, modificar, activar o desactivar y eliminar.
 // Eliminar una categoría con productos la desactiva (lo decide la API).
 import { useState, type FormEvent } from 'react';
 import { api, ErrorApi, mensajeDe } from '../api/cliente';
@@ -24,8 +24,8 @@ function Formulario({ categoria, terminar }: { categoria: Categoria | null; term
     setError('');
     const cuerpo = { nombre: datos.nombre.trim(), descripcion: datos.descripcion.trim() || null };
     try {
-      if (categoria) await api(`/categorias/${categoria.IDCategoria}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activa: datos.activa } });
-      else await api('/categorias', { metodo: 'POST', cuerpo });
+      if (categoria) await api(`/admin/categorias/${categoria.IDCategoria}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activa: datos.activa } });
+      else await api('/admin/categorias', { metodo: 'POST', cuerpo });
       terminar('Categoría guardada.');
     } catch (err) {
       if (err instanceof ErrorApi) setErrores(err.campos());
@@ -59,7 +59,7 @@ function Formulario({ categoria, terminar }: { categoria: Categoria | null; term
 }
 
 export function CategoriasPanel() {
-  const r = useApi(() => api<Categoria[]>('/categorias', { consulta: { incluirInactivas: true } }), 'categorias-admin');
+  const r = useApi(() => api<Categoria[]>('/admin/categorias', { consulta: { incluirInactivas: true } }), 'categorias-admin');
   const [editando, setEditando] = useState<Categoria | 'nueva' | null>(null);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
 
@@ -74,7 +74,7 @@ export function CategoriasPanel() {
   async function eliminar(c: Categoria) {
     if (!window.confirm(`¿Eliminar la categoría ${c.Nombre}? Si tiene productos solo se desactivará.`)) return;
     try {
-      const res = await api<{ Resultado: string }>(`/categorias/${c.IDCategoria}`, { metodo: 'DELETE' });
+      const res = await api<{ Resultado: string }>(`/admin/categorias/${c.IDCategoria}`, { metodo: 'DELETE' });
       setAviso({ tipo: 'ok', texto: res.Resultado === 'Desactivada' ? 'La categoría tiene productos: se desactivó.' : 'Categoría eliminada.' });
       r.recargar();
     } catch (e) {

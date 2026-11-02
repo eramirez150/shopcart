@@ -10,13 +10,13 @@ import { useFiltros } from '../componentes/useFiltros';
 import { quetzales } from '../formato';
 
 const TAMANO = 20;
-export const cargarTodasLasCategorias = () => api<Categoria[]>('/categorias', { consulta: { incluirInactivas: true } });
+export const cargarTodasLasCategorias = () => api<Categoria[]>('/admin/categorias', { consulta: { incluirInactivas: true } });
 
 export function Productos() {
   const f = useFiltros({ texto: '', idCategoria: '', activo: '', orden: 'nombre' });
   const v = f.valores;
   const categorias = useApi(cargarTodasLasCategorias, 'categorias-admin');
-  const r = useApi(() => api<Pagina<ProductoAdministracion>>('/productos/administracion', { consulta: { ...v, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const r = useApi(() => api<Pagina<ProductoAdministracion>>('/admin/productos', { consulta: { ...v, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   const [texto, setTexto] = useState(v.texto);
 
   function buscar(e: FormEvent) {

@@ -40,7 +40,7 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
     setCargando(true);
     setError(null);
     try {
-      usar(await api<Carrito>('/carrito'));
+      usar(await api<Carrito>('/publico/carrito'));
     } catch (e) {
       setError(mensajeDe(e));
     } finally {
@@ -62,11 +62,11 @@ export function ProveedorCarrito({ children }: { children: ReactNode }) {
     error,
     unidades: carrito?.lineas.reduce((s, l) => s + l.Cantidad, 0) ?? 0,
     recargar,
-    agregar: (idVariante, cantidad) => escribir('/carrito/items', 'POST', { idVariante, cantidad }),
-    cambiarCantidad: (idVariante, cantidad) => escribir(`/carrito/items/${idVariante}`, 'PATCH', { cantidad }),
-    quitar: (idVariante) => escribir(`/carrito/items/${idVariante}`, 'DELETE'),
-    aplicarCupon: (codigo) => escribir('/carrito/cupon', 'PUT', { codigo }),
-    quitarCupon: () => escribir('/carrito/cupon', 'DELETE'),
+    agregar: (idVariante, cantidad) => escribir('/publico/carrito/items', 'POST', { idVariante, cantidad }),
+    cambiarCantidad: (idVariante, cantidad) => escribir(`/publico/carrito/items/${idVariante}`, 'PATCH', { cantidad }),
+    quitar: (idVariante) => escribir(`/publico/carrito/items/${idVariante}`, 'DELETE'),
+    aplicarCupon: (codigo) => escribir('/publico/carrito/cupon', 'PUT', { codigo }),
+    quitarCupon: () => escribir('/publico/carrito/cupon', 'DELETE'),
   };
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ErrorApi, mensajeDe } from '../api/cliente';
 import { Campo } from '../componentes/Campo';
 import { Aviso } from '../componentes/Estados';
-import { inicioDeRol, useSesion } from '../sesion/SesionContexto';
+import { INICIO, useSesion } from '../sesion/SesionContexto';
 import { claveNueva, correo as validarCorreo, maximo, requerido, sinErrores } from '../validacion';
 import { destinoTrasEntrar } from './Login';
 
@@ -17,7 +17,7 @@ export function Registro() {
   const [errorApi, setErrorApi] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  if (usuario && !enviando) return <Navigate to={inicioDeRol(usuario.rol)} replace />;
+  if (usuario && !enviando) return <Navigate to={INICIO} replace />;
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
@@ -33,8 +33,8 @@ export function Registro() {
     setEnviando(true);
     setErrorApi('');
     try {
-      const u = await registrar(datos.nombre.trim(), datos.correo.trim(), datos.clave);
-      navegar(destinoTrasEntrar(u, params.get('volver')), { replace: true });
+      await registrar(datos.nombre.trim(), datos.correo.trim(), datos.clave);
+      navegar(destinoTrasEntrar(params.get('volver')), { replace: true });
     } catch (err) {
       if (err instanceof ErrorApi) setErrores(err.campos());
       setErrorApi(mensajeDe(err));

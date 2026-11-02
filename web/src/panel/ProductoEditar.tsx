@@ -1,4 +1,4 @@
-// Edición de un producto (Administrador): datos, variantes con SKU, atributos y precio, e imágenes.
+// Edición de un producto: datos, variantes con SKU, atributos y precio, e imágenes.
 // Cada escritura responde con el producto completo, que reemplaza al que se muestra.
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -58,8 +58,8 @@ function DatosProducto({ producto, guardado }: { producto: Producto | null; guar
     const cuerpo = { idCategoria: Number(datos.idCategoria), nombre: datos.nombre.trim(), descripcion: datos.descripcion.trim() || null };
     try {
       const p = producto
-        ? await api<Producto>(`/productos/${producto.IDProducto}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activo: datos.activo } })
-        : await api<Producto>('/productos', { metodo: 'POST', cuerpo });
+        ? await api<Producto>(`/admin/productos/${producto.IDProducto}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activo: datos.activo } })
+        : await api<Producto>('/admin/productos', { metodo: 'POST', cuerpo });
       setAviso({ tipo: 'ok', texto: 'Producto guardado.' });
       guardado(p);
     } catch (err) {
@@ -133,8 +133,8 @@ function FormularioVariante({ idProducto, variante, terminar, avisar }: { idProd
     const cuerpo = { sku: datos.sku.trim(), atributos, precio: Number(datos.precio) };
     try {
       const p = variante
-        ? await api<Producto>(`/productos/variantes/${variante.IDVariante}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activa: datos.activa } })
-        : await api<Producto>(`/productos/${idProducto}/variantes`, { metodo: 'POST', cuerpo: { ...cuerpo, existenciaInicial: Number(datos.existencia) } });
+        ? await api<Producto>(`/admin/productos/variantes/${variante.IDVariante}`, { metodo: 'PUT', cuerpo: { ...cuerpo, activa: datos.activa } })
+        : await api<Producto>(`/admin/productos/${idProducto}/variantes`, { metodo: 'POST', cuerpo: { ...cuerpo, existenciaInicial: Number(datos.existencia) } });
       avisar('ok', variante ? 'Variante actualizada.' : 'Variante creada.');
       terminar(p);
     } catch (err) {
@@ -260,7 +260,7 @@ function Imagenes({ producto, cambiar, avisar }: { producto: Producto; cambiar: 
     if (encontrados) return;
     setEnviando(true);
     try {
-      const p = await api<Producto>(`/productos/${producto.IDProducto}/imagenes`, {
+      const p = await api<Producto>(`/admin/productos/${producto.IDProducto}/imagenes`, {
         metodo: 'POST',
         cuerpo: { url: datos.url.trim(), textoAlternativo: datos.texto.trim() || null, orden: Number(datos.orden) },
       });
@@ -277,7 +277,7 @@ function Imagenes({ producto, cambiar, avisar }: { producto: Producto; cambiar: 
   async function quitar(idImagen: number) {
     if (!window.confirm('¿Quitar esta imagen?')) return;
     try {
-      cambiar(await api<Producto>(`/productos/imagenes/${idImagen}`, { metodo: 'DELETE' }));
+      cambiar(await api<Producto>(`/admin/productos/imagenes/${idImagen}`, { metodo: 'DELETE' }));
       avisar('ok', 'Imagen quitada.');
     } catch (err) {
       avisar('error', mensajeDe(err));
@@ -318,7 +318,7 @@ export function ProductoEditar() {
   const { id = 'nuevo' } = useParams();
   const navegar = useNavigate();
   const nuevo = id === 'nuevo';
-  const r = useApi(() => (nuevo ? Promise.resolve(null) : api<Producto>(`/productos/${id}`)), id);
+  const r = useApi(() => (nuevo ? Promise.resolve(null) : api<Producto>(`/admin/productos/${id}`)), id);
   const [producto, setProducto] = useState<Producto | null>(null);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   useEffect(() => setProducto(r.datos), [r.datos]);
@@ -327,7 +327,7 @@ export function ProductoEditar() {
   async function eliminar() {
     if (!producto || !window.confirm(`¿Eliminar ${producto.Nombre}? Si tiene ventas o movimientos solo se desactivará.`)) return;
     try {
-      const res = await api<{ Resultado: string }>(`/productos/${producto.IDProducto}`, { metodo: 'DELETE' });
+      const res = await api<{ Resultado: string }>(`/admin/productos/${producto.IDProducto}`, { metodo: 'DELETE' });
       if (res.Resultado === 'Desactivado') {
         avisar('ok', 'El producto tiene historial: se desactivó.');
         r.recargar();

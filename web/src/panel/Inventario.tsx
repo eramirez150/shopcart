@@ -14,7 +14,7 @@ const TAMANO = 20;
 
 export function Inventario() {
   const f = useFiltros({ umbral: '', orden: 'disponible' });
-  const r = useApi(() => api<Pagina<Existencia>>('/inventario/existencias', { consulta: { ...f.valores, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const r = useApi(() => api<Pagina<Existencia>>('/admin/inventario/existencias', { consulta: { ...f.valores, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   const [umbral, setUmbral] = useState(f.valores.umbral);
   const [error, setError] = useState('');
 

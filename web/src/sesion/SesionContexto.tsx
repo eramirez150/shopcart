@@ -1,7 +1,7 @@
 // Estado de la sesión para toda la aplicación: usuario actual, entrar, registrarse y salir.
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { alCambiarSesion, api, guardarSesion, leerSesion, tokenCarrito } from '../api/cliente';
-import type { Rol, Sesion, Usuario } from '../api/tipos';
+import { alCambiarSesion, api, ES_PANEL, guardarSesion, leerSesion, RUTA_AUTH, tokenCarrito } from '../api/cliente';
+import type { Sesion, Usuario } from '../api/tipos';
 
 interface ValorSesion {
   usuario: Usuario | null;
@@ -15,7 +15,7 @@ const Contexto = createContext<ValorSesion | null>(null);
 // Al entrar se envía el token del carrito de invitado (lo agrega el cliente de la API)
 // para que la API lo fusione con el carrito de la cuenta. Después ya no se necesita.
 async function entrar(correo: string, clave: string): Promise<Usuario> {
-  const s = await api<Sesion>('/auth/login', { metodo: 'POST', cuerpo: { correo, clave } });
+  const s = await api<Sesion>(`${RUTA_AUTH}/login`, { metodo: 'POST', cuerpo: { correo, clave } });
   tokenCarrito.borrar();
   guardarSesion(s);
   return s.usuario;
@@ -32,14 +32,14 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     // El registro no fusiona el carrito de invitado: se cierra la sesión que abre
     // y se entra con login, que sí lo fusiona.
     async registrar(nombre, correo, clave) {
-      const s = await api<Sesion>('/auth/registro', { metodo: 'POST', cuerpo: { nombre, correo, clave } });
-      await api('/auth/logout', { metodo: 'POST', cuerpo: { refreshToken: s.refreshToken } }).catch(() => undefined);
+      const s = await api<Sesion>(`${RUTA_AUTH}/registro`, { metodo: 'POST', cuerpo: { nombre, correo, clave } });
+      await api(`${RUTA_AUTH}/logout`, { metodo: 'POST', cuerpo: { refreshToken: s.refreshToken } }).catch(() => undefined);
       return entrar(correo, clave);
     },
     async cerrarSesion() {
       const s = leerSesion();
       guardarSesion(null);
-      if (s) await api('/auth/logout', { metodo: 'POST', cuerpo: { refreshToken: s.refreshToken } }).catch(() => undefined);
+      if (s) await api(`${RUTA_AUTH}/logout`, { metodo: 'POST', cuerpo: { refreshToken: s.refreshToken } }).catch(() => undefined);
     },
   };
 
@@ -52,7 +52,5 @@ export function useSesion(): ValorSesion {
   return v;
 }
 
-export const esPersonal = (rol?: Rol) => rol === 'Operador' || rol === 'Administrador';
-
-// A dónde va cada rol al entrar.
-export const inicioDeRol = (rol: Rol) => (esPersonal(rol) ? '/panel' : '/');
+// A dónde se va al entrar. Cada aplicación solo acepta el login de su servicio.
+export const INICIO = ES_PANEL ? '/panel' : '/';

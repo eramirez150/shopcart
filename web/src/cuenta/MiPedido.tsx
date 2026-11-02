@@ -2,19 +2,13 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
-import type { Devolucion, Pedido } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { DetallePedido } from '../componentes/DetallePedido';
+import { cargarPedido, DetallePedido } from '../componentes/DetallePedido';
 import { Aviso, EsqueletoFilas, MensajeError } from '../componentes/Estados';
-
-export const cargarPedido = async (id: string) => {
-  const [pedido, devoluciones] = await Promise.all([api<Pedido>(`/pedidos/${id}`), api<Devolucion[]>(`/pedidos/${id}/devoluciones`)]);
-  return { pedido, devoluciones };
-};
 
 export function MiPedido() {
   const { id = '' } = useParams();
-  const r = useApi(() => cargarPedido(id), id);
+  const r = useApi(() => cargarPedido('/cliente/pedidos', id), id);
   const [confirmando, setConfirmando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
@@ -24,7 +18,7 @@ export function MiPedido() {
     setEnviando(true);
     setAviso(null);
     try {
-      await api(`/pedidos/${id}/estado`, { metodo: 'PATCH', cuerpo: { estado: 'Cancelado', comentario: 'Cancelado por el cliente' } });
+      await api(`/cliente/pedidos/${id}/estado`, { metodo: 'PATCH', cuerpo: { estado: 'Cancelado', comentario: 'Cancelado por el cliente' } });
       setAviso({ tipo: 'ok', texto: 'El pedido se canceló.' });
       setConfirmando(false);
       r.recargar();

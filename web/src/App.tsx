@@ -1,4 +1,4 @@
-// Rutas de la aplicación. Las secciones privadas pasan por RutaProtegida con los roles permitidos.
+// Rutas de la aplicación. Las secciones privadas pasan por RutaProtegida.
 import { lazy, Suspense } from 'react';
 import { Link, Route, Routes } from 'react-router';
 import { Cargando, Vacio } from './componentes/Estados';
@@ -57,7 +57,7 @@ export function App() {
         <Route path="categorias" element={<Categorias />} />
         <Route path="producto/:id" element={<Detalle />} />
         <Route path="carrito" element={<CarritoPagina />} />
-        <Route element={<RutaProtegida roles={['Cliente']} />}>
+        <Route element={<RutaProtegida />}>
           <Route path="checkout" element={<Checkout />} />
           <Route path="checkout/listo/:id" element={<PedidoConfirmado />} />
           <Route path="cuenta" element={<Cuenta />} />
@@ -68,29 +68,27 @@ export function App() {
         <Route path="*" element={<NoEncontrada />} />
       </Route>
 
-      <Route element={<RutaProtegida roles={['Operador', 'Administrador']} />}>
+      <Route element={<RutaProtegida />}>
         <Route path="/panel" element={<PanelLayout />}>
           <Route index element={<PanelInicio />} />
           <Route path="pedidos" element={<Pedidos />} />
           <Route path="pedidos/:id" element={<PedidoPanel />} />
           <Route path="inventario" element={<Inventario />} />
           <Route path="inventario/:id" element={<Kardex />} />
-          <Route element={<RutaProtegida roles={['Administrador']} enPanel />}>
-            <Route
-              path="dashboard"
-              element={
-                <Suspense fallback={<Cargando />}>
-                  <Dashboard />
-                </Suspense>
-              }
-            />
-            <Route path="categorias" element={<CategoriasPanel />} />
-            <Route path="productos" element={<Productos />} />
-            <Route path="productos/:id" element={<ProductoEditar />} />
-            <Route path="cupones" element={<Cupones />} />
-            <Route path="usuarios" element={<Usuarios />} />
-            <Route path="bitacora" element={<Bitacora />} />
-          </Route>
+          <Route
+            path="dashboard"
+            element={
+              <Suspense fallback={<Cargando />}>
+                <Dashboard />
+              </Suspense>
+            }
+          />
+          <Route path="categorias" element={<CategoriasPanel />} />
+          <Route path="productos" element={<Productos />} />
+          <Route path="productos/:id" element={<ProductoEditar />} />
+          <Route path="cupones" element={<Cupones />} />
+          <Route path="usuarios" element={<Usuarios />} />
+          <Route path="bitacora" element={<Bitacora />} />
           <Route path="*" element={<NoEncontrada enPanel />} />
         </Route>
       </Route>

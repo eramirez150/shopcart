@@ -12,7 +12,7 @@ const TAMANO = 10;
 
 export function MisPedidos() {
   const f = useFiltros({ estado: '', orden: 'recientes' });
-  const r = useApi(() => api<Pagina<PedidoResumen>>('/pedidos', { consulta: { ...f.valores, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const r = useApi(() => api<Pagina<PedidoResumen>>('/cliente/pedidos', { consulta: { ...f.valores, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   return (
     <main className="contenedor">
       <p>

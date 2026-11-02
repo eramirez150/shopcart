@@ -1,29 +1,19 @@
-// Panel de operador y administrador: menú lateral con las opciones del rol.
+// Panel del personal: menú lateral. El login no informa los permisos del usuario, así que
+// se muestran todas las secciones y cada una dice "sin permiso" si la API responde 403.
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import type { Rol } from '../api/tipos';
 import { useSesion } from '../sesion/SesionContexto';
 
-interface Opcion {
-  ruta: string;
-  texto: string;
-  roles: Rol[];
-}
-
-const PERSONAL: Rol[] = ['Operador', 'Administrador'];
-const ADMIN: Rol[] = ['Administrador'];
-
-// Cada opción indica qué roles la ven. Las rutas también están protegidas en App.tsx.
-export const OPCIONES_PANEL: Opcion[] = [
-  { ruta: '/panel', texto: 'Inicio', roles: PERSONAL },
-  { ruta: '/panel/dashboard', texto: 'Dashboard', roles: ADMIN },
-  { ruta: '/panel/pedidos', texto: 'Pedidos y devoluciones', roles: PERSONAL },
-  { ruta: '/panel/inventario', texto: 'Inventario y kardex', roles: PERSONAL },
-  { ruta: '/panel/categorias', texto: 'Categorías', roles: ADMIN },
-  { ruta: '/panel/productos', texto: 'Productos, variantes y precios', roles: ADMIN },
-  { ruta: '/panel/cupones', texto: 'Cupones', roles: ADMIN },
-  { ruta: '/panel/usuarios', texto: 'Usuarios', roles: ADMIN },
-  { ruta: '/panel/bitacora', texto: 'Bitácora', roles: ADMIN },
+export const OPCIONES_PANEL = [
+  { ruta: '/panel', texto: 'Inicio' },
+  { ruta: '/panel/dashboard', texto: 'Dashboard' },
+  { ruta: '/panel/pedidos', texto: 'Pedidos y devoluciones' },
+  { ruta: '/panel/inventario', texto: 'Inventario y kardex' },
+  { ruta: '/panel/categorias', texto: 'Categorías' },
+  { ruta: '/panel/productos', texto: 'Productos, variantes y precios' },
+  { ruta: '/panel/cupones', texto: 'Cupones' },
+  { ruta: '/panel/usuarios', texto: 'Usuarios' },
+  { ruta: '/panel/bitacora', texto: 'Bitácora' },
 ];
 
 export function PanelLayout() {
@@ -31,7 +21,6 @@ export function PanelLayout() {
   const navegar = useNavigate();
   const [abierto, setAbierto] = useState(false);
   const { pathname } = useLocation();
-  const opciones = OPCIONES_PANEL.filter((o) => usuario && o.roles.includes(usuario.rol));
 
   async function salir() {
     await cerrarSesion();
@@ -52,7 +41,7 @@ export function PanelLayout() {
       </header>
       <aside className={`panel-lateral ${abierto ? 'abierto' : ''}`}>
         <nav aria-label="Menú del panel" onClick={() => setAbierto(false)}>
-          {opciones.map((o) => (
+          {OPCIONES_PANEL.map((o) => (
             <NavLink key={o.ruta} to={o.ruta} end={o.ruta === '/panel'}>
               {o.texto}
             </NavLink>
@@ -60,7 +49,6 @@ export function PanelLayout() {
         </nav>
         <div className="panel-pie">
           <p>{usuario?.nombre}</p>
-          <Link to="/">Ver la tienda</Link>
           <button type="button" className="boton boton-secundario" onClick={() => void salir()}>
             Cerrar sesión
           </button>
@@ -75,7 +63,7 @@ export function PanelLayout() {
 
 export function PanelInicio() {
   const { usuario } = useSesion();
-  const opciones = OPCIONES_PANEL.filter((o) => o.ruta !== '/panel' && usuario && o.roles.includes(usuario.rol));
+  const opciones = OPCIONES_PANEL.filter((o) => o.ruta !== '/panel');
   return (
     <section>
       <h1>Hola, {usuario?.nombre}</h1>

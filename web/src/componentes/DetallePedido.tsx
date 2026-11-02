@@ -1,8 +1,15 @@
 // Datos de un pedido: líneas, totales, entrega, historial de estados y devoluciones.
 // Lo usan Mi cuenta y el panel; cada uno agrega sus propias acciones.
+import { api } from '../api/cliente';
 import type { Devolucion, Pedido } from '../api/tipos';
 import { fechaYHora, NOMBRE_ESTADO, quetzales } from '../formato';
 import { Precio } from './Precio';
+
+// La tienda pide sus pedidos en /cliente/pedidos y el panel en /admin/pedidos.
+export const cargarPedido = async (base: string, id: string) => {
+  const [pedido, devoluciones] = await Promise.all([api<Pedido>(`${base}/${id}`), api<Devolucion[]>(`${base}/${id}/devoluciones`)]);
+  return { pedido, devoluciones };
+};
 
 export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devoluciones: Devolucion[] | null }) {
   const skuDe = new Map(pedido.lineas.map((l) => [l.IDPedidoDetalle, l.Producto]));

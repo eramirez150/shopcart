@@ -19,7 +19,7 @@ const PASOS = ['Dirección', 'Cupón', 'Confirmación', 'Pago'];
 type Eleccion = { id: number } | { nueva: DatosDireccion };
 
 function PasoDireccion({ seguir }: { seguir: (e: Eleccion, texto: string) => void }) {
-  const direcciones = useApi(() => api<Direccion[]>('/direcciones'), 'direcciones');
+  const direcciones = useApi(() => api<Direccion[]>('/cliente/direcciones'), 'direcciones');
   const [elegida, setElegida] = useState<number | 'nueva' | null>(null);
   const [nueva, setNueva] = useState<DatosDireccion>({ direccion: '', ciudad: 'Guatemala', telefono: '' });
   const [errores, setErrores] = useState<Record<string, string>>({});
@@ -124,7 +124,7 @@ export function Checkout() {
   async function reservar() {
     if (!eleccion) return;
     const cuerpo = 'id' in eleccion ? { idDireccion: eleccion.id } : eleccion.nueva;
-    const r = await enviar(() => api<Reserva>('/checkout/pagos', { metodo: 'POST', cuerpo }));
+    const r = await enviar(() => api<Reserva>('/cliente/checkout/pagos', { metodo: 'POST', cuerpo }));
     if (r) {
       setReserva(r);
       setPaso(3);
@@ -133,7 +133,7 @@ export function Checkout() {
 
   async function pagar() {
     if (!reserva) return;
-    const p = await enviar(() => api<Pedido>(`/checkout/reservas/${reserva.IDReserva}/pedido`, { metodo: 'POST' }));
+    const p = await enviar(() => api<Pedido>(`/cliente/checkout/reservas/${reserva.IDReserva}/pedido`, { metodo: 'POST' }));
     if (p) {
       await recargar();
       navegar(`/checkout/listo/${p.IDPedido}`, { replace: true });
@@ -142,7 +142,7 @@ export function Checkout() {
 
   async function cancelarPago() {
     if (!reserva) return;
-    const r = await enviar(() => api<Reserva>(`/checkout/reservas/${reserva.IDReserva}`, { metodo: 'DELETE' }));
+    const r = await enviar(() => api<Reserva>(`/cliente/checkout/reservas/${reserva.IDReserva}`, { metodo: 'DELETE' }));
     if (r) {
       setReserva(null);
       setPaso(2);

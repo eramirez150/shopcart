@@ -5,11 +5,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { api } from '../api/cliente';
 import type { Categoria } from '../api/tipos';
-import { esPersonal, useSesion } from '../sesion/SesionContexto';
+import { useSesion } from '../sesion/SesionContexto';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
 
-export const cargarCategorias = () => api<Categoria[]>('/categorias');
+export const cargarCategorias = () => api<Categoria[]>('/publico/categorias');
 
 // Depende de la dirección: bajar pasados los 60 px compacta y subir restaura, esté donde esté la
 // página. Los cambios de menos de 8 px se ignoran para que no parpadee con los gestos pequeños.
@@ -65,7 +65,6 @@ export function TiendaLayout() {
     window.scrollTo(0, 0);
   }, [pathname, pagina]);
 
-  const cuenta = esPersonal(usuario?.rol) ? '/panel' : '/cuenta';
   const enDetalle = pathname.startsWith('/producto/');
   const clases = enDetalle ? 'tienda-detalle' : compacto ? 'compacto' : '';
 
@@ -89,7 +88,7 @@ export function TiendaLayout() {
           </Link>
           <nav className="encabezado-enlaces" aria-label="Accesos">
             <NavLink to="/categorias">Categorías</NavLink>
-            <NavLink to={cuenta}>{usuario ? 'Mi cuenta' : 'Iniciar sesión'}</NavLink>
+            <NavLink to="/cuenta">{usuario ? 'Mi cuenta' : 'Iniciar sesión'}</NavLink>
           </nav>
           <Link to="/carrito" className="boton-icono encabezado-carrito" aria-label={`Carrito, ${unidades} productos`}>
             <Icono nombre="carrito" />
@@ -132,7 +131,7 @@ export function TiendaLayout() {
           </span>
           Carrito
         </NavLink>
-        <NavLink to={cuenta}>
+        <NavLink to="/cuenta">
           <Icono nombre="cuenta" />
           Mi cuenta
         </NavLink>

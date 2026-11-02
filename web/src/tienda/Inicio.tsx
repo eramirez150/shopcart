@@ -12,7 +12,7 @@ import { GrillaProductos } from './TarjetaProducto';
 import { cargarCategorias } from './TiendaLayout';
 
 export function buscarProductos(consulta: Consulta) {
-  return api<Pagina<ProductoResumen>>('/productos', { consulta });
+  return api<Pagina<ProductoResumen>>('/publico/productos', { consulta });
 }
 
 function Promocion({ categoria, indice }: { categoria: Categoria; indice: number }) {

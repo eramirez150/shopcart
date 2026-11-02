@@ -1,8 +1,8 @@
-// Usuarios (Administrador): listado por rol, alta con rol, cambio de rol y desactivación.
+// Usuarios: listado por rol, alta con rol, cambio de rol y desactivación.
 // Un usuario nunca se borra; desactivarlo cierra sus sesiones.
 import { useState, type FormEvent } from 'react';
 import { api, ErrorApi, mensajeDe } from '../api/cliente';
-import type { Pagina, Rol, UsuarioAdmin } from '../api/tipos';
+import type { Pagina, Rol, RolAdmin, UsuarioAdmin } from '../api/tipos';
 import { useApi } from '../api/useApi';
 import { Campo } from '../componentes/Campo';
 import { Aviso, EsqueletoFilas, MensajeError, Vacio } from '../componentes/Estados';
@@ -12,9 +12,15 @@ import { useSesion } from '../sesion/SesionContexto';
 import { claveNueva, correo, maximo, requerido, sinErrores } from '../validacion';
 
 const TAMANO = 20;
-const ROLES: Rol[] = ['Cliente', 'Operador', 'Administrador'];
+const ROLES_BASE: Rol[] = ['Cliente', 'Operador', 'Administrador'];
 
-function NuevoUsuario({ terminar }: { terminar: (texto?: string) => void }) {
+// Solo roles.gestionar puede listar los roles; sin ese permiso quedan los de la semilla.
+function useRoles(): Rol[] {
+  const r = useApi(() => api<RolAdmin[]>('/admin/roles'), 'roles');
+  return r.datos?.filter((x) => x.Activo).map((x) => x.Nombre) ?? ROLES_BASE;
+}
+
+function NuevoUsuario({ roles, terminar }: { roles: Rol[]; terminar: (texto?: string) => void }) {
   const [d, setD] = useState({ nombre: '', correo: '', clave: '', rol: 'Operador' as Rol });
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
@@ -33,7 +39,7 @@ function NuevoUsuario({ terminar }: { terminar: (texto?: string) => void }) {
     setEnviando(true);
     setError('');
     try {
-      await api('/usuarios', { metodo: 'POST', cuerpo: { ...d, nombre: d.nombre.trim(), correo: d.correo.trim() } });
+      await api('/admin/usuarios', { metodo: 'POST', cuerpo: { ...d, nombre: d.nombre.trim(), correo: d.correo.trim() } });
       terminar('Usuario creado.');
     } catch (err) {
       if (err instanceof ErrorApi) setErrores(err.campos());
@@ -51,7 +57,7 @@ function NuevoUsuario({ terminar }: { terminar: (texto?: string) => void }) {
       <div className="campo">
         <label htmlFor="rolNuevo">Rol</label>
         <select id="rolNuevo" value={d.rol} onChange={(e) => setD({ ...d, rol: e.target.value as Rol })}>
-          {ROLES.map((r) => (
+          {roles.map((r) => (
             <option key={r}>{r}</option>
           ))}
         </select>
@@ -72,7 +78,8 @@ function NuevoUsuario({ terminar }: { terminar: (texto?: string) => void }) {
 export function Usuarios() {
   const { usuario } = useSesion();
   const f = useFiltros({ rol: '', orden: 'id' });
-  const r = useApi(() => api<Pagina<UsuarioAdmin>>('/usuarios', { consulta: { ...f.valores, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const roles = useRoles();
+  const r = useApi(() => api<Pagina<UsuarioAdmin>>('/admin/usuarios', { consulta: { ...f.valores, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   const [creando, setCreando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState<number | null>(null);
@@ -82,7 +89,7 @@ export function Usuarios() {
     setOcupado(u.IDUsuario);
     setAviso(null);
     try {
-      await api(`/usuarios/${u.IDUsuario}`, { metodo: 'PATCH', cuerpo: cambio });
+      await api(`/admin/usuarios/${u.IDUsuario}`, { metodo: 'PATCH', cuerpo: cambio });
       setAviso({ tipo: 'ok', texto: `${u.Nombre} actualizado.` });
       r.recargar();
     } catch (e) {
@@ -105,6 +112,7 @@ export function Usuarios() {
       {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
       {creando && (
         <NuevoUsuario
+          roles={roles}
           terminar={(texto) => {
             setCreando(false);
             if (texto) {
@@ -120,7 +128,7 @@ export function Usuarios() {
         </label>
         <select id="rol" className="control" value={f.valores.rol} onChange={(e) => f.cambiar({ rol: e.target.value })}>
           <option value="">Todos los roles</option>
-          {ROLES.map((r2) => (
+          {roles.map((r2) => (
             <option key={r2}>{r2}</option>
           ))}
         </select>
@@ -162,7 +170,7 @@ export function Usuarios() {
                           Rol de {u.Nombre}
                         </label>
                         <select id={`rol-${u.IDUsuario}`} className="control control-chico" value={u.Rol} disabled={yo || ocupado !== null} onChange={(e) => void actualizar(u, { rol: e.target.value as Rol })}>
-                          {ROLES.map((r2) => (
+                          {[...new Set([...roles, u.Rol])].map((r2) => (
                             <option key={r2}>{r2}</option>
                           ))}
                         </select>

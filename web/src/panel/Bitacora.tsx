@@ -1,4 +1,4 @@
-// Bitácora (Administrador): solo lectura, con filtro por módulo y fechas, orden y paginación.
+// Bitácora: solo lectura, con filtro por módulo y fechas, orden y paginación.
 import { api } from '../api/cliente';
 import type { Pagina, RegistroBitacora } from '../api/tipos';
 import { useApi } from '../api/useApi';
@@ -31,7 +31,7 @@ function legible(json: string | null): string {
 export function Bitacora() {
   const f = useFiltros({ modulo: '', desde: '', hasta: '', orden: 'recientes' });
   const v = f.valores;
-  const r = useApi(() => api<Pagina<RegistroBitacora>>('/bitacora', { consulta: { ...v, pagina: f.pagina, tamano: TAMANO } }), f.clave);
+  const r = useApi(() => api<Pagina<RegistroBitacora>>('/admin/bitacora', { consulta: { ...v, pagina: f.pagina, tamano: TAMANO } }), f.clave);
   const rangoInvalido = Boolean(v.desde && v.hasta && v.desde > v.hasta);
 
   return (

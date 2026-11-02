@@ -4,8 +4,7 @@ import { Link, useParams } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
 import type { EstadoPedido, Pedido } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { cargarPedido } from '../cuenta/MiPedido';
-import { DetallePedido } from '../componentes/DetallePedido';
+import { cargarPedido, DetallePedido } from '../componentes/DetallePedido';
 import { Aviso, EsqueletoFilas, MensajeError } from '../componentes/Estados';
 import { NOMBRE_ESTADO } from '../formato';
 import { maximo, requerido } from '../validacion';
@@ -35,7 +34,7 @@ function CambioEstado({ pedido, listo }: { pedido: Pedido; listo: (texto: string
     setEnviando(true);
     setError('');
     try {
-      await api(`/pedidos/${pedido.IDPedido}/estado`, { metodo: 'PATCH', cuerpo: { estado, comentario: comentario.trim() || null } });
+      await api(`/admin/pedidos/${pedido.IDPedido}/estado`, { metodo: 'PATCH', cuerpo: { estado, comentario: comentario.trim() || null } });
       setComentario('');
       listo(`El pedido pasó a ${NOMBRE_ESTADO[estado as EstadoPedido]}.`);
     } catch (err2) {
@@ -100,7 +99,7 @@ function FormularioDevolucion({ pedido, listo }: { pedido: Pedido; listo: (texto
     setEnviando(true);
     setError('');
     try {
-      await api(`/pedidos/${pedido.IDPedido}/devoluciones`, { metodo: 'POST', cuerpo: { motivo: motivo.trim(), lineas: elegidas } });
+      await api(`/admin/pedidos/${pedido.IDPedido}/devoluciones`, { metodo: 'POST', cuerpo: { motivo: motivo.trim(), lineas: elegidas } });
       setCantidades({});
       setMotivo('');
       listo('Devolución registrada; la existencia se reintegró por kardex.');
@@ -147,7 +146,7 @@ function FormularioDevolucion({ pedido, listo }: { pedido: Pedido; listo: (texto
 
 export function PedidoPanel() {
   const { id = '' } = useParams();
-  const r = useApi(() => cargarPedido(id), id);
+  const r = useApi(() => cargarPedido('/admin/pedidos', id), id);
   const [aviso, setAviso] = useState<EstadoAviso>(null);
 
   function listo(texto: string) {

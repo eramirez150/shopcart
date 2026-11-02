@@ -36,7 +36,7 @@ export function TarjetaProducto({ producto }: { producto: ProductoResumen }) {
     setEstado('agregando');
     setError('');
     try {
-      const p = await api<Producto>(`/productos/${producto.IDProducto}`);
+      const p = await api<Producto>(`/publico/productos/${producto.IDProducto}`);
       const variante = p.variantes.find((v) => v.Activa && v.Disponible > 0);
       if (!variante) throw new Error('Producto agotado.');
       await agregar(variante.IDVariante, 1);

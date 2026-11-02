@@ -6,7 +6,7 @@ import { EsqueletoGrilla } from '../componentes/Estados';
 import { GrillaProductos } from './TarjetaProducto';
 
 export function Relacionados({ idProducto }: { idProducto: number }) {
-  const r = useApi(() => api<ProductoResumen[]>(`/productos/${idProducto}/relacionados`), String(idProducto));
+  const r = useApi(() => api<ProductoResumen[]>(`/publico/productos/${idProducto}/relacionados`), String(idProducto));
   if (r.error || r.datos?.length === 0) return null;
   return (
     <section className="seccion" aria-labelledby="relacionados-titulo">

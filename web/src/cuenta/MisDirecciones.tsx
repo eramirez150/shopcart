@@ -26,8 +26,8 @@ function Formulario({ inicial, idDireccion, terminar }: { inicial: DatosDireccio
     setError('');
     try {
       const cuerpo = { direccion: datos.direccion.trim(), ciudad: datos.ciudad.trim(), telefono: datos.telefono.trim() };
-      if (idDireccion) await api(`/direcciones/${idDireccion}`, { metodo: 'PUT', cuerpo });
-      else await api('/direcciones', { metodo: 'POST', cuerpo });
+      if (idDireccion) await api(`/cliente/direcciones/${idDireccion}`, { metodo: 'PUT', cuerpo });
+      else await api('/cliente/direcciones', { metodo: 'POST', cuerpo });
       terminar(true);
     } catch (err) {
       if (err instanceof ErrorApi) setErrores(err.campos());
@@ -54,7 +54,7 @@ function Formulario({ inicial, idDireccion, terminar }: { inicial: DatosDireccio
 }
 
 export function MisDirecciones() {
-  const r = useApi(() => api<Direccion[]>('/direcciones'), 'direcciones');
+  const r = useApi(() => api<Direccion[]>('/cliente/direcciones'), 'direcciones');
   const [editando, setEditando] = useState<Direccion | 'nueva' | null>(null);
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
   const [ocupada, setOcupada] = useState<number | null>(null);
@@ -64,7 +64,7 @@ export function MisDirecciones() {
     setOcupada(d.IDDireccion);
     setAviso(null);
     try {
-      await api(`/direcciones/${d.IDDireccion}`, { metodo: 'DELETE' });
+      await api(`/cliente/direcciones/${d.IDDireccion}`, { metodo: 'DELETE' });
       setAviso({ tipo: 'ok', texto: 'Dirección quitada.' });
       r.recargar();
     } catch (e) {

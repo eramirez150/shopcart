@@ -12,7 +12,7 @@ const POR_PAGINA = 5;
 const MAXIMO_COMENTARIO = 1000;
 
 const pedirPagina = (idProducto: number, pagina: number) =>
-  api<ResenasProducto>(`/productos/${idProducto}/resenas`, { consulta: { pagina, tamano: POR_PAGINA } });
+  api<ResenasProducto>(`/publico/productos/${idProducto}/resenas`, { consulta: { pagina, tamano: POR_PAGINA } });
 
 function Estrellas({ valor }: { valor: number }) {
   const llenas = Math.round(valor);
@@ -26,7 +26,7 @@ function Estrellas({ valor }: { valor: number }) {
 
 // Solo se muestra si la API confirma que este cliente puede reseñar el producto.
 function Formulario({ idProducto, alCrear }: { idProducto: number; alCrear: () => void }) {
-  const permiso = useApi(() => api<PermisoResena>(`/productos/${idProducto}/resenas/permiso`), String(idProducto));
+  const permiso = useApi(() => api<PermisoResena>(`/cliente/productos/${idProducto}/resenas/permiso`), String(idProducto));
   const [calificacion, setCalificacion] = useState(0);
   const [comentario, setComentario] = useState('');
   const [errores, setErrores] = useState<Record<string, string>>({});
@@ -46,7 +46,7 @@ function Formulario({ idProducto, alCrear }: { idProducto: number; alCrear: () =
     if (invalidos || enviando) return;
     setEnviando(true);
     try {
-      await api<Resena>(`/productos/${idProducto}/resenas`, { metodo: 'POST', cuerpo: { calificacion, comentario: comentario.trim() } });
+      await api<Resena>(`/cliente/productos/${idProducto}/resenas`, { metodo: 'POST', cuerpo: { calificacion, comentario: comentario.trim() } });
       alCrear();
     } catch (error) {
       if (error instanceof ErrorApi && Object.keys(error.campos()).length > 0) setErrores(error.campos());
@@ -177,7 +177,7 @@ export function Resenas({ idProducto }: { idProducto: number }) {
         </>
       )}
       {creada && <Aviso tipo="ok">Gracias, tu reseña ya está publicada.</Aviso>}
-      {usuario?.rol === 'Cliente' && !creada && <Formulario key={usuario.id} idProducto={idProducto} alCrear={alCrear} />}
+      {usuario && !creada && <Formulario key={usuario.id} idProducto={idProducto} alCrear={alCrear} />}
     </section>
   );
 }
