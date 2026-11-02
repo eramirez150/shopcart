@@ -263,6 +263,7 @@ Limitaciones conocidas: un usuario desactivado conserva su token de acceso hasta
 | Seis productos por pantalla | En celular la cuadrícula tiene dos columnas y cada fila mide un tercio del alto útil (`100dvh` menos la barra compacta, el menú inferior y los espacios). Así entran exactamente 3 filas entre la barra y el menú en 390 × 844 y en cualquier alto. Desde 600 px las tarjetas son cuadradas y hay 3 o más columnas. |
 | Datos que la API no tiene | El listado no entrega calificaciones, ventas por producto ni precio anterior. La tarjeta solo muestra estrellas, ventas y precio tachado si esos campos llegan (`Calificacion`, `Ventas`, `PrecioAnterior`); hoy esas líneas se omiten. Las estrellas de las tarjetas quedan fuera del alcance de las reseñas, que solo se ven en el detalle. Tampoco hay un listado público de los más vendidos (`/dashboard/top-productos` es solo para el administrador), así que las secciones del inicio son Novedades, Precios bajos y dos categorías. |
 | Promociones | No hay módulo de promociones: el carrusel invita a recorrer las cuatro primeras categorías reales, sin descuentos inventados. "Ver ofertas" lleva a los productos ordenados por precio. |
+| Encabezado | Depende de la dirección: al bajar pasados los 60 px se va el nombre y queda el buscador sobre blanco; apenas se sube vuelve completo, esté donde esté la página. Los cambios de menos de 8 px se ignoran para que no parpadee. En el detalle de producto queda fija solo la barra, sin buscador, con una flecha para volver que lleva al inicio si no hay historial. |
 | Reseñas y relacionados | El detalle muestra debajo de la descripción el promedio, la lista con "Ver más" de 5 en 5 y el formulario, que aparece solo si `/resenas/permiso` confirma que el cliente puede reseñar. Las estrellas usan el acento rojo sobre gris plata. Los relacionados reutilizan la tarjeta y la cuadrícula; si fallan o no hay, la sección no aparece y el resto de la página sigue funcionando. |
 | Carrito | Las líneas del carrito no traen imagen ni producto (solo variante), por eso se muestran sin foto. El cupón exige sesión, como la API. |
 | Checkout | Se permite solo al rol Cliente. Pasos: dirección (guardada o nueva), cupón (el del carrito), confirmación, que reserva la existencia 15 minutos, y pago simulado, que crea el pedido. Un 409 al pagar (reserva vencida o carrito cambiado) regresa a la confirmación con el mensaje de la API. |
@@ -452,10 +453,12 @@ No probado o con limitaciones del entorno de verificación:
 Verificado sobre una base recién creada, con SQL Server 2022 en Docker, Node.js 24 y Chrome sin interfaz (Playwright) a 390 × 844 contra la API real:
 
 - En `api/`: `npx tsc --noEmit` sin errores y `npm test` con 48 pruebas aprobadas.
-- `database/pruebas/ejecutar.sh` con las cinco pruebas SQL aprobadas (22 comprobaciones).
+- `database/pruebas/ejecutar.sh` con las cinco pruebas SQL aprobadas (24 comprobaciones).
 - En `web/`: `npx tsc --noEmit -p .` y `npm run build` sin errores.
 - Detalle con reseñas de semilla, promedio y total; relacionados con la misma categoría primero; un cliente sin compra no ve el formulario; un cliente con pedido entregado publica su reseña y aparece primero; el segundo intento se rechaza con 409, por la API y desde una segunda pestaña; "Ver más" completa la lista.
 - Estados de carga, vacío y error de reseñas con reintento; con los relacionados caídos la sección no aparece y el producto se puede comprar.
 - Sin desborde horizontal, la barra de agregar no tapa el final de la página y siguen entrando 6 tarjetas completas en el inicio.
+
+- Encabezado: en el inicio, bajar compacta y subir 60 px lo restaura lejos del tope; en el detalle no hay buscador, la barra se mantiene al bajar, "Volver" regresa o lleva al inicio sin historial, y no hay hueco arriba ni desborde. A 900 y 1280 px el carrito y los enlaces siguen accesibles.
 
 No probado: Safari, Firefox y teléfonos reales.

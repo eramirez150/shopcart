@@ -988,6 +988,11 @@ svg {
   background: var(--papel);
 }
 
+/* En el detalle de producto solo queda la barra: el contenido empieza justo debajo. */
+.tienda-detalle .tienda-contenido {
+  padding-top: var(--alto-barra);
+}
+
 /* ---------- Menú inferior (celular y tableta) */
 .menu-inferior {
   position: fixed;

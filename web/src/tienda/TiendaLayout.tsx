@@ -1,5 +1,6 @@
 // Estructura de la tienda: encabezado con buscador, contenido y menú inferior en celular.
-// Al bajar se va el nombre y queda el buscador sobre blanco; arriba de todo vuelve el encabezado completo.
+// Al bajar se va el nombre y queda el buscador sobre blanco; apenas se sube vuelve el encabezado completo.
+// En el detalle de producto queda fija solo la barra, con una flecha para volver y sin buscador.
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { api } from '../api/cliente';
@@ -10,12 +11,18 @@ import { Icono } from './Iconos';
 
 export const cargarCategorias = () => api<Categoria[]>('/categorias');
 
-// Depende de la posición y no de la dirección: así el color no cambia con cada gesto.
+// Depende de la dirección: bajar pasados los 60 px compacta y subir restaura, esté donde esté la
+// página. Los cambios de menos de 8 px se ignoran para que no parpadee con los gestos pequeños.
 function useCompacto(): boolean {
   const [compacto, setCompacto] = useState(false);
   useEffect(() => {
-    const alDesplazar = () => setCompacto(window.scrollY > 60);
-    alDesplazar();
+    let ultimo = window.scrollY;
+    const alDesplazar = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - ultimo) < 8) return;
+      setCompacto(y > ultimo && y > 60);
+      ultimo = y;
+    };
     window.addEventListener('scroll', alDesplazar, { passive: true });
     return () => window.removeEventListener('scroll', alDesplazar);
   }, []);
@@ -48,7 +55,8 @@ export function TiendaLayout() {
   const compacto = useCompacto();
   const { unidades } = useCarrito();
   const { usuario } = useSesion();
-  const { pathname } = useLocation();
+  const { pathname, key } = useLocation();
+  const navegar = useNavigate();
   const [params] = useSearchParams();
   const pagina = params.get('pagina');
 
@@ -58,11 +66,24 @@ export function TiendaLayout() {
   }, [pathname, pagina]);
 
   const cuenta = esPersonal(usuario?.rol) ? '/panel' : '/cuenta';
+  const enDetalle = pathname.startsWith('/producto/');
+  const clases = enDetalle ? 'tienda-detalle' : compacto ? 'compacto' : '';
+
+  // La primera entrada del historial tiene la clave 'default': no hay a dónde regresar.
+  const volver = () => {
+    if (key === 'default') void navegar('/');
+    else void navegar(-1);
+  };
 
   return (
-    <div className={`tienda ${compacto ? 'compacto' : ''}`}>
+    <div className={`tienda ${clases}`}>
       <header className="encabezado">
         <div className="encabezado-barra">
+          {enDetalle && (
+            <button type="button" className="boton-icono" aria-label="Volver" onClick={volver}>
+              <Icono nombre="atras" />
+            </button>
+          )}
           <Link to="/" className="marca">
             ShopCart
           </Link>
@@ -79,9 +100,11 @@ export function TiendaLayout() {
             )}
           </Link>
         </div>
-        <div className="encabezado-buscador">
-          <Buscador />
-        </div>
+        {!enDetalle && (
+          <div className="encabezado-buscador">
+            <Buscador />
+          </div>
+        )}
       </header>
 
       {/* La clave reinicia la animación de entrada en cada página. */}
