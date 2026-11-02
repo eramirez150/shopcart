@@ -1,10 +1,11 @@
 // Deja pasar solo a los roles indicados. Sin sesión manda al login y luego regresa aquí.
-import { Navigate, Outlet, useLocation } from 'react-router';
+import { Link, Navigate, Outlet, useLocation } from 'react-router';
 import type { Rol } from '../api/tipos';
 import { MensajeError } from '../componentes/Estados';
 import { useSesion } from './SesionContexto';
 
-export function RutaProtegida({ roles }: { roles: Rol[] }) {
+// Dentro del panel ya hay un <main>: enPanel evita anidar otro.
+export function RutaProtegida({ roles, enPanel = false }: { roles: Rol[]; enPanel?: boolean }) {
   const { usuario } = useSesion();
   const ubicacion = useLocation();
   if (!usuario) {
@@ -12,10 +13,16 @@ export function RutaProtegida({ roles }: { roles: Rol[] }) {
     return <Navigate to={`/login?volver=${volver}`} replace />;
   }
   if (!roles.includes(usuario.rol)) {
+    const Contenedor = enPanel ? 'div' : 'main';
     return (
-      <main className="contenedor">
+      <Contenedor className="contenedor">
         <MensajeError titulo="Sin permiso" mensaje="Tu cuenta no tiene acceso a esta sección." />
-      </main>
+        <div className="estado-cuerpo">
+          <Link to="/" className="boton boton-principal">
+            Ir a la tienda
+          </Link>
+        </div>
+      </Contenedor>
     );
   }
   return <Outlet />;

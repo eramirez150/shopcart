@@ -91,10 +91,13 @@ export function TiendaLayout() {
   const { usuario } = useSesion();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const { pathname } = useLocation();
+  const [params] = useSearchParams();
+  const pagina = params.get('pagina');
 
+  // Sube al cambiar de ruta o de página de resultados; los demás filtros no mueven la vista.
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, pagina]);
 
   const cuenta = esPersonal(usuario?.rol) ? '/panel' : '/cuenta';
 

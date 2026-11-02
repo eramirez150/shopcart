@@ -805,6 +805,7 @@ svg {
 }
 
 .celda-json {
+  min-width: 240px; /* en celular la tabla se desplaza en vez de aplastar la columna */
   max-width: 260px;
   font-size: 0.82rem;
   color: var(--tinta-suave);
@@ -2424,7 +2425,7 @@ svg {
 }
 
 .panel-barra {
-  --ancho-plata: 140px;
+  --ancho-plata: 44px; /* en celular el rol necesita la franja roja casi completa */
   position: sticky;
   top: 0;
   z-index: 20;
@@ -2606,6 +2607,7 @@ svg {
 
 .panel-dos-columnas {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* sin esto la tabla ensancha la página en lugar de desplazarse */
   gap: 28px;
 }
 
@@ -2722,6 +2724,12 @@ svg {
 
 .grafica {
   position: relative;
+}
+
+@media (min-width: 600px) {
+  .panel-barra {
+    --ancho-plata: 140px;
+  }
 }
 
 @media (min-width: 900px) {

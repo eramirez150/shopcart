@@ -5,13 +5,17 @@ import { Link, useParams } from 'react-router';
 import { api, mensajeDe } from '../api/cliente';
 import type { Producto, Variante } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Aviso, EsqueletoDetalle, MensajeError } from '../componentes/Estados';
+import { Aviso, EsqueletoDetalle, MensajeError, Vacio } from '../componentes/Estados';
 import { Precio } from '../componentes/Precio';
 import { textoAtributos } from '../formato';
 import { useCarrito } from './CarritoContexto';
 import { Icono } from './Iconos';
 
 const nombreVariante = (v: Variante) => textoAtributos(v.Atributos) || v.SKU;
+
+// Los productos usan INT en la base: fuera de ese rango no puede existir ninguno.
+const ID_MAXIMO = 2147483647;
+const esIdValido = (id: string) => /^[1-9]\d*$/.test(id) && Number(id) <= ID_MAXIMO;
 
 export function SelectorCantidad({ valor, maximo, cambiar, deshabilitado }: { valor: number; maximo: number; cambiar: (n: number) => void; deshabilitado?: boolean }) {
   return (
@@ -133,9 +137,8 @@ function Contenido({ producto }: { producto: Producto }) {
   );
 }
 
-export function Detalle() {
-  const { id } = useParams();
-  const r = useApi(() => api<Producto>(`/productos/${id}`), id ?? '');
+function CargaProducto({ id }: { id: string }) {
+  const r = useApi(() => api<Producto>(`/productos/${id}`), id);
   if (r.cargando) return <EsqueletoDetalle />;
   if (r.error || !r.datos)
     return (
@@ -145,4 +148,19 @@ export function Detalle() {
       </main>
     );
   return <Contenido key={r.datos.IDProducto} producto={r.datos} />;
+}
+
+export function Detalle() {
+  const { id = '' } = useParams();
+  if (!esIdValido(id))
+    return (
+      <main className="contenedor">
+        <Vacio titulo="Este producto no existe" ilustracion="busqueda">
+          <Link to="/" className="boton boton-principal">
+            Ir al inicio
+          </Link>
+        </Vacio>
+      </main>
+    );
+  return <CargaProducto id={id} />;
 }

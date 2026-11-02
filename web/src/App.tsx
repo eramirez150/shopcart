@@ -31,15 +31,17 @@ import { TiendaLayout } from './tienda/TiendaLayout';
 // El dashboard trae Chart.js: se descarga solo cuando el administrador lo abre.
 const Dashboard = lazy(() => import('./panel/Dashboard').then((m) => ({ default: m.Dashboard })));
 
-function NoEncontrada() {
+// Dentro del panel ya hay un <main>: enPanel evita anidar otro.
+function NoEncontrada({ enPanel = false }: { enPanel?: boolean }) {
+  const Contenedor = enPanel ? 'div' : 'main';
   return (
-    <main className="contenedor">
+    <Contenedor className="contenedor">
       <Vacio titulo="Esta página no existe" ilustracion="busqueda">
         <Link to="/" className="boton boton-principal">
           Ir al inicio
         </Link>
       </Vacio>
-    </main>
+    </Contenedor>
   );
 }
 
@@ -73,7 +75,7 @@ export function App() {
           <Route path="pedidos/:id" element={<PedidoPanel />} />
           <Route path="inventario" element={<Inventario />} />
           <Route path="inventario/:id" element={<Kardex />} />
-          <Route element={<RutaProtegida roles={['Administrador']} />}>
+          <Route element={<RutaProtegida roles={['Administrador']} enPanel />}>
             <Route
               path="dashboard"
               element={
@@ -89,7 +91,7 @@ export function App() {
             <Route path="usuarios" element={<Usuarios />} />
             <Route path="bitacora" element={<Bitacora />} />
           </Route>
-          <Route path="*" element={<NoEncontrada />} />
+          <Route path="*" element={<NoEncontrada enPanel />} />
         </Route>
       </Route>
     </Routes>
