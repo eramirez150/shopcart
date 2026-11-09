@@ -260,8 +260,22 @@ export interface Cupon {
 }
 
 export interface RolAdmin {
+  IDRol: number;
   Nombre: Rol;
+  Descripcion: string | null;
+  EsSistema: boolean;
   Activo: boolean;
+  FechaCreacion: string;
+  UsuariosActivos: number;
+  permisos: string[];
+}
+
+export interface Permiso {
+  IDPermiso: number;
+  Codigo: string;
+  Modulo: string;
+  Descripcion: string;
+  Asignable: boolean;
 }
 
 export interface UsuarioAdmin {

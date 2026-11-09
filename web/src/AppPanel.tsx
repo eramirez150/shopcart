@@ -14,6 +14,7 @@ import { PedidoPanel } from './panel/PedidoPanel';
 import { Pedidos } from './panel/Pedidos';
 import { ProductoEditar } from './panel/ProductoEditar';
 import { Productos } from './panel/Productos';
+import { Roles } from './panel/Roles';
 import { Usuarios } from './panel/Usuarios';
 import { RutaProtegida } from './sesion/RutaProtegida';
 
@@ -45,6 +46,7 @@ export function App() {
           <Route path="productos/:id" element={<ProductoEditar />} />
           <Route path="cupones" element={<Cupones />} />
           <Route path="usuarios" element={<Usuarios />} />
+          <Route path="roles" element={<Roles />} />
           <Route path="bitacora" element={<Bitacora />} />
           <Route path="*" element={<NoEncontrada enPanel />} />
         </Route>
