@@ -38,7 +38,7 @@ Los montos usan `DECIMAL` y las cantidades `INT`. No se permite `FLOAT` ni `REAL
 4. **Carrito:** agregar, modificar y eliminar. Soporta carrito de invitado por token. Muestra subtotal, descuentos y total, sin errores de redondeo. No permite superar el disponible.
 5. **Cupones:** porcentaje o monto fijo, vigencia, mínimo de compra, límite total, límite por cliente, alcance de carrito o categoría. Un cupón por pedido. El rechazo indica la causa específica. El límite se respeta con concurrencia y el total nunca baja de cero.
 6. **Checkout:** dirección de entrega y reserva de 15 minutos al iniciar el pago. Sin sobreventa, sin pedidos ni cobros duplicados. Pedido, detalle, kardex y uso de cupón se guardan de forma atómica.
-7. **Pedidos y devoluciones:** el Operador avanza los estados y el Cliente consulta solo los suyos. Se cancela antes del despacho. Devoluciones totales o parciales por línea, sin superar lo vendido. Cancelar o devolver reintegra por kardex y se refleja en reportes. Cada cambio registra usuario, fecha, estado anterior y nuevo.
+7. **Pedidos y devoluciones:** el Operador avanza los estados y el Cliente consulta solo los suyos. Se cancela antes del despacho. Despachar exige mensajería, guía, peso y costo de recogida; entregar exige quién recibió. El Cliente ve esos datos, menos el costo de recogida. Devoluciones totales o parciales por línea, sin superar lo vendido. Cancelar o devolver reintegra por kardex y se refleja en reportes. Cada cambio registra usuario, fecha, estado anterior y nuevo.
 8. **Dashboard:** ventas por día, semana y mes, en quetzales y número de pedidos; ventas por categoría; 10 productos más vendidos; listado filtrado de pedidos; carritos abandonados y ticket promedio. Paginación y filtros en el servidor. Solo cuenta pedidos completados y descuenta devoluciones.
 9. **Bitácora:** registra creación, modificación o desactivación de productos, precios, existencias, cupones y estados, con usuario, fecha, entidad, acción, valor anterior y nuevo. Consultable por Administradores con filtro por módulo. No se puede modificar ni eliminar.
 10. **Reseñas de producto:** calificación de 1 a 5 y comentario. Solo un Cliente con un pedido `Entregado` que contenga una variante del producto, una por usuario y producto. El listado es público, paginado, con las más recientes primero, promedio y total. El nombre público es el nombre y la inicial del apellido; nunca el correo ni el id del usuario.
@@ -67,6 +67,7 @@ Un proyecto `web/` con dos compilaciones y dos contenedores: la tienda consume s
 | Cupón concurrente | `UPDATE ... WHERE Usos < Limite` y revisión de `@@ROWCOUNT`, en la misma transacción que el límite por cliente. |
 | Datos de otro cliente | `@IDUsuario` sale siempre del JWT, nunca del body ni de la URL. Los SP que lo reciben verifican permiso y propiedad; los de lectura del catálogo no lo reciben y dependen de la ruta de cada servicio. |
 | Estados | Tabla `PedidoTransiciones`, validada en el servicio, en `SP_Pedidos_CambiarEstado` y en el trigger `TR_Pedidos_ValidarTransicion` (AFTER UPDATE sobre `Pedidos`). |
+| Despacho y entrega | Tabla `PedidoEnvios`, una fila por pedido, escrita por `SP_Pedidos_CambiarEstado` en la misma transacción que el estado. El SP exige los datos; la ruta los valida antes. |
 | Bitácora | Trigger `INSTEAD OF UPDATE, DELETE`. |
 | Permisos | El usuario de la aplicación solo tiene `EXECUTE` sobre los SP. |
 | Pago | Simulado. El enunciado no exige pasarela. |
@@ -78,8 +79,8 @@ Estados del pedido: `Pagado`, `EnPreparacion`, `Despachado`, `Entregado`, `Devue
 | Desde | Hacia | Cómo ocurre |
 | --- | --- | --- |
 | `Pagado` | `EnPreparacion` | El Operador avanza el pedido. |
-| `EnPreparacion` | `Despachado` | El Operador avanza el pedido. |
-| `Despachado` | `Entregado` | El Operador avanza el pedido. |
+| `EnPreparacion` | `Despachado` | El Operador avanza el pedido e indica mensajería, guía, peso y costo de recogida. |
+| `Despachado` | `Entregado` | El Operador avanza el pedido e indica quién recibió. |
 | `Pagado` | `Cancelado` | Cancelación antes del despacho. |
 | `EnPreparacion` | `Cancelado` | Cancelación antes del despacho. |
 | `Entregado` | `DevueltoParcial` | Devolución de parte de lo vendido. |

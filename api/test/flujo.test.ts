@@ -129,13 +129,15 @@ describe('flujo completo de compra, pedidos y reportes', { skip: !hayBase && 'si
     assert.match(repetido.datos.error.mensaje, /máximo de veces/);
 
     // Estados: el Operador avanza; las transiciones inválidas se rechazan.
-    const estado = (t: string, e: string) => s.pedir('PATCH', `/${t === operador ? 'admin' : 'cliente'}/pedidos/${idPedido}/estado`, { token: t, cuerpo: { estado: e } });
-    assert.equal((await estado(operador, 'Entregado')).estado, 409);
+    const estado = (t: string, e: string, datos: object = {}) => s.pedir('PATCH', `/${t === operador ? 'admin' : 'cliente'}/pedidos/${idPedido}/estado`, { token: t, cuerpo: { estado: e, ...datos } });
+    const envio = { mensajeria: 'Mensajería Central', guia: 'GUIA-2001', pesoKg: 1.25, costoRecogida: 30 };
+    const recibido = { recibidoPor: 'Flujo Cliente' };
+    assert.equal((await estado(operador, 'Entregado', recibido)).estado, 409);
     assert.equal((await estado(cliente, 'EnPreparacion')).estado, 403);
     assert.equal((await estado(operador, 'EnPreparacion')).estado, 200);
-    assert.equal((await estado(operador, 'Despachado')).estado, 200);
+    assert.equal((await estado(operador, 'Despachado', envio)).estado, 200);
     assert.equal((await estado(cliente, 'Cancelado')).estado, 409);
-    assert.equal((await estado(operador, 'Entregado')).datos.Estado, 'Entregado');
+    assert.equal((await estado(operador, 'Entregado', recibido)).datos.Estado, 'Entregado');
 
     // Devoluciones parcial y total, sin superar lo vendido.
     const detalle = p1.datos.lineas as { IDPedidoDetalle: number; Cantidad: number; SKU: string }[];

@@ -2,12 +2,19 @@
 -- El personal con pedidos.gestionar avanza o cancela cualquier pedido; el Cliente
 -- solo cancela los suyos. Los estados de devolución se alcanzan con
 -- SP_Devoluciones_Registrar. Cancelar reintegra la existencia por kardex y
--- devuelve el uso del cupón.
+-- devuelve el uso del cupón. Pasar a Despachado exige mensajería, guía, peso y costo
+-- de recogida; pasar a Entregado exige quién recibió. Esos datos se guardan en
+-- PedidoEnvios en la misma transacción que el cambio de estado.
 CREATE OR ALTER PROCEDURE dbo.SP_Pedidos_CambiarEstado
     @IDUsuario   INT,
     @IDPedido    INT,
     @EstadoNuevo NVARCHAR(20),
-    @Comentario  NVARCHAR(300) = NULL
+    @Comentario  NVARCHAR(300) = NULL,
+    @Mensajeria    NVARCHAR(100) = NULL,
+    @Guia          NVARCHAR(60)  = NULL,
+    @PesoKg        DECIMAL(8,2)  = NULL,
+    @CostoRecogida DECIMAL(12,2) = NULL,
+    @RecibidoPor   NVARCHAR(150) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -37,6 +44,13 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM dbo.PedidoTransiciones WHERE EstadoOrigen = @Estado AND EstadoDestino = @EstadoNuevo)
             THROW 52409, N'Transición de estado no permitida.', 1;
 
+        IF @EstadoNuevo = N'Despachado'
+           AND (NULLIF(LTRIM(RTRIM(@Mensajeria)), N'') IS NULL OR NULLIF(LTRIM(RTRIM(@Guia)), N'') IS NULL
+                OR @PesoKg IS NULL OR @PesoKg <= 0 OR @CostoRecogida IS NULL OR @CostoRecogida < 0)
+            THROW 52400, N'Para despachar se requieren mensajería, guía, peso mayor que cero y costo de recogida.', 1;
+        IF @EstadoNuevo = N'Entregado' AND NULLIF(LTRIM(RTRIM(@RecibidoPor)), N'') IS NULL
+            THROW 52400, N'Para entregar se requiere quién recibió el pedido.', 1;
+
         EXEC sys.sp_set_session_context @key = N'IDUsuario', @value = @IDUsuario;
 
         UPDATE dbo.Pedidos SET Estado = @EstadoNuevo, FechaActualizacion = SYSUTCDATETIME()
@@ -44,6 +58,17 @@ BEGIN
 
         INSERT INTO dbo.PedidoHistorial (IDPedido, EstadoAnterior, EstadoNuevo, IDUsuario, Comentario)
         VALUES (@IDPedido, @Estado, @EstadoNuevo, @IDUsuario, @Comentario);
+
+        IF @EstadoNuevo = N'Despachado'
+            INSERT INTO dbo.PedidoEnvios (IDPedido, Mensajeria, Guia, PesoKg, CostoRecogida)
+            VALUES (@IDPedido, LTRIM(RTRIM(@Mensajeria)), LTRIM(RTRIM(@Guia)), @PesoKg, @CostoRecogida);
+
+        IF @EstadoNuevo = N'Entregado'
+        BEGIN
+            UPDATE dbo.PedidoEnvios SET RecibidoPor = LTRIM(RTRIM(@RecibidoPor)), FechaEntrega = SYSUTCDATETIME()
+            WHERE IDPedido = @IDPedido;
+            IF @@ROWCOUNT = 0 THROW 52409, N'El pedido no tiene datos de despacho.', 1;
+        END;
 
         IF @EstadoNuevo = N'Cancelado'
         BEGIN

@@ -37,8 +37,14 @@ describe('reseñas de producto', { skip: !hayBase && 'sin conexión a la base' }
   }
 
   async function entregar(idPedido: number) {
-    for (const estado of ['EnPreparacion', 'Despachado', 'Entregado']) {
-      const r = await s.pedir('PATCH', `/admin/pedidos/${idPedido}/estado`, { token: operador, cuerpo: { estado } });
+    // Despachado and Entregado require shipment data since PedidoEnvios was added.
+    const pasos = [
+      { estado: 'EnPreparacion' },
+      { estado: 'Despachado', mensajeria: 'Mensajería Central', guia: `GUIA-R${idPedido}`, pesoKg: 1, costoRecogida: 25 },
+      { estado: 'Entregado', recibidoPor: 'Cliente Reseña' },
+    ];
+    for (const cuerpo of pasos) {
+      const r = await s.pedir('PATCH', `/admin/pedidos/${idPedido}/estado`, { token: operador, cuerpo });
       assert.equal(r.estado, 200, JSON.stringify(r.datos));
     }
   }

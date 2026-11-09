@@ -119,7 +119,7 @@ npm run typecheck
 npm test
 ```
 
-`servicios.test.ts` no necesita base de datos y tampoco el primer bloque de `seguridad.test.ts` y de `sesiones.test.ts`. Lo demás (`roles`, `flujo`, `concurrencia`, `direcciones`, `dashboard`, `catalogo`, `orden`, `reglas`, `resenas`, `relacionados` y los segundos bloques de `seguridad` y `sesiones`) exige una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas. Con Docker Compose, la base se recrea con `docker compose down -v` y `docker compose up -d db db-init`, y las pruebas se ejecutan desde `api/` con `DB_USER=shopcart_app` y `DB_PASSWORD` igual a `APP_DB_PASSWORD`.
+`servicios.test.ts` no necesita base de datos y tampoco el primer bloque de `seguridad.test.ts` y de `sesiones.test.ts`. Lo demás (`roles`, `flujo`, `concurrencia`, `direcciones`, `dashboard`, `despacho`, `catalogo`, `orden`, `reglas`, `resenas`, `relacionados` y los segundos bloques de `seguridad` y `sesiones`) exige una base **recién creada** con todos los scripts y una conexión (`DB_USER` y `DB_PASSWORD`, o `TEST_DB_CONNECTION_STRING` con el controlador `msnodesqlv8` para SQL Server LocalDB). Sin conexión se omiten. Crean y modifican datos: usar una base de pruebas. Con Docker Compose, la base se recrea con `docker compose down -v` y `docker compose up -d db db-init`, y las pruebas se ejecutan desde `api/` con `DB_USER=shopcart_app` y `DB_PASSWORD` igual a `APP_DB_PASSWORD`.
 
 Las pruebas que necesitan tocar la base directamente están en `database/pruebas/` (`aplicar.sh` no ejecuta esa carpeta) y se ejecutan con `sa`:
 
@@ -134,6 +134,7 @@ En Git Bash para Windows, anteponer `MSYS_NO_PATHCONV=1` para que no reescriba `
 | `permisos.sql` | `shopcart_app` solo puede ejecutar SP: no lee ni modifica tablas, incluidas las de roles. `FU_Auth_TienePermiso` da todo al Administrador, nada de personal al Cliente y al Operador solo pedidos e inventario; ningún rol tiene `roles.gestionar` en `RolPermisos`. |
 | `bitacora.sql` | Ni siquiera `sa` puede modificar o borrar la bitácora (error 51403). |
 | `resenas.sql` | `SP_Resenas_Crear` rechaza a quien no tiene un pedido `Entregado` con el producto, a otro rol y una segunda reseña, y la tabla rechaza una calificación fuera de 1 a 5. |
+| `despacho.sql` | `SP_Pedidos_CambiarEstado` exige los datos de despacho y entrega, los guarda en `PedidoEnvios` en la misma transacción que el estado y deja pasar las demás transiciones sin ellos. Los CHECK rechazan peso cero y costo negativo. |
 | `transiciones.sql` | El trigger rechaza un `UPDATE` directo con una transición que no está en `PedidoTransiciones`, y las devoluciones siguen funcionando. |
 | `reserva_vencida.sql` | Una reserva vencida deja de restar del disponible, otro cliente puede reservar esa existencia, ya no se convierte en pedido y un pago nuevo la anula. Adelanta `Expira` con un `UPDATE` para no esperar 15 minutos. |
 
@@ -239,7 +240,7 @@ Solo para desarrollo, creadas por los scripts de `database/02_semillas`. Cámbie
 
 Cupones de ejemplo: `BIENVENIDA10` (10 %, una vez por cliente), `Q50` (Q50 con compra mínima de Q300), `ELECTRO15` (15 % solo en Electrónica), `LIMITADO5` (5 usos en total), `VENCIDO` e `INACTIVO` (para ver los rechazos).
 
-Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer.
+Datos de demostración (`02_semillas/002_demostracion.sql`), para que el dashboard no salga vacío: direcciones de los dos clientes, 14 pedidos de los últimos 75 días en todos los estados (con devoluciones parciales y totales y una cancelación, y con su fila de `PedidoEnvios` desde `Despachado`) y 3 carritos abandonados (uno de `cliente2@shopcart.test` y dos de invitados). Ningún pedido es de hoy ni de ayer.
 
 Reseñas de prueba (`02_semillas/003_resenas.sql`): 34 reseñas inventadas en 12 productos con foto. **Son datos de prueba**: sus autores son 6 clientes desactivados (`resena1@shopcart.test` a `resena6@shopcart.test`), sin contraseña válida y sin pedidos, así que esas reseñas se escribieron directamente y no provienen de una compra real. Las reseñas creadas desde la tienda sí exigen un pedido `Entregado`.
 
@@ -287,7 +288,7 @@ database/
 
 - Cada archivo se ejecuta en su propia transacción (en `01` y `02`, junto con su registro). Si algo falla, no queda nada a medias y el contenedor `db-init` termina con error.
 - Un archivo no abre ni confirma transacciones propias.
-- Las tablas no se pueden reaplicar: un cambio en una tabla ya creada exige un archivo nuevo en `01_tablas` (por ejemplo `010_cambio.sql` con `ALTER TABLE`), nunca editar el existente. Excepción de esta entrega: como todavía no hay ninguna base entregada, las correcciones de la Fase 1 editaron `01_tablas` y `02_semillas` directamente, incluidos el rol de `Usuarios`, la audiencia de `RefreshTokens` y el módulo `Roles` de la bitácora; una base creada antes de estas correcciones se debe recrear (`docker compose down -v`).
+- Las tablas no se pueden reaplicar: un cambio en una tabla ya creada exige un archivo nuevo en `01_tablas` (por ejemplo `010_cambio.sql` con `ALTER TABLE`), nunca editar el existente. Excepción de esta entrega: como todavía no hay ninguna base entregada, las correcciones de la Fase 1 editaron `01_tablas` y `02_semillas` directamente, incluidos el rol de `Usuarios`, la audiencia de `RefreshTokens` y el módulo `Roles` de la bitácora; una base creada antes de estas correcciones se debe recrear (`docker compose down -v`). La tabla `PedidoEnvios` llegó en un archivo nuevo, `011_pedido_envios.sql`, pero sus filas de demostración están en `002_demostracion.sql`, que no se vuelve a aplicar: una base de demostración ya creada también se debe recrear, porque sus pedidos despachados no tendrían envío y no se podrían entregar (409).
 - Para crear la base sin Docker: ejecutar `00_base/001_crear_base.sql` en `master` (`sqlcmd -v DB_NAME=ShopCart`; en SSMS, modo SQLCMD con `:setvar DB_NAME ShopCart`) y luego los demás archivos en el orden descrito.
 - Si una vista o función depende de otra, se les pone un prefijo numérico para que se creen en orden. Hoy ninguna lo necesita.
 
@@ -320,6 +321,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 - Carrito abandonado: abierto, con productos y sin cambios en las últimas 24 horas. Las 24 horas son el valor por defecto del parámetro `horas` de `/api/admin/dashboard/indicadores` y `/api/admin/dashboard/carritos-abandonados`.
 - Cualquier cambio en el carrito anula su reserva activa: el cliente debe iniciar el pago otra vez. Repetir el inicio del pago **sin** cambios devuelve la misma reserva (doble clic).
 - Direcciones: cada cliente registra, lista, modifica y desactiva las suyas en `/api/cliente/direcciones`; la de otro usuario responde 404 en la API y en los SP. Al pagar se elige una con `idDireccion` o se envía el texto de una nueva, que queda registrada (si ya existe una idéntica se reutiliza). Reservas y pedidos guardan `IDDireccion` y copian el texto, así modificar o desactivar la dirección después no altera un pedido.
+- Despacho y entrega: `PATCH /api/admin/pedidos/{id}/estado` exige `mensajeria`, `guia`, `pesoKg` y `costoRecogida` para pasar a `Despachado`, y `recibidoPor` para pasar a `Entregado`; si faltan responde 400. En las demás transiciones esos campos se ignoran. El detalle del pedido los devuelve en `envio` (`null` antes del despacho): administración los ve todos y el Cliente todos menos el costo de recogida.
 - Las devoluciones las registra quien tenga `pedidos.gestionar` (`POST /api/admin/pedidos/{id}/devoluciones`); el Cliente consulta las de sus pedidos en `/api/cliente/pedidos/{id}/devoluciones`.
 - Las escrituras del catálogo exigen `catalogo.gestionar` y nada con ventas o movimientos se elimina: se desactiva. Las variantes y los cupones no tienen ruta para borrar: se desactivan con `activa: false` (`PUT /api/admin/productos/variantes/{id}`) y `activo: false` (`PUT /api/admin/cupones/{id}`), porque los referencian carritos, reservas, pedidos y usos.
 - Reseñas: solo un Cliente (`POST /api/cliente/productos/{id}/resenas`) con un pedido `Entregado` que contenga una variante del producto, una por usuario y producto (`UQ_Resenas_Producto_Usuario`). Sin compra responde 403 con `RESENA_SIN_COMPRA` y repetida 409 con `RESENA_DUPLICADA`; `GET /api/cliente/productos/{id}/resenas/permiso` lo indica antes de mostrar el formulario. El listado es público (`GET /api/publico/productos/{id}/resenas`) y muestra el nombre y la inicial del apellido (`FU_Resenas_Publicas`), nunca el correo ni el id del usuario. Si el nombre registrado es un correo, se muestra "Cliente". Una reseña no se edita ni se borra, y se conserva aunque el pedido se devuelva después.
@@ -350,6 +352,7 @@ SELECT * FROM dbo.VW_Pedidos_Resumen ORDER BY FechaCreacion DESC;
 | Roles y permisos | `Usuarios.Rol` guarda el nombre del rol, con llave foránea a `Roles`. `FU_Auth_TienePermiso` decide; el middleware la consulta en cada petición por `SP_Auth_TienePermiso` y los SP la repiten, así quitar un permiso tiene efecto inmediato. El Cliente se sigue tratando por nombre para la propiedad de pedidos y devoluciones. |
 | Escalar privilegios | `roles.gestionar` no se puede asignar a ningún rol. Con `usuarios.gestionar` no se asignan ni se cambian roles de empleado, porque quien crea un usuario elige su clave, ni se modifica a un administrador. Nadie cambia su propio rol ni se desactiva. Cambiar un rol cierra las sesiones del usuario. |
 | Estados | Tabla `PedidoTransiciones`, validada en el servicio, en `SP_Pedidos_CambiarEstado` y en el trigger `TR_Pedidos_ValidarTransicion` (AFTER UPDATE), que rechaza con 52409 cualquier cambio de estado fuera de la tabla aunque no pase por los SP. |
+| Despacho y entrega | `SP_Pedidos_CambiarEstado` exige mensajería, guía, peso y costo de recogida para pasar a `Despachado`, y quién recibió para pasar a `Entregado` (52400). Escribe `PedidoEnvios`, con una fila por pedido, en la misma transacción que el estado. La API valida lo mismo con zod, pero el SP es la barrera definitiva. Son datos del pedido, no estados nuevos, y el costo de recogida no llega a reportes. |
 | Existencia | Solo `SP_Inventario_RegistrarMovimiento` la cambia, junto con su fila de kardex en la misma transacción. |
 | Bitácora | Triggers sobre productos, variantes, cupones, estado de pedidos, roles, permisos de cada rol y rol de cada usuario, más un trigger `INSTEAD OF UPDATE, DELETE` que la hace inmutable. El SP guarda el usuario con `sp_set_session_context`. |
 | Permisos | Rol `RolShopCartApp` con `EXECUTE` y nada más. Se verifica en `database/pruebas/permisos.sql`. |
@@ -477,6 +480,7 @@ erDiagram
     Pedidos ||--o{ PedidoDetalle : "lineas"
     Variantes ||--o{ PedidoDetalle : ""
     Pedidos ||--o{ PedidoHistorial : "cambios"
+    Pedidos ||--o| PedidoEnvios : "envio"
     Pedidos ||--o| CuponUsos : "uso"
     Cupones ||--o{ CuponUsos : "usos"
     Usuarios ||--o{ CuponUsos : "usa"
@@ -495,8 +499,8 @@ Pedido (las transiciones salen de `PedidoTransiciones`):
 stateDiagram-v2
     [*] --> Pagado: confirmar el pago
     Pagado --> EnPreparacion: Operador
-    EnPreparacion --> Despachado: Operador
-    Despachado --> Entregado: Operador
+    EnPreparacion --> Despachado: Operador, con los datos del envío
+    Despachado --> Entregado: Operador, con quién recibió
     Pagado --> Cancelado: antes del despacho
     EnPreparacion --> Cancelado: antes del despacho
     Entregado --> DevueltoParcial: devolución de parte
@@ -506,6 +510,8 @@ stateDiagram-v2
     Cancelado --> [*]
     Devuelto --> [*]
 ```
+
+Despachar y entregar no agregan estados: guardan sus datos en `PedidoEnvios`, y `SP_Pedidos_CambiarEstado` rechaza con 52400 el cambio si faltan.
 
 Reserva de existencia:
 
@@ -530,15 +536,15 @@ stateDiagram-v2
 3. `GET /api/cliente/direcciones` lista las direcciones del cliente; `POST /api/cliente/direcciones` registra una.
 4. `POST /api/cliente/checkout/pagos` con `idDireccion` (o el texto de una dirección nueva) reserva la existencia 15 minutos.
 5. `POST /api/cliente/checkout/reservas/{id}/pedido` confirma el pago simulado y crea el pedido.
-6. El Operador avanza el pedido con `PATCH /api/admin/pedidos/{id}/estado`; las devoluciones se registran en `POST /api/admin/pedidos/{id}/devoluciones`. El Cliente cancela el suyo con `PATCH /api/cliente/pedidos/{id}/estado`.
+6. El Operador avanza el pedido con `PATCH /api/admin/pedidos/{id}/estado`, con los datos del envío al despachar y quién recibió al entregar; las devoluciones se registran en `POST /api/admin/pedidos/{id}/devoluciones`. El Cliente cancela el suyo con `PATCH /api/cliente/pedidos/{id}/estado`.
 
 ## Estado de la verificación
 
 La separación en dos servicios y los roles se verificaron con SQL Server 2022 en Docker (`mcr.microsoft.com/mssql/server:2022-latest`) y Node.js 24:
 
 - `docker compose` sobre un volumen vacío crea la base desde `00_base`, aplica todos los scripts y `db-init` termina con código 0.
-- `npx tsc --noEmit` sin errores, `npm run build` correcto y `npm test` con 69 pruebas aprobadas sobre una base recién creada, incluidas las de concurrencia.
-- `database/pruebas/ejecutar.sh` con las cuatro pruebas SQL aprobadas.
+- `npx tsc --noEmit` sin errores, `npm run build` correcto y `npm test` con 77 pruebas aprobadas sobre una base recién creada, incluidas las de concurrencia.
+- `database/pruebas/ejecutar.sh` con las cinco pruebas SQL aprobadas.
 - `docker compose up --build` con los cuatro servicios, comprobado con curl: `/api/salud` identifica a cada uno, las rutas públicas responden 200, los dos logins funcionan, el login por el servicio equivocado y el cruce de tokens responden 401, las rutas del otro servicio responden 404, la verificación previa de CORS solo da permisos al origen propio y `/api/docs` documenta solo ese servicio.
 
 No se volvió a probar en SQL Server LocalDB 2019.

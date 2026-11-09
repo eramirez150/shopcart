@@ -383,7 +383,7 @@ paths:
   /cliente/pedidos/{id}:
     get:
       tags: [Pedidos]
-      summary: Pedido con líneas e historial (un pedido ajeno responde 404)
+      summary: Pedido con líneas, historial y envío (un pedido ajeno responde 404)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/Pedido' }
@@ -632,7 +632,7 @@ components:
             Telefono: '55551234'
             lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Cantidad: 2, PrecioUnitario: 349, Descuento: 33.66 }]
     Pedido:
-      description: Pedido con líneas e historial
+      description: Pedido con líneas, historial y envío (null antes del despacho). El costo de recogida no se expone.
       content:
         application/json:
           example:
@@ -652,6 +652,7 @@ components:
             ReferenciaPago: SIM-741A8A6C-9C9D-4A7D-977A-703C1F7BFDBF
             lineas: [{ IDPedidoDetalle: 1, IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Cantidad: 2, PrecioUnitario: 349, Descuento: 33.66, CantidadDevuelta: 0 }]
             historial: [{ EstadoAnterior: null, EstadoNuevo: Pagado, IDUsuario: 3, Usuario: Carla Cliente, Comentario: Pedido creado }]
+            envio: { Mensajeria: Mensajería Central, Guia: GUIA-1001, PesoKg: 2.35, RecibidoPor: Ana López, FechaDespacho: '2026-11-02T15:34:19.000Z', FechaEntrega: '2026-11-03T18:10:00.000Z' }
     Devoluciones:
       description: Devoluciones del pedido con sus líneas
       content:

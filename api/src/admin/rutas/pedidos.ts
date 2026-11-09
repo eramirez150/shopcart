@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { autenticar, autorizar, idUsuario } from '../../middleware/auth.js';
-import { estadosManuales, filtrosPedidos, id, MAX_INT } from '../../compartido/esquemas.js';
+import { cambioEstadoAdmin, filtrosPedidos, id, MAX_INT } from '../../compartido/esquemas.js';
 import * as servicio from '../../modules/pedidos/service.js';
 
 export const rutasPedidos = Router();
@@ -16,8 +16,8 @@ rutasPedidos.get('/:id', autorizar('pedidos.ver'), async (req, res) => {
 });
 
 rutasPedidos.patch('/:id/estado', autorizar('pedidos.gestionar'), async (req, res) => {
-  const b = z.object({ estado: estadosManuales, comentario: z.string().trim().max(300).nullish() }).parse(req.body);
-  res.json(await servicio.cambiarEstado(req.usuario!, id.parse(req.params.id), b.estado, b.comentario ?? null));
+  const { estado, comentario, ...envio } = cambioEstadoAdmin.parse(req.body);
+  res.json(await servicio.cambiarEstado(req.usuario!, id.parse(req.params.id), estado, comentario ?? null, envio));
 });
 
 rutasPedidos.get('/:id/devoluciones', autorizar('pedidos.ver'), async (req, res) => {

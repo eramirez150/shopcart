@@ -17,6 +17,23 @@ export const refreshToken = z.string().min(20).max(200);
 const estadosPedido = ['Pagado', 'EnPreparacion', 'Despachado', 'Entregado', 'DevueltoParcial', 'Devuelto', 'Cancelado'] as const;
 // Estados que se piden a mano: los de devolución se alcanzan registrando una devolución.
 export const estadosManuales = z.enum(['EnPreparacion', 'Despachado', 'Entregado', 'Cancelado']);
+
+// Cambio de estado desde administración. Despachar y entregar exigen sus datos, y
+// SP_Pedidos_CambiarEstado los vuelve a exigir. En las demás transiciones se ignoran.
+const comentario = z.string().trim().max(300).nullish();
+export const cambioEstadoAdmin = z.discriminatedUnion('estado', [
+  z.object({
+    estado: z.literal('Despachado'),
+    comentario,
+    mensajeria: z.string().trim().min(1).max(100),
+    guia: z.string().trim().min(1).max(60),
+    pesoKg: z.number().positive().max(999999.99).multipleOf(0.01),
+    costoRecogida: dinero,
+  }),
+  z.object({ estado: z.literal('Entregado'), comentario, recibidoPor: z.string().trim().min(1).max(150) }),
+  z.object({ estado: estadosManuales.exclude(['Despachado', 'Entregado']), comentario }),
+]);
+
 export const filtrosPedidos = z.object({
   estado: z.enum(estadosPedido).optional(),
   desde: fecha.optional(),

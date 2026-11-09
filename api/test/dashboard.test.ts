@@ -54,8 +54,13 @@ describe('dashboard: ventas netas y ticket promedio', { skip: !hayBase && 'sin c
     assert.equal(centavos(pagado.Ventas), centavos(antes.Ventas));
     assert.equal(pagado.TicketPromedio, Math.round((pagado.MontoVendido / pagado.PedidosPagados) * 100) / 100);
 
-    for (const estado of ['EnPreparacion', 'Despachado', 'Entregado']) {
-      assert.equal((await s.pedir('PATCH', `/admin/pedidos/${idPedido}/estado`, { token: operador, cuerpo: { estado } })).estado, 200);
+    const pasos = [
+      { estado: 'EnPreparacion' },
+      { estado: 'Despachado', mensajeria: 'Mensajería Central', guia: 'GUIA-3001', pesoKg: 1, costoRecogida: 25 },
+      { estado: 'Entregado', recibidoPor: 'Cliente de prueba' },
+    ];
+    for (const cuerpo of pasos) {
+      assert.equal((await s.pedir('PATCH', `/admin/pedidos/${idPedido}/estado`, { token: operador, cuerpo })).estado, 200);
     }
     const entregado = await indicadores();
     assert.equal(entregado.Pedidos, antes.Pedidos + 1);

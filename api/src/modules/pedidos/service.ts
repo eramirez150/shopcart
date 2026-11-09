@@ -13,12 +13,12 @@ const TRANSICIONES: Record<string, EstadoPedido[]> = {
   Despachado: ['Entregado'],
 };
 
-export async function cambiarEstado(usuario: UsuarioToken, idPedido: number, estado: EstadoPedido, comentario: string | null) {
+export async function cambiarEstado(usuario: UsuarioToken, idPedido: number, estado: EstadoPedido, comentario: string | null, envio: repo.DatosEnvio = {}) {
   const actual = await repo.obtener(usuario.id, idPedido);
   if (!(TRANSICIONES[actual.Estado] ?? []).includes(estado)) {
     throw new AppError(409, `No se puede pasar de ${actual.Estado} a ${estado}`, 'TRANSICION_INVALIDA');
   }
-  return repo.cambiarEstado(usuario.id, idPedido, estado, comentario);
+  return repo.cambiarEstado(usuario.id, idPedido, estado, comentario, envio);
 }
 
 export const { listar, obtener, registrarDevolucion, listarDevoluciones } = repo;
