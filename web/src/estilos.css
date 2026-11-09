@@ -470,6 +470,10 @@ svg {
   gap: 12px;
 }
 
+.fila-campos > * {
+  min-width: 0;
+}
+
 .casilla {
   display: flex;
   align-items: center;

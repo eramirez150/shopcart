@@ -1,13 +1,14 @@
-// Pedido visto por el operador: cambio de estado y devoluciones por línea.
+// Pedido visto por el operador: cambio de estado (con datos de despacho y entrega) y devoluciones por línea.
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
-import { api, mensajeDe } from '../api/cliente';
+import { api, ErrorApi, mensajeDe } from '../api/cliente';
 import type { EstadoPedido, Pedido } from '../api/tipos';
 import { useApi } from '../api/useApi';
+import { Campo } from '../componentes/Campo';
 import { cargarPedido, DetallePedido } from '../componentes/DetallePedido';
 import { Aviso, EsqueletoFilas, MensajeError } from '../componentes/Estados';
 import { NOMBRE_ESTADO } from '../formato';
-import { maximo, requerido } from '../validacion';
+import { maximo, numero, requerido, sinErrores, tope } from '../validacion';
 
 // Las mismas transiciones que dbo.PedidoTransiciones; la API las vuelve a validar.
 const SIGUIENTES: Partial<Record<EstadoPedido, EstadoPedido[]>> = {
@@ -18,31 +19,71 @@ const SIGUIENTES: Partial<Record<EstadoPedido, EstadoPedido[]>> = {
 
 type EstadoAviso = { tipo: 'ok' | 'error'; texto: string } | null;
 
+const ENVIO_VACIO = { mensajeria: '', guia: '', pesoKg: '', costoRecogida: '', recibidoPor: '' };
+type CampoEnvio = keyof typeof ENVIO_VACIO;
+
+// Mismos límites que cambioEstadoAdmin en la API.
+function validarEnvio(estado: string, d: typeof ENVIO_VACIO): Partial<Record<CampoEnvio, string | undefined>> {
+  if (estado === 'Despachado') {
+    return {
+      mensajeria: requerido(d.mensajeria, 'Escribe la mensajería.') ?? maximo(d.mensajeria, 100),
+      guia: requerido(d.guia, 'Escribe el número de guía.') ?? maximo(d.guia, 60),
+      pesoKg: numero(d.pesoKg, { min: 0.01, nombre: 'El peso' }) ?? tope(d.pesoKg, 999999.99, 'El peso'),
+      costoRecogida: numero(d.costoRecogida, { min: 0, nombre: 'El costo' }) ?? tope(d.costoRecogida, 9999999999.99, 'El costo'),
+    };
+  }
+  if (estado === 'Entregado') return { recibidoPor: requerido(d.recibidoPor, 'Escribe quién recibió.') ?? maximo(d.recibidoPor, 150) };
+  return {};
+}
+
+function cuerpoEnvio(estado: string, d: typeof ENVIO_VACIO) {
+  if (estado === 'Despachado') {
+    return { mensajeria: d.mensajeria.trim(), guia: d.guia.trim(), pesoKg: Number(d.pesoKg), costoRecogida: Number(d.costoRecogida) };
+  }
+  if (estado === 'Entregado') return { recibidoPor: d.recibidoPor.trim() };
+  return {};
+}
+
 function CambioEstado({ pedido, listo }: { pedido: Pedido; listo: (texto: string) => void }) {
   const opciones = SIGUIENTES[pedido.Estado] ?? [];
   const [estado, setEstado] = useState(opciones[0] ?? '');
   const [comentario, setComentario] = useState('');
+  const [envio, setEnvio] = useState(ENVIO_VACIO);
+  const [errores, setErrores] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   if (opciones.length === 0) return null;
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
-    const err = maximo(comentario, 300);
-    if (err) return setError(err);
     if (enviando) return;
-    setEnviando(true);
+    const encontrados = sinErrores({ ...validarEnvio(estado, envio), comentario: maximo(comentario, 300) });
+    setErrores(encontrados ?? {});
     setError('');
+    if (encontrados) return;
+    setEnviando(true);
     try {
-      await api(`/admin/pedidos/${pedido.IDPedido}/estado`, { metodo: 'PATCH', cuerpo: { estado, comentario: comentario.trim() || null } });
+      await api(`/admin/pedidos/${pedido.IDPedido}/estado`, {
+        metodo: 'PATCH',
+        cuerpo: { estado, comentario: comentario.trim() || null, ...cuerpoEnvio(estado, envio) },
+      });
       setComentario('');
+      setEnvio(ENVIO_VACIO);
       listo(`El pedido pasó a ${NOMBRE_ESTADO[estado as EstadoPedido]}.`);
-    } catch (err2) {
-      setError(mensajeDe(err2));
+    } catch (err) {
+      if (err instanceof ErrorApi) setErrores(err.campos());
+      setError(mensajeDe(err));
     } finally {
       setEnviando(false);
     }
   }
+
+  const campo = (nombre: CampoEnvio) => ({
+    id: nombre,
+    value: envio[nombre],
+    error: errores[nombre],
+    onChange: (e: { target: { value: string } }) => setEnvio({ ...envio, [nombre]: e.target.value }),
+  });
 
   return (
     <form className="tarjeta-formulario" onSubmit={enviar} noValidate>
@@ -57,10 +98,27 @@ function CambioEstado({ pedido, listo }: { pedido: Pedido; listo: (texto: string
           ))}
         </select>
       </div>
-      <div className="campo">
-        <label htmlFor="comentario">Comentario (opcional)</label>
-        <input id="comentario" value={comentario} maxLength={300} onChange={(e) => setComentario(e.target.value)} />
-      </div>
+      {estado === 'Despachado' && (
+        <>
+          <div className="fila-campos">
+            <Campo etiqueta="Mensajería" maxLength={100} {...campo('mensajeria')} />
+            <Campo etiqueta="Guía" maxLength={60} {...campo('guia')} />
+          </div>
+          <div className="fila-campos">
+            <Campo etiqueta="Peso (kg)" inputMode="decimal" {...campo('pesoKg')} />
+            <Campo etiqueta="Costo de recogida (Q)" inputMode="decimal" {...campo('costoRecogida')} />
+          </div>
+        </>
+      )}
+      {estado === 'Entregado' && <Campo etiqueta="Recibido por" maxLength={150} {...campo('recibidoPor')} />}
+      <Campo
+        etiqueta="Comentario (opcional)"
+        id="comentario"
+        value={comentario}
+        maxLength={300}
+        error={errores.comentario}
+        onChange={(e) => setComentario(e.target.value)}
+      />
       {error && <Aviso tipo="error">{error}</Aviso>}
       <button type="submit" className="boton boton-principal" disabled={enviando}>
         {enviando ? 'Guardando…' : 'Guardar estado'}

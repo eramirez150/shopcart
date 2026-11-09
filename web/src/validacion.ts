@@ -28,6 +28,11 @@ export function numero(v: string, { min, entero = false, nombre = 'El valor' }: 
   return undefined;
 }
 
+// Tope superior para un número que ya pasó `numero`.
+export function tope(v: string, max: number, nombre = 'El valor') {
+  return Number(v) > max ? `${nombre} no puede pasar de ${max}.` : undefined;
+}
+
 // Quita las entradas sin error; si el objeto queda vacío, el formulario es válido.
 export function sinErrores(errores: Record<string, string | undefined>): Record<string, string> | null {
   const r: Record<string, string> = {};

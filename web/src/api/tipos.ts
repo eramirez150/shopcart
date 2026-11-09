@@ -197,6 +197,18 @@ export interface Pedido extends PedidoResumen {
   ReferenciaPago: string;
   lineas: LineaPedido[];
   historial: { EstadoAnterior: EstadoPedido | null; EstadoNuevo: EstadoPedido; IDUsuario: number; Usuario: string; Comentario: string | null; Fecha: string }[];
+  envio: EnvioPedido | null;
+}
+
+// Datos del despacho y la entrega. El costo de recogida solo llega en el panel.
+export interface EnvioPedido {
+  Mensajeria: string;
+  Guia: string;
+  PesoKg: number;
+  CostoRecogida?: number;
+  RecibidoPor: string | null;
+  FechaDespacho: string;
+  FechaEntrega: string | null;
 }
 
 export interface Devolucion {

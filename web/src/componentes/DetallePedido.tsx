@@ -1,7 +1,7 @@
-// Datos de un pedido: líneas, totales, entrega, historial de estados y devoluciones.
+// Datos de un pedido: líneas, totales, entrega, envío, historial de estados y devoluciones.
 // Lo usan Mi cuenta y el panel; cada uno agrega sus propias acciones.
 import { api } from '../api/cliente';
-import type { Devolucion, Pedido } from '../api/tipos';
+import type { Devolucion, EnvioPedido, Pedido } from '../api/tipos';
 import { fechaYHora, NOMBRE_ESTADO, quetzales } from '../formato';
 import { Precio } from './Precio';
 
@@ -10,6 +10,49 @@ export const cargarPedido = async (base: string, id: string) => {
   const [pedido, devoluciones] = await Promise.all([api<Pedido>(`${base}/${id}`), api<Devolucion[]>(`${base}/${id}/devoluciones`)]);
   return { pedido, devoluciones };
 };
+
+const kilos = new Intl.NumberFormat('es-GT', { maximumFractionDigits: 2 });
+
+function DatosEnvio({ envio }: { envio: EnvioPedido }) {
+  return (
+    <>
+      <h2>Envío</h2>
+      <dl className="datos">
+        <div>
+          <dt>Mensajería</dt>
+          <dd>{envio.Mensajeria}</dd>
+        </div>
+        <div>
+          <dt>Guía</dt>
+          <dd className="texto-partido">{envio.Guia}</dd>
+        </div>
+        <div>
+          <dt>Peso</dt>
+          <dd>{kilos.format(envio.PesoKg)} kg</dd>
+        </div>
+        {envio.CostoRecogida != null && (
+          <div>
+            <dt>Costo de recogida</dt>
+            <dd>{quetzales(envio.CostoRecogida)}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Despachado</dt>
+          <dd>{fechaYHora(envio.FechaDespacho)}</dd>
+        </div>
+        {envio.FechaEntrega && (
+          <div>
+            <dt>Entregado</dt>
+            <dd>
+              {fechaYHora(envio.FechaEntrega)}
+              {envio.RecibidoPor && ` · recibió ${envio.RecibidoPor}`}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </>
+  );
+}
 
 export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devoluciones: Devolucion[] | null }) {
   const skuDe = new Map(pedido.lineas.map((l) => [l.IDPedidoDetalle, l.Producto]));
@@ -76,6 +119,8 @@ export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devolu
         </div>
         <p className="texto-suave">IVA incluido: {quetzales(pedido.IVA)}</p>
       </dl>
+
+      {pedido.envio && <DatosEnvio envio={pedido.envio} />}
 
       <h2>Historial</h2>
       <ol className="historial">
