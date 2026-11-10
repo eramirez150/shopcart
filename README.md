@@ -3,6 +3,20 @@
 Plataforma web de ventas con SQL Server, dos servicios en Express con TypeScript (tienda y administración) y frontend en React con TypeScript.
 La especificación está en [docs/especificacion.md](docs/especificacion.md). La Fase 1 entregó la base de datos y la API; la Fase 2 agrega el frontend en `web/`, con la tienda y el panel en contenedores separados.
 
+## Entregas
+
+| Fase | Alcance | Cierre | Dónde verla |
+| --- | --- | --- | --- |
+| 1 | Base de datos y backend (dos servicios de API) | 2 de noviembre de 2026 | Tag [`fase-1`](https://github.com/eramirez150/shopcart/releases/tag/fase-1) |
+| 2 | Frontend (tienda y panel) y proyecto completo | 9 de noviembre de 2026 | Tag [`fase-2`](https://github.com/eramirez150/shopcart/releases/tag/fase-2) y rama `main` |
+
+La rama `main` contiene la Fase 2 completa. Lo agregado en la Fase 2:
+
+- Tienda: catálogo, búsqueda, detalle con variantes y reseñas, carrito de invitado, cupones, checkout y "Mi cuenta" con el seguimiento del envío.
+- Panel de administración: dashboard, pedidos con despacho y entrega, inventario y kardex, catálogo y precios, cupones, usuarios, roles y permisos, y bitácora.
+- Despacho y entrega: mensajería, guía, peso y costo de recogida al despachar, y quién recibió al entregar.
+- Dos aplicaciones web separadas, cada una con su contenedor, su login y su servicio de API.
+
 ## Cómo se ve
 
 Capturas tomadas con Chrome sobre una base recién creada y los datos de demostración.
