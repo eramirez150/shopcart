@@ -3,6 +3,28 @@
 Plataforma web de ventas con SQL Server, dos servicios en Express con TypeScript (tienda y administración) y frontend en React con TypeScript.
 La especificación está en [docs/especificacion.md](docs/especificacion.md). La Fase 1 entregó la base de datos y la API; la Fase 2 agrega el frontend en `web/`, con la tienda y el panel en contenedores separados.
 
+## Cómo se ve
+
+Capturas tomadas con Chrome sobre una base recién creada y los datos de demostración.
+
+| Tienda en computadora | Tienda en celular | Producto |
+| --- | --- | --- |
+| ![Inicio de la tienda](docs/capturas/01-tienda-inicio.png) | ![Inicio en celular](docs/capturas/02-tienda-inicio-celular.png) | ![Detalle de producto](docs/capturas/03-tienda-producto-celular.png) |
+
+| Carrito | Seguimiento del pedido (cliente) |
+| --- | --- |
+| ![Carrito](docs/capturas/04-tienda-carrito.png) | ![Seguimiento del envío](docs/capturas/05-cliente-seguimiento-celular.png) |
+
+| Operador: pedidos por despachar | Operador: pedido con envío |
+| --- | --- |
+| ![Pedidos por despachar](docs/capturas/06-operador-por-despachar.png) | ![Pedido con datos de envío](docs/capturas/07-operador-pedido.png) |
+
+| Administrador: dashboard | Administrador: roles y permisos | Panel en celular |
+| --- | --- | --- |
+| ![Dashboard](docs/capturas/08-admin-dashboard.png) | ![Roles](docs/capturas/09-admin-roles.png) | ![Categorías en celular](docs/capturas/10-admin-categorias-celular.png) |
+
+Recorrido del pedido: el cliente paga, el operador lo pasa a En preparación, lo marca como despachado con mensajería, guía, peso y costo de recogida, y luego como entregado con el nombre de quien recibió. El cliente ve cada paso con su fecha en "Mi cuenta"; el costo de recogida solo lo ve el personal.
+
 ## Arquitectura
 
 Cada aplicación web habla solo con su servicio, y los dos servicios comparten base y stored procedures.
