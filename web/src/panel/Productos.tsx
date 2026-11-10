@@ -92,19 +92,19 @@ export function Productos() {
               <tbody>
                 {r.datos.datos.map((p) => (
                   <tr key={p.IDProducto}>
-                    <td>
+                    <td data-etiqueta="Producto">
                       <Link to={`/panel/productos/${p.IDProducto}`}>{p.Nombre}</Link>
                     </td>
-                    <td>
+                    <td data-etiqueta="Categoría">
                       {p.Categoria}
                       {!p.CategoriaActiva && <small className="texto-suave bloque">Categoría inactiva</small>}
                     </td>
-                    <td className="num">
+                    <td data-etiqueta="Variantes" className="num">
                       {p.VariantesActivas} de {p.Variantes}
                     </td>
-                    <td className="num">{precio(p)}</td>
-                    <td className="num">{p.Disponible}</td>
-                    <td>{p.Activo ? 'Activo' : 'Inactivo'}</td>
+                    <td data-etiqueta="Precio" className="num">{precio(p)}</td>
+                    <td data-etiqueta="Disponible" className="num">{p.Disponible}</td>
+                    <td data-etiqueta="Estado">{p.Activo ? 'Activo' : 'Inactivo'}</td>
                   </tr>
                 ))}
               </tbody>

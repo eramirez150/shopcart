@@ -116,11 +116,11 @@ function CarritosAbandonados({ horas }: { horas: string }) {
               <tbody>
                 {r.datos.datos.map((c) => (
                   <tr key={c.IDCarrito}>
-                    <td>#{c.IDCarrito}</td>
-                    <td>{c.Correo ?? 'Invitado'}</td>
-                    <td>{fechaYHora(c.FechaActualizacion)}</td>
-                    <td className="num">{c.Lineas}</td>
-                    <td className="num">{quetzales(c.Valor)}</td>
+                    <td data-etiqueta="Carrito">#{c.IDCarrito}</td>
+                    <td data-etiqueta="Cliente">{c.Correo ?? 'Invitado'}</td>
+                    <td data-etiqueta="Última actividad">{fechaYHora(c.FechaActualizacion)}</td>
+                    <td data-etiqueta="Líneas" className="num">{c.Lineas}</td>
+                    <td data-etiqueta="Valor" className="num">{quetzales(c.Valor)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -227,9 +227,9 @@ export function Dashboard() {
                   <tbody>
                     {d.ventas.map((x, i) => (
                       <tr key={x.Periodo}>
-                        <td>{series.periodos[i]}</td>
-                        <td className="num">{x.Pedidos}</td>
-                        <td className="num">{quetzales(x.Ventas)}</td>
+                        <td data-etiqueta="Periodo">{series.periodos[i]}</td>
+                        <td data-etiqueta="Pedidos" className="num">{x.Pedidos}</td>
+                        <td data-etiqueta="Ventas netas" className="num">{quetzales(x.Ventas)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -258,9 +258,9 @@ export function Dashboard() {
                   <tbody>
                     {d.categorias.map((x) => (
                       <tr key={x.IDCategoria}>
-                        <td>{x.Categoria}</td>
-                        <td className="num">{x.Unidades}</td>
-                        <td className="num">{quetzales(x.Ventas)}</td>
+                        <td data-etiqueta="Categoría">{x.Categoria}</td>
+                        <td data-etiqueta="Unidades" className="num">{x.Unidades}</td>
+                        <td data-etiqueta="Ventas netas" className="num">{quetzales(x.Ventas)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -285,9 +285,9 @@ export function Dashboard() {
                   <tbody>
                     {d.top.map((x) => (
                       <tr key={x.IDProducto}>
-                        <td>{x.Producto}</td>
-                        <td className="num">{x.Unidades}</td>
-                        <td className="num">{quetzales(x.Ventas)}</td>
+                        <td data-etiqueta="Producto">{x.Producto}</td>
+                        <td data-etiqueta="Unidades" className="num">{x.Unidades}</td>
+                        <td data-etiqueta="Ventas netas" className="num">{quetzales(x.Ventas)}</td>
                       </tr>
                     ))}
                   </tbody>

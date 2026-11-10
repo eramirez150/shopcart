@@ -20,7 +20,9 @@ BEGIN
     WHERE c.IDCarrito = @IDCarrito;
 
     SELECT k.IDVariante, v.SKU, p.Nombre AS Producto, v.Atributos, k.Cantidad, k.PrecioUnitario,
-           k.Subtotal, k.Descuento, k.Subtotal - k.Descuento AS Total, d.Disponible
+           k.Subtotal, k.Descuento, k.Subtotal - k.Descuento AS Total, d.Disponible,
+           (SELECT TOP (1) i.Url FROM dbo.ProductoImagenes i
+            WHERE i.IDProducto = p.IDProducto ORDER BY i.Orden, i.IDProductoImagen) AS ImagenPrincipal
     FROM @Calculo k
     JOIN dbo.Variantes v ON v.IDVariante = k.IDVariante
     JOIN dbo.Productos p ON p.IDProducto = v.IDProducto

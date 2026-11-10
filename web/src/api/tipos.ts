@@ -128,6 +128,7 @@ export interface LineaCarrito {
   Descuento: number;
   Total: number;
   Disponible: number;
+  ImagenPrincipal: string | null;
 }
 
 export interface Carrito {

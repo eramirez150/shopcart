@@ -13,6 +13,14 @@ import { numero } from '../validacion';
 
 const TAMANO = 20;
 
+// Atajos del operador: fijan el filtro de estado.
+const ATAJOS: [string, string][] = [
+  ['', 'Todos'],
+  ['Pagado', 'Por despachar'],
+  ['EnPreparacion', 'En preparación'],
+  ['Despachado', 'Despachados'],
+];
+
 export function Pedidos() {
   const f = useFiltros({ estado: '', desde: '', hasta: '', idCliente: '', totalMin: '', totalMax: '', orden: 'recientes' });
   const v = f.valores;
@@ -34,6 +42,13 @@ export function Pedidos() {
   return (
     <section>
       <h1>Pedidos</h1>
+      <div className="atajos" role="group" aria-label="Ver pedidos">
+        {ATAJOS.map(([estado, texto]) => (
+          <button key={texto} type="button" aria-pressed={v.estado === estado} onClick={() => f.cambiar({ estado })}>
+            {texto}
+          </button>
+        ))}
+      </div>
       <form className="filtros-panel" onSubmit={aplicar} noValidate>
         <div className="campo">
           <label htmlFor="estado">Estado</label>
@@ -102,15 +117,15 @@ export function Pedidos() {
               <tbody>
                 {r.datos.datos.map((p) => (
                   <tr key={p.IDPedido}>
-                    <td>
+                    <td data-etiqueta="Pedido">
                       <Link to={`/panel/pedidos/${p.IDPedido}`}>#{p.IDPedido}</Link>
                     </td>
-                    <td>{fecha(p.FechaCreacion)}</td>
-                    <td>
+                    <td data-etiqueta="Fecha">{fecha(p.FechaCreacion)}</td>
+                    <td data-etiqueta="Cliente">
                       {p.Cliente} <small className="texto-suave">(ID {p.IDUsuario})</small>
                     </td>
-                    <td>{NOMBRE_ESTADO[p.Estado]}</td>
-                    <td className="num">{quetzales(p.Total)}</td>
+                    <td data-etiqueta="Estado">{NOMBRE_ESTADO[p.Estado]}</td>
+                    <td data-etiqueta="Total" className="num">{quetzales(p.Total)}</td>
                   </tr>
                 ))}
               </tbody>

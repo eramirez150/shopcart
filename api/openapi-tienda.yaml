@@ -612,7 +612,7 @@ components:
             Subtotal: 1047
             Descuento: 104.7
             Total: 942.3
-            lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Atributos: { Color: Negro }, Cantidad: 3, PrecioUnitario: 349, Subtotal: 1047, Descuento: 104.7, Total: 942.3, Disponible: 40 }]
+            lineas: [{ IDVariante: 1, SKU: ELE-AUD-NEG, Producto: Audífonos inalámbricos, Atributos: { Color: Negro }, Cantidad: 3, PrecioUnitario: 349, Subtotal: 1047, Descuento: 104.7, Total: 942.3, Disponible: 40, ImagenPrincipal: 'https://picsum.photos/seed/shopcart-1/600/600' }]
     Reserva:
       description: Reserva de existencia
       content:

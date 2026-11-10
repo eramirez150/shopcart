@@ -1,7 +1,7 @@
 // Datos de un pedido: líneas, totales, entrega, envío, historial de estados y devoluciones.
 // Lo usan Mi cuenta y el panel; cada uno agrega sus propias acciones.
 import { api } from '../api/cliente';
-import type { Devolucion, EnvioPedido, Pedido } from '../api/tipos';
+import type { Devolucion, EnvioPedido, EstadoPedido, Pedido } from '../api/tipos';
 import { fechaYHora, NOMBRE_ESTADO, quetzales } from '../formato';
 import { Precio } from './Precio';
 
@@ -54,10 +54,47 @@ function DatosEnvio({ envio }: { envio: EnvioPedido }) {
   );
 }
 
+// Avance del envío: pasos cumplidos, el actual resaltado y la fecha en que se alcanzó cada uno.
+const PASOS: EstadoPedido[] = ['Pagado', 'EnPreparacion', 'Despachado', 'Entregado'];
+
+function SeguimientoPedido({ pedido }: { pedido: Pedido }) {
+  const actual = PASOS.indexOf(pedido.Estado);
+  if (actual < 0) {
+    return (
+      <p className="seguimiento-cerrado">
+        Estado del pedido: <strong>{NOMBRE_ESTADO[pedido.Estado]}</strong>
+      </p>
+    );
+  }
+  const fechaDe = (estado: EstadoPedido) => {
+    const h = [...pedido.historial].reverse().find((x) => x.EstadoNuevo === estado);
+    return h?.Fecha ?? (estado === 'Pagado' ? pedido.FechaCreacion : null);
+  };
+  return (
+    <ol className="seguimiento" aria-label="Seguimiento del pedido">
+      {PASOS.map((paso, i) => {
+        const f = i <= actual ? fechaDe(paso) : null;
+        return (
+          <li key={paso} className={i < actual ? 'hecho' : i === actual ? 'actual' : undefined} aria-current={i === actual ? 'step' : undefined}>
+            <strong>{NOMBRE_ESTADO[paso]}</strong>
+            {f && <small className="texto-suave">{fechaYHora(f)}</small>}
+            {paso === 'Despachado' && i <= actual && pedido.envio && (
+              <small className="texto-suave texto-partido">
+                {pedido.envio.Mensajeria} · {pedido.envio.Guia}
+              </small>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function DetallePedido({ pedido, devoluciones }: { pedido: Pedido; devoluciones: Devolucion[] | null }) {
   const skuDe = new Map(pedido.lineas.map((l) => [l.IDPedidoDetalle, l.Producto]));
   return (
     <div className="detalle-pedido">
+      <SeguimientoPedido pedido={pedido} />
       <dl className="datos">
         <div>
           <dt>Estado</dt>

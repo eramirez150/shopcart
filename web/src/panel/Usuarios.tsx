@@ -163,9 +163,9 @@ export function Usuarios() {
                   const yo = u.IDUsuario === usuario?.id;
                   return (
                     <tr key={u.IDUsuario}>
-                      <td>{u.Nombre}</td>
-                      <td>{u.Correo}</td>
-                      <td>
+                      <td data-etiqueta="Nombre">{u.Nombre}</td>
+                      <td data-etiqueta="Correo">{u.Correo}</td>
+                      <td data-etiqueta="Rol">
                         <label className="oculto-visual" htmlFor={`rol-${u.IDUsuario}`}>
                           Rol de {u.Nombre}
                         </label>
@@ -175,7 +175,7 @@ export function Usuarios() {
                           ))}
                         </select>
                       </td>
-                      <td>{u.Activo ? 'Activo' : 'Inactivo'}</td>
+                      <td data-etiqueta="Estado">{u.Activo ? 'Activo' : 'Inactivo'}</td>
                       <td>
                         {!yo && (
                           <button type="button" className="boton-enlace" disabled={ocupado !== null} onClick={() => void actualizar(u, { activo: !u.Activo })}>

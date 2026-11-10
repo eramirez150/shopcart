@@ -69,13 +69,13 @@ export function Inventario() {
               <tbody>
                 {r.datos.datos.map((x) => (
                   <tr key={x.IDVariante}>
-                    <td>{x.SKU}</td>
-                    <td>
+                    <td data-etiqueta="SKU">{x.SKU}</td>
+                    <td data-etiqueta="Producto">
                       {x.Producto} <small className="texto-suave">{textoAtributos(x.Atributos)}</small>
                     </td>
-                    <td className="num">{x.Existencia}</td>
-                    <td className="num">{x.Reservado}</td>
-                    <td className="num">
+                    <td data-etiqueta="Existencia" className="num">{x.Existencia}</td>
+                    <td data-etiqueta="Reservado" className="num">{x.Reservado}</td>
+                    <td data-etiqueta="Disponible" className="num">
                       <strong>{x.Disponible}</strong>
                     </td>
                     <td>

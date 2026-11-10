@@ -87,15 +87,15 @@ export function Bitacora() {
               <tbody>
                 {r.datos.datos.map((b) => (
                   <tr key={b.IDBitacora}>
-                    <td className="sin-salto">{fechaYHora(b.Fecha)}</td>
-                    <td>{b.Usuario ?? 'Sistema'}</td>
-                    <td>{MODULOS.find((m) => m.valor === b.Modulo)?.texto ?? b.Modulo}</td>
-                    <td>
+                    <td data-etiqueta="Fecha" className="sin-salto">{fechaYHora(b.Fecha)}</td>
+                    <td data-etiqueta="Usuario">{b.Usuario ?? 'Sistema'}</td>
+                    <td data-etiqueta="Módulo">{MODULOS.find((m) => m.valor === b.Modulo)?.texto ?? b.Modulo}</td>
+                    <td data-etiqueta="Entidad">
                       {b.Entidad} #{b.IDEntidad}
                     </td>
-                    <td>{b.Accion}</td>
-                    <td className="celda-json">{legible(b.ValorAnterior)}</td>
-                    <td className="celda-json">{legible(b.ValorNuevo)}</td>
+                    <td data-etiqueta="Acción">{b.Accion}</td>
+                    <td data-etiqueta="Antes" className="celda-json">{legible(b.ValorAnterior)}</td>
+                    <td data-etiqueta="Después" className="celda-json">{legible(b.ValorNuevo)}</td>
                   </tr>
                 ))}
               </tbody>

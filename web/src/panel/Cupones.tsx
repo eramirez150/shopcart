@@ -198,18 +198,18 @@ export function Cupones() {
               <tbody>
                 {r.datos.datos.map((c) => (
                   <tr key={c.IDCupon}>
-                    <td>{c.Codigo}</td>
-                    <td>{c.Tipo === 'Porcentaje' ? `${c.Valor} %` : quetzales(c.Valor)}</td>
-                    <td>
+                    <td data-etiqueta="Código">{c.Codigo}</td>
+                    <td data-etiqueta="Descuento">{c.Tipo === 'Porcentaje' ? `${c.Valor} %` : quetzales(c.Valor)}</td>
+                    <td data-etiqueta="Vigencia">
                       {fecha(c.FechaInicio)} a {fecha(c.FechaFin)}
                     </td>
-                    <td className="num">{quetzales(c.MinimoCompra)}</td>
-                    <td className="num">
+                    <td data-etiqueta="Mínimo" className="num">{quetzales(c.MinimoCompra)}</td>
+                    <td data-etiqueta="Usos" className="num">
                       {c.Usos}
                       {c.LimiteTotal != null && ` de ${c.LimiteTotal}`}
                     </td>
-                    <td>{nombreCategoria(c.IDCategoria)}</td>
-                    <td>{c.Activo ? 'Activo' : 'Inactivo'}</td>
+                    <td data-etiqueta="Alcance">{nombreCategoria(c.IDCategoria)}</td>
+                    <td data-etiqueta="Estado">{c.Activo ? 'Activo' : 'Inactivo'}</td>
                     <td>
                       <button type="button" className="boton-enlace" onClick={() => setEditando(c)}>
                         Modificar

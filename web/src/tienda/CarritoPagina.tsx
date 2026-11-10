@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router';
 import { mensajeDe } from '../api/cliente';
 import type { LineaCarrito } from '../api/tipos';
 import { useApi } from '../api/useApi';
-import { Ilustracion } from '../componentes/Ilustraciones';
+import { Ilustracion, SinFoto } from '../componentes/Ilustraciones';
 import { Precio } from '../componentes/Precio';
 import { Aviso, EsqueletoFilas, EsqueletoGrilla, MensajeError } from '../componentes/Estados';
 import { quetzales, textoAtributos } from '../formato';
@@ -71,6 +71,9 @@ function Linea({ linea }: { linea: LineaCarrito }) {
 
   return (
     <li className="linea-carrito">
+      <div className="linea-foto">
+        {linea.ImagenPrincipal ? <img src={linea.ImagenPrincipal} alt="" loading="lazy" /> : <SinFoto categoria="" />}
+      </div>
       <div className="linea-datos">
         <strong>{linea.Producto}</strong>
         <small className="texto-suave">{textoAtributos(linea.Atributos) || linea.SKU}</small>

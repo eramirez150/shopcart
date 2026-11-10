@@ -125,15 +125,15 @@ export function Kardex() {
                   <tbody>
                     {r.datos.datos.map((m) => (
                       <tr key={m.IDKardex}>
-                        <td>{fechaYHora(m.Fecha)}</td>
-                        <td>{NOMBRE_TIPO[m.Tipo] ?? m.Tipo}</td>
-                        <td className="num">{m.Cantidad > 0 ? `+${m.Cantidad}` : m.Cantidad}</td>
-                        <td className="num">{m.ExistenciaResultante}</td>
-                        <td>
+                        <td data-etiqueta="Fecha">{fechaYHora(m.Fecha)}</td>
+                        <td data-etiqueta="Tipo">{NOMBRE_TIPO[m.Tipo] ?? m.Tipo}</td>
+                        <td data-etiqueta="Cantidad" className="num">{m.Cantidad > 0 ? `+${m.Cantidad}` : m.Cantidad}</td>
+                        <td data-etiqueta="Existencia" className="num">{m.ExistenciaResultante}</td>
+                        <td data-etiqueta="Motivo">
                           {m.Motivo}
                           {m.IDPedido && <small className="texto-suave bloque">Pedido #{m.IDPedido}</small>}
                         </td>
-                        <td>{m.Usuario}</td>
+                        <td data-etiqueta="Usuario">{m.Usuario}</td>
                       </tr>
                     ))}
                   </tbody>

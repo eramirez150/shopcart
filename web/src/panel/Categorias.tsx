@@ -110,9 +110,9 @@ export function CategoriasPanel() {
             <tbody>
               {r.datos.map((c) => (
                 <tr key={c.IDCategoria}>
-                  <td>{c.Nombre}</td>
-                  <td>{c.Descripcion}</td>
-                  <td>{c.Activa ? 'Activa' : 'Inactiva'}</td>
+                  <td data-etiqueta="Nombre">{c.Nombre}</td>
+                  <td data-etiqueta="Descripción">{c.Descripcion}</td>
+                  <td data-etiqueta="Estado">{c.Activa ? 'Activa' : 'Inactiva'}</td>
                   <td className="celda-acciones">
                     <button type="button" className="boton-enlace" onClick={() => setEditando(c)}>
                       Modificar

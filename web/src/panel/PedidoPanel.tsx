@@ -17,6 +17,14 @@ const SIGUIENTES: Partial<Record<EstadoPedido, EstadoPedido[]>> = {
   Despachado: ['Entregado'],
 };
 
+// Texto del botón según el estado elegido.
+const ACCION: Partial<Record<EstadoPedido, string>> = {
+  EnPreparacion: 'Pasar a En preparación',
+  Despachado: 'Marcar como despachado',
+  Entregado: 'Marcar como entregado',
+  Cancelado: 'Cancelar pedido',
+};
+
 type EstadoAviso = { tipo: 'ok' | 'error'; texto: string } | null;
 
 const ENVIO_VACIO = { mensajeria: '', guia: '', pesoKg: '', costoRecogida: '', recibidoPor: '' };
@@ -121,7 +129,7 @@ function CambioEstado({ pedido, listo }: { pedido: Pedido; listo: (texto: string
       />
       {error && <Aviso tipo="error">{error}</Aviso>}
       <button type="submit" className="boton boton-principal" disabled={enviando}>
-        {enviando ? 'Guardando…' : 'Guardar estado'}
+        {enviando ? 'Guardando…' : (ACCION[estado as EstadoPedido] ?? 'Guardar estado')}
       </button>
     </form>
   );
